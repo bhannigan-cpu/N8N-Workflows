@@ -21,13 +21,8 @@ function percent(value) {
   return (Number(value) * 100).toFixed(1) + "%";
 }
 
-function pp(value) {
-  if (value === null || value === undefined || value === "N/A") return "N/A";
-
-  const num = Number(value) * 100;
-  const sign = num > 0 ? "+" : "";
-
-  return sign + num.toFixed(1) + " pts";
+function isChangeKey(key) {
+  return key.includes("change") || key === "wow_grs_pct" || key === "yoy_grs_pct";
 }
 
 function escapeHtml(value) {
@@ -38,6 +33,70 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;");
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function mixChannel(start, end, ratio) {
+  return Math.round(start + (end - start) * ratio);
+}
+
+function buildRgb(start, end, ratio) {
+  return `rgb(${mixChannel(start[0], end[0], ratio)}, ${mixChannel(start[1], end[1], ratio)}, ${mixChannel(start[2], end[2], ratio)})`;
+}
+
+function scaleReference(key, rows) {
+  const numericValues = rows
+    .map(function(row) {
+      const value = Number(row[key]);
+      return Number.isFinite(value) ? Math.abs(value) : null;
+    })
+    .filter(function(value) {
+      return value !== null;
+    });
+
+  const observedMax = numericValues.length ? Math.max.apply(null, numericValues) : 0;
+
+  if (key.includes("pct") || (!key.includes("grs") && !key.includes("visits") && key.includes("change"))) {
+    return Math.max(observedMax, 0.2);
+  }
+
+  return Math.max(observedMax, 1);
+}
+
+function computeHeatmapStyles(rows, columns) {
+  const styles = {};
+
+  columns.forEach(function(column) {
+    if (!isChangeKey(column.key)) return;
+    styles[column.key] = {
+      reference: scaleReference(column.key, rows)
+    };
+  });
+
+  return styles;
+}
+
+function getCellStyle(row, key, heatmapStyles) {
+  if (!isChangeKey(key) || !heatmapStyles[key]) return "";
+
+  const value = Number(row[key]);
+  if (!Number.isFinite(value) || value === 0) {
+    return "background-color: rgb(255, 255, 255);";
+  }
+
+  const ratio = clamp(Math.abs(value) / heatmapStyles[key].reference, 0, 1);
+  const easedRatio = Math.pow(ratio, 0.75);
+  const positiveColor = [34, 197, 94];
+  const negativeColor = [239, 68, 68];
+  const neutral = [255, 255, 255];
+  const target = value > 0 ? positiveColor : negativeColor;
+  const background = buildRgb(neutral, target, easedRatio);
+  const textColor = value > 0 ? "rgb(20, 83, 45)" : "rgb(127, 29, 29)";
+
+  return `background-color: ${background}; color: ${textColor}; font-weight: 600;`;
+}
+
 function formatCell(row, key) {
   const value = row[key];
 
@@ -46,7 +105,7 @@ function formatCell(row, key) {
   if (key.includes("change")) {
     if (key.includes("grs")) return money(value);
     if (key.includes("visits")) return number(value);
-    return pp(value);
+    return percent(value);
   }
 
   if (key.includes("share")) return percent(value);
@@ -73,9 +132,13 @@ function makeTable(title, rows, columns) {
     return `<th>${escapeHtml(col.label)}</th>`;
   }).join("");
 
+  const heatmapStyles = computeHeatmapStyles(rows, columns);
+
   const bodyHtml = rows.map(function(row) {
     const cells = columns.map(function(col) {
-      return `<td>${formatCell(row, col.key)}</td>`;
+      const style = getCellStyle(row, col.key, heatmapStyles);
+      const styleAttribute = style ? ` style="${style}"` : "";
+      return `<td${styleAttribute}>${formatCell(row, col.key)}</td>`;
     }).join("");
 
     return `<tr>${cells}</tr>`;
@@ -160,17 +223,17 @@ const htmlBody = `
     { label: "Current GRS", key: "current_grs" },
     { label: "GRS YoY %", key: "yoy_grs_pct" },
     { label: "Share", key: "grs_share" },
-    { label: "Share YoY", key: "share_yoy_change" },
+    { label: "Share YoY %", key: "share_yoy_pct_change" },
     { label: "Availability", key: "current_availability" },
-    { label: "Availability YoY", key: "yoy_availability_change" },
+    { label: "Availability YoY %", key: "yoy_availability_pct_change" },
     { label: "Visits", key: "current_visits" },
     { label: "Visits YoY %", key: "yoy_visits_pct_change" },
     { label: "CVR", key: "current_cvr" },
-    { label: "CVR YoY", key: "yoy_cvr_change" },
+    { label: "CVR YoY %", key: "yoy_cvr_pct_change" },
     { label: "MRPI", key: "current_mrpi" },
-    { label: "MRPI YoY", key: "yoy_mrpi_change" },
+    { label: "MRPI YoY %", key: "yoy_mrpi_pct_change" },
     { label: "WSI", key: "current_wsi" },
-    { label: "WSI YoY", key: "yoy_wsi_change" }
+    { label: "WSI YoY %", key: "yoy_wsi_pct_change" }
   ])}
 
   ${makeTable("Top WoW GRS Movers", data.topWowGrsMovers, [
@@ -251,7 +314,7 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current Availability", key: "current_availability" },
     { label: "Prior Week Availability", key: "prior_week_availability" },
-    { label: "WoW Change", key: "wow_availability_change" },
+    { label: "WoW Availability %", key: "wow_availability_change" },
     { label: "Current GRS", key: "current_grs" }
   ])}
 
@@ -259,7 +322,7 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current Availability", key: "current_availability" },
     { label: "Prior Week Availability", key: "prior_week_availability" },
-    { label: "WoW Change", key: "wow_availability_change" },
+    { label: "WoW Availability %", key: "wow_availability_change" },
     { label: "WoW GRS Change", key: "wow_grs_change" }
   ])}
 
@@ -267,28 +330,28 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current MRPI", key: "current_mrpi" },
     { label: "Prior Week MRPI", key: "prior_week_mrpi" },
-    { label: "WoW Change", key: "wow_mrpi_change" }
+    { label: "WoW MRPI %", key: "wow_mrpi_change" }
   ])}
 
   ${makeTable("Top MRPI Increases", data.topMrpiMovers, [
     ...supplierColumns,
     { label: "Current MRPI", key: "current_mrpi" },
     { label: "Prior Week MRPI", key: "prior_week_mrpi" },
-    { label: "WoW Change", key: "wow_mrpi_change" }
+    { label: "WoW MRPI %", key: "wow_mrpi_change" }
   ])}
 
   ${makeTable("Top WSI", data.topWsi, [
     ...supplierColumns,
     { label: "Current WSI", key: "current_wsi" },
     { label: "Prior Week WSI", key: "prior_week_wsi" },
-    { label: "WoW Change", key: "wow_wsi_change" }
+    { label: "WoW WSI %", key: "wow_wsi_change" }
   ])}
 
   ${makeTable("Top WSI Increases", data.topWsiMovers, [
     ...supplierColumns,
     { label: "Current WSI", key: "current_wsi" },
     { label: "Prior Week WSI", key: "prior_week_wsi" },
-    { label: "WoW Change", key: "wow_wsi_change" }
+    { label: "WoW WSI %", key: "wow_wsi_change" }
   ])}
 </body>
 </html>
