@@ -117,7 +117,7 @@ availability_rows AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
-      params.prior_year_week_start
+      params.prior_week_start
     )
 ),
 
@@ -160,9 +160,9 @@ availability_metrics AS (
       SUM(IF(week_start = params.current_week_start, availability_denom, 0))
     ) AS current_availability,
     SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_year_week_start, availability_num, 0)),
-      SUM(IF(week_start = params.prior_year_week_start, availability_denom, 0))
-    ) AS prior_year_availability
+      SUM(IF(week_start = params.prior_week_start, availability_num, 0)),
+      SUM(IF(week_start = params.prior_week_start, availability_denom, 0))
+    ) AS prior_week_availability
   FROM weekly_availability
   CROSS JOIN params
   GROUP BY
@@ -190,7 +190,7 @@ traffic_rows AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
-      params.prior_year_week_start
+      params.prior_week_start
     )
 ),
 
@@ -301,9 +301,9 @@ mrpi_metrics AS (
       SUM(IF(week_start = params.current_week_start, mrpi_denom, 0))
     ) AS current_mrpi,
     SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_year_week_start, mrpi_num, 0)),
-      SUM(IF(week_start = params.prior_year_week_start, mrpi_denom, 0))
-    ) AS prior_year_mrpi
+      SUM(IF(week_start = params.prior_week_start, mrpi_num, 0)),
+      SUM(IF(week_start = params.prior_week_start, mrpi_denom, 0))
+    ) AS prior_week_mrpi
   FROM weekly_mrpi
   CROSS JOIN params
   GROUP BY
@@ -332,7 +332,7 @@ wsi_rows AS (
     AND CAST(wpi_wsi.indexdate AS STRING) = '2025-04-02'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
-      params.prior_year_week_start
+      params.prior_week_start
     )
 ),
 
@@ -375,9 +375,9 @@ wsi_metrics AS (
       SUM(IF(week_start = params.current_week_start, wsi_denom, 0))
     ) AS current_wsi,
     SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_year_week_start, wsi_num, 0)),
-      SUM(IF(week_start = params.prior_year_week_start, wsi_denom, 0))
-    ) AS prior_year_wsi
+      SUM(IF(week_start = params.prior_week_start, wsi_num, 0)),
+      SUM(IF(week_start = params.prior_week_start, wsi_denom, 0))
+    ) AS prior_week_wsi
   FROM weekly_wsi
   CROSS JOIN params
   GROUP BY
@@ -400,12 +400,12 @@ final_metrics AS (
     grs_metrics.current_grs - grs_metrics.prior_year_grs AS yoy_grs_change,
     SAFE_DIVIDE(grs_metrics.current_grs - grs_metrics.prior_year_grs, NULLIF(grs_metrics.prior_year_grs, 0)) AS yoy_grs_pct,
     availability_metrics.current_availability,
-    availability_metrics.prior_year_availability,
-    availability_metrics.current_availability - availability_metrics.prior_year_availability AS yoy_availability_change,
+    availability_metrics.prior_week_availability,
+    availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,
     SAFE_DIVIDE(
-      availability_metrics.current_availability - availability_metrics.prior_year_availability,
-      NULLIF(availability_metrics.prior_year_availability, 0)
-    ) AS yoy_availability_pct_change,
+      availability_metrics.current_availability - availability_metrics.prior_week_availability,
+      NULLIF(availability_metrics.prior_week_availability, 0)
+    ) AS wow_availability_pct_change,
     traffic_metrics.current_visits,
     traffic_metrics.prior_year_visits,
     traffic_metrics.current_visits - traffic_metrics.prior_year_visits AS yoy_visits_change,
@@ -426,13 +426,13 @@ final_metrics AS (
       )
     ) AS yoy_cvr_pct_change,
     mrpi_metrics.current_mrpi,
-    mrpi_metrics.prior_year_mrpi,
-    mrpi_metrics.current_mrpi - mrpi_metrics.prior_year_mrpi AS yoy_mrpi_change,
-    SAFE_DIVIDE(mrpi_metrics.current_mrpi - mrpi_metrics.prior_year_mrpi, NULLIF(mrpi_metrics.prior_year_mrpi, 0)) AS yoy_mrpi_pct_change,
+    mrpi_metrics.prior_week_mrpi,
+    mrpi_metrics.current_mrpi - mrpi_metrics.prior_week_mrpi AS wow_mrpi_change,
+    SAFE_DIVIDE(mrpi_metrics.current_mrpi - mrpi_metrics.prior_week_mrpi, NULLIF(mrpi_metrics.prior_week_mrpi, 0)) AS wow_mrpi_pct_change,
     wsi_metrics.current_wsi,
-    wsi_metrics.prior_year_wsi,
-    wsi_metrics.current_wsi - wsi_metrics.prior_year_wsi AS yoy_wsi_change,
-    SAFE_DIVIDE(wsi_metrics.current_wsi - wsi_metrics.prior_year_wsi, NULLIF(wsi_metrics.prior_year_wsi, 0)) AS yoy_wsi_pct_change
+    wsi_metrics.prior_week_wsi,
+    wsi_metrics.current_wsi - wsi_metrics.prior_week_wsi AS wow_wsi_change,
+    SAFE_DIVIDE(wsi_metrics.current_wsi - wsi_metrics.prior_week_wsi, NULLIF(wsi_metrics.prior_week_wsi, 0)) AS wow_wsi_pct_change
   FROM grs_metrics
   LEFT JOIN availability_metrics
     ON availability_metrics.supplier_id = grs_metrics.supplier_id
@@ -461,9 +461,9 @@ ranked_metrics AS (
     yoy_grs_change,
     yoy_grs_pct,
     current_availability,
-    prior_year_availability,
-    yoy_availability_change,
-    yoy_availability_pct_change,
+    prior_week_availability,
+    wow_availability_change,
+    wow_availability_pct_change,
     current_visits,
     prior_year_visits,
     yoy_visits_change,
@@ -473,13 +473,13 @@ ranked_metrics AS (
     yoy_cvr_change,
     yoy_cvr_pct_change,
     current_mrpi,
-    prior_year_mrpi,
-    yoy_mrpi_change,
-    yoy_mrpi_pct_change,
+    prior_week_mrpi,
+    wow_mrpi_change,
+    wow_mrpi_pct_change,
     current_wsi,
-    prior_year_wsi,
-    yoy_wsi_change,
-    yoy_wsi_pct_change
+    prior_week_wsi,
+    wow_wsi_change,
+    wow_wsi_pct_change
   FROM final_metrics
 ),
 

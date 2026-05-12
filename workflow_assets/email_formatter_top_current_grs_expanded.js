@@ -25,6 +25,10 @@ function isChangeKey(key) {
   return key.includes("change") || key === "wow_grs_pct" || key === "yoy_grs_pct";
 }
 
+function isReverseScaleKey(key) {
+  return key.includes("mrpi") || key.includes("wsi");
+}
+
 function escapeHtml(value) {
   if (value === null || value === undefined) return "";
   return String(value)
@@ -90,9 +94,14 @@ function getCellStyle(row, key, heatmapStyles) {
   const positiveColor = [34, 197, 94];
   const negativeColor = [239, 68, 68];
   const neutral = [255, 255, 255];
-  const target = value > 0 ? positiveColor : negativeColor;
+  const useReverseScale = isReverseScaleKey(key);
+  const positiveTarget = useReverseScale ? negativeColor : positiveColor;
+  const negativeTarget = useReverseScale ? positiveColor : negativeColor;
+  const positiveText = useReverseScale ? "rgb(127, 29, 29)" : "rgb(20, 83, 45)";
+  const negativeText = useReverseScale ? "rgb(20, 83, 45)" : "rgb(127, 29, 29)";
+  const target = value > 0 ? positiveTarget : negativeTarget;
   const background = buildRgb(neutral, target, easedRatio);
-  const textColor = value > 0 ? "rgb(20, 83, 45)" : "rgb(127, 29, 29)";
+  const textColor = value > 0 ? positiveText : negativeText;
 
   return `background-color: ${background}; color: ${textColor}; font-weight: 600;`;
 }
@@ -225,15 +234,15 @@ const htmlBody = `
     { label: "Share", key: "grs_share" },
     { label: "Share YoY %", key: "share_yoy_pct_change" },
     { label: "Availability", key: "current_availability" },
-    { label: "Availability YoY %", key: "yoy_availability_pct_change" },
+    { label: "Availability WoW %", key: "wow_availability_change" },
     { label: "Visits", key: "current_visits" },
     { label: "Visits YoY %", key: "yoy_visits_pct_change" },
     { label: "CVR", key: "current_cvr" },
     { label: "CVR YoY %", key: "yoy_cvr_pct_change" },
     { label: "MRPI", key: "current_mrpi" },
-    { label: "MRPI YoY %", key: "yoy_mrpi_pct_change" },
+    { label: "MRPI WoW %", key: "wow_mrpi_change" },
     { label: "WSI", key: "current_wsi" },
-    { label: "WSI YoY %", key: "yoy_wsi_pct_change" }
+    { label: "WSI WoW %", key: "wow_wsi_change" }
   ])}
 
   ${makeTable("Top WoW GRS Movers", data.topWowGrsMovers, [
