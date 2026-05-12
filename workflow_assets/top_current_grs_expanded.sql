@@ -117,7 +117,7 @@ availability_rows AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
-      params.prior_week_start
+      params.prior_year_week_start
     )
 ),
 
@@ -258,7 +258,7 @@ mrpi_rows AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
-      params.prior_year_week_start
+      params.prior_week_start
     )
 ),
 

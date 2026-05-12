@@ -234,15 +234,15 @@ const htmlBody = `
     { label: "Share", key: "grs_share" },
     { label: "Share YoY %", key: "share_yoy_pct_change" },
     { label: "Availability", key: "current_availability" },
-    { label: "Availability WoW %", key: "wow_availability_change" },
+    { label: "Availability WoW %", key: "wow_availability_pct_change" },
     { label: "Visits", key: "current_visits" },
     { label: "Visits YoY %", key: "yoy_visits_pct_change" },
     { label: "CVR", key: "current_cvr" },
     { label: "CVR YoY %", key: "yoy_cvr_pct_change" },
     { label: "MRPI", key: "current_mrpi" },
-    { label: "MRPI WoW %", key: "wow_mrpi_change" },
+    { label: "MRPI WoW %", key: "wow_mrpi_pct_change" },
     { label: "WSI", key: "current_wsi" },
-    { label: "WSI WoW %", key: "wow_wsi_change" }
+    { label: "WSI WoW %", key: "wow_wsi_pct_change" }
   ])}
 
   ${makeTable("Top WoW GRS Movers", data.topWowGrsMovers, [
@@ -323,7 +323,7 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current Availability", key: "current_availability" },
     { label: "Prior Week Availability", key: "prior_week_availability" },
-    { label: "WoW Availability %", key: "wow_availability_change" },
+    { label: "WoW Availability %", key: "wow_availability_pct_change" },
     { label: "Current GRS", key: "current_grs" }
   ])}
 
@@ -331,7 +331,7 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current Availability", key: "current_availability" },
     { label: "Prior Week Availability", key: "prior_week_availability" },
-    { label: "WoW Availability %", key: "wow_availability_change" },
+    { label: "WoW Availability %", key: "wow_availability_pct_change" },
     { label: "WoW GRS Change", key: "wow_grs_change" }
   ])}
 
@@ -339,28 +339,28 @@ const htmlBody = `
     ...supplierColumns,
     { label: "Current MRPI", key: "current_mrpi" },
     { label: "Prior Week MRPI", key: "prior_week_mrpi" },
-    { label: "WoW MRPI %", key: "wow_mrpi_change" }
+    { label: "WoW MRPI %", key: "wow_mrpi_pct_change" }
   ])}
 
   ${makeTable("Top MRPI Increases", data.topMrpiMovers, [
     ...supplierColumns,
     { label: "Current MRPI", key: "current_mrpi" },
     { label: "Prior Week MRPI", key: "prior_week_mrpi" },
-    { label: "WoW MRPI %", key: "wow_mrpi_change" }
+    { label: "WoW MRPI %", key: "wow_mrpi_pct_change" }
   ])}
 
   ${makeTable("Top WSI", data.topWsi, [
     ...supplierColumns,
     { label: "Current WSI", key: "current_wsi" },
     { label: "Prior Week WSI", key: "prior_week_wsi" },
-    { label: "WoW WSI %", key: "wow_wsi_change" }
+    { label: "WoW WSI %", key: "wow_wsi_pct_change" }
   ])}
 
   ${makeTable("Top WSI Increases", data.topWsiMovers, [
     ...supplierColumns,
     { label: "Current WSI", key: "current_wsi" },
     { label: "Prior Week WSI", key: "prior_week_wsi" },
-    { label: "WoW WSI %", key: "wow_wsi_change" }
+    { label: "WoW WSI %", key: "wow_wsi_pct_change" }
   ])}
 </body>
 </html>
