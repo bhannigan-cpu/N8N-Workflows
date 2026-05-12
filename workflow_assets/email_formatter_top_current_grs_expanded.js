@@ -21,6 +21,13 @@ function percent(value) {
   return (Number(value) * 100).toFixed(1) + "%";
 }
 
+function bps(value) {
+  if (value === null || value === undefined || value === "N/A") return "N/A";
+  const num = Number(value);
+  const sign = num > 0 ? "+" : "";
+  return sign + num.toFixed(0) + " bps";
+}
+
 function isChangeKey(key) {
   return key.includes("change") || key === "wow_grs_pct" || key === "yoy_grs_pct";
 }
@@ -60,6 +67,10 @@ function scaleReference(key, rows) {
     });
 
   const observedMax = numericValues.length ? Math.max.apply(null, numericValues) : 0;
+
+  if (key.includes("bps")) {
+    return Math.max(observedMax, 50);
+  }
 
   if (key.includes("pct") || (!key.includes("grs") && !key.includes("visits") && key.includes("change"))) {
     return Math.max(observedMax, 0.2);
@@ -109,6 +120,7 @@ function getCellStyle(row, key, heatmapStyles) {
 function formatCell(row, key) {
   const value = row[key];
 
+  if (key.includes("bps")) return bps(value);
   if (key.includes("pct")) return percent(value);
 
   if (key.includes("change")) {
@@ -240,9 +252,9 @@ const htmlBody = `
     { label: "CVR", key: "current_cvr" },
     { label: "CVR YoY %", key: "yoy_cvr_pct_change" },
     { label: "MRPI", key: "current_mrpi" },
-    { label: "MRPI WoW %", key: "wow_mrpi_pct_change" },
+    { label: "MRPI YoY bps", key: "yoy_mrpi_bps_change" },
     { label: "WSI", key: "current_wsi" },
-    { label: "WSI WoW %", key: "wow_wsi_pct_change" }
+    { label: "WSI YoY bps", key: "yoy_wsi_bps_change" }
   ])}
 
   ${makeTable("Top WoW GRS Movers", data.topWowGrsMovers, [
