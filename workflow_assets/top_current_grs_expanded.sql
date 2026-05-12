@@ -74,17 +74,17 @@ weekly_grs AS (
 
 grs_metrics AS (
   SELECT
-    supplier_name,
-    supplier_id,
-    ANY_VALUE(currency_symbol) AS currency_symbol,
-    SUM(IF(week_start = params.current_week_start, weekly_grs, 0)) AS current_grs,
-    SUM(IF(week_start = params.prior_week_start, weekly_grs, 0)) AS prior_week_grs,
-    SUM(IF(week_start = params.prior_year_week_start, weekly_grs, 0)) AS prior_year_grs
-  FROM weekly_grs
+    wg.supplier_name,
+    wg.supplier_id,
+    ANY_VALUE(wg.currency_symbol) AS currency_symbol,
+    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_grs, 0)) AS current_grs,
+    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_grs, 0)) AS prior_week_grs,
+    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_grs, 0)) AS prior_year_grs
+  FROM weekly_grs AS wg
   CROSS JOIN params
   GROUP BY
-    supplier_name,
-    supplier_id
+    wg.supplier_name,
+    wg.supplier_id
 ),
 
 availability_rows AS (
