@@ -583,7 +583,7 @@ def build_output_paths(
     if output_path:
         workflow_path = Path(output_path)
     else:
-        timestamp = dt.datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
         directory = Path(output_dir or "generated-workflows")
         workflow_path = directory / f"{input_path.stem}__updated__{timestamp}.json"
 
