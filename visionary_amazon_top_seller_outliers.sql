@@ -130,17 +130,17 @@ deduped_orders AS (
 
 part_sales AS (
   SELECT
-    supplier_id,
-    part_number,
-    SUM(grs) AS l6m_grs,
-    SUM(product_cost) AS l6m_product_cost,
-    COUNT(DISTINCT order_id) AS l6m_order_count,
-    COUNT(DISTINCT IF(grs > 0, month_start, NULL)) AS selling_months,
-    SUM(IF(month_start >= params.recent_window_start, grs, 0)) AS recent_3m_grs,
-    SUM(IF(month_start >= params.prior_window_start AND month_start < params.recent_window_start, grs, 0)) AS prior_3m_grs
+    deduped_orders.supplier_id,
+    deduped_orders.part_number,
+    SUM(deduped_orders.grs) AS l6m_grs,
+    SUM(deduped_orders.product_cost) AS l6m_product_cost,
+    COUNT(DISTINCT deduped_orders.order_id) AS l6m_order_count,
+    COUNT(DISTINCT IF(deduped_orders.grs > 0, deduped_orders.month_start, NULL)) AS selling_months,
+    SUM(IF(deduped_orders.month_start >= params.recent_window_start, deduped_orders.grs, 0)) AS recent_3m_grs,
+    SUM(IF(deduped_orders.month_start >= params.prior_window_start AND deduped_orders.month_start < params.recent_window_start, deduped_orders.grs, 0)) AS prior_3m_grs
   FROM deduped_orders
   CROSS JOIN params
-  GROUP BY supplier_id, part_number
+  GROUP BY deduped_orders.supplier_id, deduped_orders.part_number
 ),
 
 availability_rows AS (
