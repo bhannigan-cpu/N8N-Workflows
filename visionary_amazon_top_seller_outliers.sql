@@ -314,8 +314,8 @@ final_output AS (
   SELECT
     *,
     CASE
-      WHEN match_status = 'NOT_FOUND' THEN 'No Wayfair match'
-      WHEN GREATEST(visits_hurt_score, cvr_hurt_score, wholesale_cost_hurt_score, availability_hurt_score) = 0 THEN 'No single metric stands out'
+      WHEN match_status = 'NOT_FOUND' THEN ''
+      WHEN GREATEST(visits_hurt_score, cvr_hurt_score, wholesale_cost_hurt_score, availability_hurt_score) = 0 THEN ''
       WHEN visits_hurt_score >= cvr_hurt_score
         AND visits_hurt_score >= wholesale_cost_hurt_score
         AND visits_hurt_score >= availability_hurt_score
@@ -328,8 +328,8 @@ final_output AS (
       ELSE 'Availability'
     END AS hurting_most_metric,
     CASE
-      WHEN match_status = 'NOT_FOUND' THEN 'This part number did not map to a Visionary supplier part number in the Wayfair fact table.'
-      WHEN GREATEST(visits_hurt_score, cvr_hurt_score, wholesale_cost_hurt_score, availability_hurt_score) = 0 THEN 'This part is outside the top 35, but these four metrics are not materially worse than the current top-35 average.'
+      WHEN match_status = 'NOT_FOUND' THEN 'No Wayfair match found for this part number.'
+      WHEN GREATEST(visits_hurt_score, cvr_hurt_score, wholesale_cost_hurt_score, availability_hurt_score) = 0 THEN ''
       WHEN visits_hurt_score >= cvr_hurt_score
         AND visits_hurt_score >= wholesale_cost_hurt_score
         AND visits_hurt_score >= availability_hurt_score
@@ -345,20 +345,16 @@ final_output AS (
 )
 
 SELECT
-  requested_part_number,
-  matched_part_number,
-  sales_rank AS wayfair_l6m_sales_rank,
-  ROUND(l6m_visits, 0) AS l6m_visits,
-  ROUND(l6m_cvr * 100, 2) AS l6m_cvr_pct,
-  ROUND(l6m_wholesale_cost_no_rebates, 0) AS l6m_wholesale_cost_no_rebates_usd,
-  ROUND(l6m_availability * 100, 2) AS l6m_availability_pct,
-  ROUND(visits_gap_pct_to_top_35_avg * 100, 1) AS visits_gap_to_top_35_avg_pct,
-  ROUND(cvr_gap_bps_to_top_35_avg, 0) AS cvr_gap_to_top_35_avg_bps,
-  ROUND(wholesale_cost_gap_pct_to_top_35_avg * 100, 1) AS wholesale_cost_gap_to_top_35_avg_pct,
-  ROUND(availability_gap_bps_to_top_35_avg, 0) AS availability_gap_to_top_35_avg_bps,
-  hurting_most_metric,
-  hurting_most_reason
+  requested_part_number AS `Part Number`,
+  sales_rank AS `Catalog Rank`,
+  ROUND(l6m_visits, 0) AS `Visits`,
+  ROUND(l6m_cvr, 2) AS `Conv Rate`,
+  ROUND(l6m_grs, 0) AS `Sales`,
+  ROUND(l6m_availability * 100, 2) AS `Availability`,
+  hurting_most_metric AS `Hurting Most`,
+  hurting_most_reason AS `Reason`
 FROM final_output
-WHERE match_status = 'MATCHED'
-  AND sales_rank > 35
-ORDER BY wayfair_l6m_sales_rank, requested_part_number;
+ORDER BY
+  CASE WHEN sales_rank IS NULL THEN 1 ELSE 0 END,
+  sales_rank,
+  requested_part_number;
