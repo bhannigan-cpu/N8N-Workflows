@@ -20,7 +20,8 @@ grs_order_rows AS (
     retail_dim_supplier.origsuid AS supplier_id,
     currency.currency_symbol,
     orders.id AS order_id,
-    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs
+    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs,
+    COALESCE(orders.productcostnorebates, 0) * COALESCE(currency.exchange_rate, 1) AS wsc
   FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
   LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
   LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct
@@ -47,7 +48,8 @@ deduped_grs_orders AS (
     supplier_id,
     currency_symbol,
     order_id,
-    ANY_VALUE(grs) AS grs
+    ANY_VALUE(grs) AS grs,
+    ANY_VALUE(wsc) AS wsc
   FROM grs_order_rows
   GROUP BY
     week_start,
@@ -63,7 +65,8 @@ weekly_grs AS (
     supplier_name,
     supplier_id,
     currency_symbol,
-    SUM(grs) AS weekly_grs
+    SUM(grs) AS weekly_grs,
+    SUM(wsc) AS weekly_wsc
   FROM deduped_grs_orders
   GROUP BY
     week_start,
@@ -78,6 +81,7 @@ grs_metrics AS (
     wg.supplier_id,
     ANY_VALUE(wg.currency_symbol) AS currency_symbol,
     SUM(IF(wg.week_start = params.current_week_start, wg.weekly_grs, 0)) AS current_grs,
+    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_wsc, 0)) AS current_wsc,
     SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_grs, 0)) AS prior_week_grs,
     SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_grs, 0)) AS prior_year_grs
   FROM weekly_grs AS wg
@@ -400,7 +404,7 @@ final_metrics AS (
     grs_metrics.current_grs - grs_metrics.prior_year_grs AS yoy_grs_change,
     SAFE_DIVIDE(grs_metrics.current_grs - grs_metrics.prior_year_grs, NULLIF(grs_metrics.prior_year_grs, 0)) AS yoy_grs_pct,
     availability_metrics.current_availability,
-    availability_metrics.current_availability AS current_wsc,
+    grs_metrics.current_wsc,
     availability_metrics.prior_week_availability,
     availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,
     SAFE_DIVIDE(

@@ -17,6 +17,7 @@ from tools.update_n8n_workflow import save_json, validate_workflow
 INPUT_PATH = Path(
     "/home/ubuntu/.cursor/projects/workspace/uploads/weekly-supplier-report-closest-top15-wsc.json"
 )
+SQL_PATH = ROOT / "workflow_assets" / "closest_top15_wsc.sql"
 FORMATTER_DOLLAR = ROOT / "workflow_assets" / "email_formatter_closest_top15_wsc_dollar.js"
 FORMATTER_DOLLAR_COMPACT = ROOT / "workflow_assets" / "email_formatter_closest_top15_wsc_dollar_compact.js"
 OUTPUT_DOLLAR = ROOT / "workflow_exports" / "weekly-supplier-report-closest-top15-wsc-dollar.json"
@@ -34,6 +35,7 @@ def load_workflow() -> dict:
 def build_variant(formatter_path: Path, output_path: Path) -> None:
     workflow = load_workflow()
     nodes = {node["name"]: node for node in workflow["nodes"]}
+    nodes["WSC/GRS Movers"]["parameters"]["sqlQuery"] = load_text(SQL_PATH)
     nodes["Code in JavaScript"]["parameters"]["jsCode"] = load_text(formatter_path)
     save_json(output_path, validate_workflow(workflow))
 
