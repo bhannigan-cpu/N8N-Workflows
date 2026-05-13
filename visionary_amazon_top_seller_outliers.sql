@@ -319,7 +319,7 @@ reasoned_parts AS (
         FROM UNNEST([
           CASE
             WHEN match_status = 'NOT_FOUND'
-            THEN 'The part number did not match Visionary''s supplierpartnumber field in the retail fact table.'
+            THEN 'The part number did not match the Visionary supplierpartnumber field in the retail fact table.'
           END,
           CASE
             WHEN match_status = 'MATCHED' AND l6m_grs = 0
