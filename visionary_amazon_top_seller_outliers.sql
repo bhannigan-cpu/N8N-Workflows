@@ -240,7 +240,7 @@ part_summary AS (
     COALESCE(part_sales.l6m_wholesale_cost_no_rebates, 0) AS l6m_wholesale_cost_no_rebates,
     COALESCE(part_sales.l6m_order_count, 0) AS l6m_order_count,
     COALESCE(part_traffic.l6m_visits, 0) AS l6m_visits,
-    CAST(NULL AS FLOAT64) AS l6m_cvr,
+    COALESCE(part_traffic.l6m_cvr, 0) AS l6m_cvr,
     part_availability.l6m_availability
   FROM part_catalog
   LEFT JOIN part_sales
@@ -264,7 +264,7 @@ ranked_parts AS (
 top_35_benchmarks AS (
   SELECT
     AVG(IF(sales_rank <= 35, l6m_visits, NULL)) AS top_35_avg_visits,
-    CAST(NULL AS FLOAT64) AS top_35_avg_cvr,
+    AVG(IF(sales_rank <= 35, l6m_cvr, NULL)) AS top_35_avg_cvr,
     AVG(IF(sales_rank <= 35, l6m_wholesale_cost_no_rebates, NULL)) AS top_35_avg_wholesale_cost_no_rebates,
     AVG(IF(sales_rank <= 35, l6m_availability, NULL)) AS top_35_avg_availability
   FROM ranked_parts
@@ -299,11 +299,11 @@ scored_parts AS (
     top_35_benchmarks.top_35_avg_wholesale_cost_no_rebates,
     top_35_benchmarks.top_35_avg_availability,
     SAFE_DIVIDE(requested_parts.l6m_visits - top_35_benchmarks.top_35_avg_visits, NULLIF(top_35_benchmarks.top_35_avg_visits, 0)) AS visits_gap_pct_to_top_35_avg,
-    CAST(NULL AS FLOAT64) AS cvr_gap_bps_to_top_35_avg,
+    (requested_parts.l6m_cvr - top_35_benchmarks.top_35_avg_cvr) * 10000 AS cvr_gap_bps_to_top_35_avg,
     SAFE_DIVIDE(requested_parts.l6m_wholesale_cost_no_rebates - top_35_benchmarks.top_35_avg_wholesale_cost_no_rebates, NULLIF(top_35_benchmarks.top_35_avg_wholesale_cost_no_rebates, 0)) AS wholesale_cost_gap_pct_to_top_35_avg,
     (requested_parts.l6m_availability - top_35_benchmarks.top_35_avg_availability) * 10000 AS availability_gap_bps_to_top_35_avg,
     GREATEST(-COALESCE(SAFE_DIVIDE(requested_parts.l6m_visits - top_35_benchmarks.top_35_avg_visits, NULLIF(top_35_benchmarks.top_35_avg_visits, 0)), 0), 0) AS visits_hurt_score,
-    0 AS cvr_hurt_score,
+    GREATEST(-COALESCE(SAFE_DIVIDE(requested_parts.l6m_cvr - top_35_benchmarks.top_35_avg_cvr, NULLIF(top_35_benchmarks.top_35_avg_cvr, 0)), 0), 0) AS cvr_hurt_score,
     GREATEST(COALESCE(SAFE_DIVIDE(requested_parts.l6m_wholesale_cost_no_rebates - top_35_benchmarks.top_35_avg_wholesale_cost_no_rebates, NULLIF(top_35_benchmarks.top_35_avg_wholesale_cost_no_rebates, 0)), 0), 0) AS wholesale_cost_hurt_score,
     GREATEST(-COALESCE(SAFE_DIVIDE(requested_parts.l6m_availability - top_35_benchmarks.top_35_avg_availability, NULLIF(top_35_benchmarks.top_35_avg_availability, 0)), 0), 0) AS availability_hurt_score
   FROM requested_parts
@@ -348,7 +348,7 @@ SELECT
   requested_part_number AS `Part Number`,
   sales_rank AS `Catalog Rank`,
   ROUND(l6m_visits, 0) AS `Visits`,
-  ROUND(l6m_cvr, 2) AS `Conv Rate`,
+  ROUND(l6m_cvr * 100, 2) AS `Conv Rate`,
   ROUND(l6m_grs, 0) AS `Sales`,
   ROUND(l6m_availability * 100, 2) AS `Availability`,
   hurting_most_metric AS `Hurting Most`,

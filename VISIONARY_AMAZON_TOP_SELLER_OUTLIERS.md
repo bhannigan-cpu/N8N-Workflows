@@ -6,7 +6,7 @@ This SQL returns the requested Amazon-winning Visionary parts in a spreadsheet-s
 
 - Wayfair L6M sales rank
 - L6M visits
-- L6M CVR column is left blank because the current `traffic_source` join path is not reliable at supplier-part grain
+- L6M CVR, displayed in the same style as the source SQL (for example `0.81` means 0.81%)
 - L6M wholesale cost no rebates
 - L6M availability
 - gaps versus the current top-35 average for each metric
@@ -23,4 +23,4 @@ The query compares each part against the current top-35 Visionary benchmark set:
 - lower availability is worse
 
 The metric with the largest normalized negative gap is labeled as the main thing hurting the part.
-CVR is excluded from the hurting-most logic until a trustworthy part-level traffic/conversion join is confirmed.
+CVR is included in the hurting-most logic and displayed as a percent value without the percent sign, matching the source SQL style.
