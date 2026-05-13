@@ -549,6 +549,13 @@ final_exceptions AS (
 
 SELECT
   requested_part_number,
+  match_status,
+  matched_part_number,
+  CASE
+    WHEN match_status = 'MATCHED' AND sales_rank > 40 THEN TRUE
+    WHEN match_status = 'MATCHED' THEN FALSE
+    ELSE NULL
+  END AS outside_top_40_flag,
   sales_rank AS wayfair_l6m_sales_rank,
   top_40_status,
   ROUND(l6m_grs, 0) AS l6m_grs_usd,
@@ -575,5 +582,12 @@ SELECT
   slacking_metrics,
   why_it_might_be_slacking
 FROM final_exceptions
-WHERE match_status = 'NOT_FOUND' OR sales_rank > 40
-ORDER BY issue_score DESC, wayfair_l6m_sales_rank, requested_part_number;
+ORDER BY
+  CASE
+    WHEN match_status = 'NOT_FOUND' THEN 0
+    WHEN sales_rank > 40 THEN 1
+    ELSE 2
+  END,
+  issue_score DESC,
+  wayfair_l6m_sales_rank,
+  requested_part_number;
