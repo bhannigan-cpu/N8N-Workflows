@@ -1,12 +1,12 @@
 # Visionary top-35 miss analysis
 
-This SQL returns only the requested Amazon-winning Visionary parts that rank outside the top 35 on Wayfair by L6M sales.
+This SQL returns the requested Amazon-winning Visionary parts in a spreadsheet-style format.
 
 ## Output columns
 
 - Wayfair L6M sales rank
 - L6M visits
-- L6M CVR
+- L6M CVR column is left blank because the current `traffic_source` join path is not reliable at supplier-part grain
 - L6M wholesale cost no rebates
 - L6M availability
 - gaps versus the current top-35 average for each metric
@@ -23,3 +23,4 @@ The query compares each part against the current top-35 Visionary benchmark set:
 - lower availability is worse
 
 The metric with the largest normalized negative gap is labeled as the main thing hurting the part.
+CVR is excluded from the hurting-most logic until a trustworthy part-level traffic/conversion join is confirmed.
