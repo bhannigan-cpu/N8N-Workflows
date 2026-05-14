@@ -1,8 +1,9 @@
 ## Supplier SKU State Sales Report
 
-This repository includes two ways to run the same supplier sales report:
+This repository includes multiple ways to run the same supplier sales report:
 
-- `supplier_sku_state_sales_report.sql` - direct BigQuery script
+- `supplier_sku_state_sales_report_simple.sql` - simpler direct BigQuery script with explicit field expressions
+- `supplier_sku_state_sales_report.sql` - direct BigQuery script with field auto-detection
 - `Supplier SKU State Sales Report.json` - importable n8n workflow
 
 ### What the report does
@@ -25,6 +26,29 @@ Both versions are preconfigured for:
 - suID: `29955`
 
 ## Run it directly in BigQuery
+
+### Recommended first: simple BigQuery script
+
+Open `supplier_sku_state_sales_report_simple.sql` in the BigQuery editor and run it.
+
+This version avoids `INFORMATION_SCHEMA` lookups and is the best option if the
+auto-detect script fails.
+
+The first values to check are:
+
+- `supplier_name_input`
+- `supplier_id_input`
+- `lookback_weeks_input`
+- `state_sql`
+- `sku_sql`
+- `sku_name_sql`
+- `quantity_sql`
+
+The `*_sql` values are regular SQL expressions using the table aliases already
+present in the query, so you can point them directly at the fields your dataset
+actually uses.
+
+### Auto-detect BigQuery script
 
 Open `supplier_sku_state_sales_report.sql` in the BigQuery editor and run it.
 
