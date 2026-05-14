@@ -29,21 +29,28 @@ DECLARE lookback_weeks_input INT64 DEFAULT 52;
 --   supplier_part_struct
 --   orders
 --
+-- Run discover_supplier_sales_field_paths.sql first if you do not know these.
+--
 -- Common alternatives you may need:
---   state_sql: orders.destination_state, orders.customer_state
---   sku_sql: supplier_part_struct.sku, supplier_part_struct.supplierpartid
---   sku_name_sql: supplier_part_struct.skuname, supplier_part_struct.productname
---   quantity_sql: COALESCE(CAST(supplier_part_struct.quantity AS NUMERIC), 0)
-DECLARE state_sql STRING DEFAULT 'orders.ship_to_state';
-DECLARE sku_sql STRING DEFAULT 'supplier_part_struct.partnumber';
-DECLARE sku_name_sql STRING DEFAULT 'supplier_part_struct.partname';
-DECLARE quantity_sql STRING DEFAULT 'COALESCE(CAST(orders.quantity AS NUMERIC), 0)';
+--   state_sql: orders.destination_state, orders.customer_state,
+--              store_struct.state_name, retail_sku_store_date.state_name
+--   sku_sql: supplier_part_struct.sku, supplier_part_struct.supplierpartid,
+--            supplier_part_struct.partnumber
+--   sku_name_sql: supplier_part_struct.skuname,
+--                 supplier_part_struct.productname,
+--                 supplier_part_struct.partname
+--   quantity_sql: COALESCE(CAST(supplier_part_struct.quantity AS NUMERIC), 0),
+--                 COALESCE(CAST(orders.quantity AS NUMERIC), 0)
+DECLARE state_sql STRING DEFAULT '';
+DECLARE sku_sql STRING DEFAULT '';
+DECLARE sku_name_sql STRING DEFAULT '';
+DECLARE quantity_sql STRING DEFAULT '';
 
 DECLARE report_sql STRING;
 
-ASSERT TRIM(state_sql) <> '' AS 'Set state_sql to a valid state expression.';
-ASSERT TRIM(sku_sql) <> '' AS 'Set sku_sql to a valid SKU expression.';
-ASSERT TRIM(quantity_sql) <> '' AS 'Set quantity_sql to a valid quantity expression.';
+ASSERT TRIM(state_sql) <> '' AS 'Set state_sql to a valid state expression. Run discover_supplier_sales_field_paths.sql first.';
+ASSERT TRIM(sku_sql) <> '' AS 'Set sku_sql to a valid SKU expression. Run discover_supplier_sales_field_paths.sql first.';
+ASSERT TRIM(quantity_sql) <> '' AS 'Set quantity_sql to a valid quantity expression. Run discover_supplier_sales_field_paths.sql first.';
 
 SET report_sql = FORMAT(
   """

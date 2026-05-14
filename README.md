@@ -2,6 +2,7 @@
 
 This repository includes multiple ways to run the same supplier sales report:
 
+- `discover_supplier_sales_field_paths.sql` - helper query to discover the correct state, SKU, SKU name, and quantity fields
 - `supplier_sku_state_sales_report_simple.sql` - simpler direct BigQuery script with explicit field expressions
 - `supplier_sku_state_sales_report.sql` - direct BigQuery script with field auto-detection
 - `Supplier SKU State Sales Report.json` - importable n8n workflow
@@ -33,6 +34,10 @@ Open `supplier_sku_state_sales_report_simple.sql` in the BigQuery editor and run
 
 This version avoids `INFORMATION_SCHEMA` lookups and is the best option if the
 auto-detect script fails.
+
+If you do not know the right field names yet, run
+`discover_supplier_sales_field_paths.sql` first and copy the returned
+`suggested_expression` values into the simple script.
 
 The first values to check are:
 
