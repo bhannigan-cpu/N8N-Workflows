@@ -2,6 +2,8 @@
 
 This repository includes multiple ways to run the same supplier sales report:
 
+- `discover_order_financials_field_paths.sql` - helper query for `tbl_fact_order_financials`
+- `supplier_sku_state_sales_from_order_financials.sql` - direct BigQuery script built for `tbl_fact_order_financials`
 - `discover_supplier_sales_field_paths.sql` - helper query to discover the correct state, SKU, SKU name, and quantity fields
 - `supplier_sku_state_sales_report_simple.sql` - simpler direct BigQuery script with explicit field expressions
 - `supplier_sku_state_sales_report.sql` - direct BigQuery script with field auto-detection
@@ -27,6 +29,35 @@ Both versions are preconfigured for:
 - suID: `29955`
 
 ## Run it directly in BigQuery
+
+### Best option if you have order financials
+
+If you can use:
+
+- `wf-gcp-us-ae-sf-prod.curated_data_hub.tbl_fact_order_financials`
+
+then start with:
+
+1. `discover_order_financials_field_paths.sql`
+2. `supplier_sku_state_sales_from_order_financials.sql`
+
+This is likely the best source for the request because it should already contain
+order-level sales facts and state-level destination data.
+
+The order financials script expects you to paste explicit expressions for:
+
+- supplier ID
+- supplier name
+- state
+- SKU
+- SKU name
+- quantity
+- revenue
+- order ID
+- order date
+
+That keeps the report much easier to debug than the older nested retail table
+approach.
 
 ### Recommended first: simple BigQuery script
 
