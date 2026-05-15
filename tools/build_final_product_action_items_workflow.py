@@ -19,6 +19,7 @@ INPUT_PATH = Path(
 )
 FORMATTER_PATH = ROOT / "workflow_assets" / "email_formatter_final_action_items.js"
 OUTPUT_PATH = ROOT / "workflow_exports" / "the-final-product-action-items.json"
+WORKFLOW_NAME = "THE FINAL PRODUCT - MONDAY 9AM ET"
 SCHEDULE_RULE = {
     "field": "weeks",
     "weeksInterval": 1,
@@ -36,6 +37,7 @@ def load_text(path: Path) -> str:
 def main() -> int:
     workflow = validate_workflow(json.loads(INPUT_PATH.read_text(encoding="utf-8")))
     nodes = {node["name"]: node for node in workflow["nodes"]}
+    workflow["name"] = WORKFLOW_NAME
     nodes["Schedule Trigger"]["parameters"]["rule"] = {"interval": [SCHEDULE_RULE]}
     nodes["Code in JavaScript"]["parameters"]["jsCode"] = load_text(FORMATTER_PATH)
     workflow["active"] = True
