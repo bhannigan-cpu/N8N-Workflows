@@ -6,7 +6,13 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 10
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
             }
           ]
         }
@@ -1214,10 +1220,11 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timezone": "America/New_York"
   },
   "versionId": "375fb6e6-e355-419d-bde9-3f1d0ae42c56",
   "meta": {
