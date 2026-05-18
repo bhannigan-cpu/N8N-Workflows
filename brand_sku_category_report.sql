@@ -1,24 +1,23 @@
 --standardSQL
--- SKU count by brand and category for Thread Made Home (supplier 22255).
+-- Low-scan SKU count by brand and category for Thread Made Home (supplier 22255).
 --
--- Paste this into a BigQuery node/query editor. The script uses the same
--- reporting table and supplier join pattern as Weekly Supplier Report.json.
+-- This request should not require scanning retail_sku_store_date_agg. That
+-- weekly aggregate is useful for sales/performance metrics, but it is far too
+-- large for a simple "which SKUs are in which brand/category" lookup.
 --
--- Cost note: this version intentionally does NOT call TO_JSON_STRING() on the
--- full retail_sku_store_date row. Doing that can force BigQuery to read a very
--- large nested column set. It only serializes supplier_part_struct after the
--- query is bounded to one supplier and one weekly date range.
--- It normalizes brand names so trademark symbols and punctuation in the
--- request do not block matches against source-system names that omit them.
+-- This script first uses INFORMATION_SCHEMA metadata to find a flatter
+-- SKU/catalog-style table in cm_reporting with supplier, SKU, brand, and
+-- category/class fields. Metadata scans are tiny. It then dynamically queries
+-- only those columns from the best candidate table.
+--
+-- If the selected table looks wrong, run just the "candidate_source_tables"
+-- SELECT below and use one of the other candidate table names/fields.
 
-DECLARE target_supplier_id INT64 DEFAULT 22255;
-DECLARE target_country STRING DEFAULT 'United States';
-
--- Leave NULL to use the latest available weekly row for this supplier within
--- latest_week_lookback_days. Set a specific Sunday week_start date here if you
--- need to reproduce a past report.
-DECLARE target_week_start DATE DEFAULT NULL;
-DECLARE latest_week_lookback_days INT64 DEFAULT 56;
+DECLARE target_supplier_id STRING DEFAULT '22255';
+-- Keep FALSE for the first run. Review result set 1, then change to TRUE once
+-- the selected source table is a flat SKU/catalog table.
+DECLARE run_report BOOL DEFAULT FALSE;
+DECLARE report_sql STRING;
 
 CREATE TEMP FUNCTION normalize_match(value STRING) AS (
   REGEXP_REPLACE(
@@ -32,247 +31,271 @@ CREATE TEMP FUNCTION normalize_match(value STRING) AS (
   )
 );
 
-WITH requested_brands AS (
-  SELECT 1 AS sort_order, 'Alcott Hill®' AS requested_brand UNION ALL
-  SELECT 2, 'AllModern' UNION ALL
-  SELECT 3, 'Red Barrel Studio®' UNION ALL
-  SELECT 4, 'Gracie Oaks' UNION ALL
-  SELECT 5, 'House of Hampton®' UNION ALL
-  SELECT 6, 'Astoria Grand' UNION ALL
-  SELECT 7, 'Latitude Run®' UNION ALL
-  SELECT 8, 'Villeroy & Boch' UNION ALL
-  SELECT 9, 'Ivy Bronx' UNION ALL
-  SELECT 10, 'Lenox' UNION ALL
-  SELECT 11, 'Winston Porter' UNION ALL
-  SELECT 12, 'Mercer41' UNION ALL
-  SELECT 13, 'Bungalow Rose' UNION ALL
-  SELECT 14, 'Lark Manor™' UNION ALL
-  SELECT 15, 'Highland Dunes' UNION ALL
-  SELECT 16, 'Charlton Home®' UNION ALL
-  SELECT 17, 'Ophelia & Co.' UNION ALL
-  SELECT 18, 'August Grove®' UNION ALL
-  SELECT 19, 'Rosecliff Heights' UNION ALL
-  SELECT 20, 'Rosalind Wheeler' UNION ALL
-  SELECT 21, 'The Holiday Aisle®' UNION ALL
-  SELECT 22, 'Beachcrest Home™' UNION ALL
-  SELECT 23, 'Jonathan Adler' UNION ALL
-  SELECT 24, 'Symple Stuff' UNION ALL
-  SELECT 25, 'Ebern Designs' UNION ALL
-  SELECT 26, 'Canora Grey' UNION ALL
-  SELECT 27, 'Rosdorf Park' UNION ALL
-  SELECT 28, 'Wildon Home®' UNION ALL
-  SELECT 29, '17 Stories' UNION ALL
-  SELECT 30, 'Harriet Bee' UNION ALL
-  SELECT 31, 'Bay Isle Home™' UNION ALL
-  SELECT 32, 'Dakota Fields' UNION ALL
-  SELECT 33, 'Breakwater Bay' UNION ALL
-  SELECT 34, 'Elrene Home Fashions' UNION ALL
-  SELECT 35, 'East Urban Home' UNION ALL
-  SELECT 36, 'Wade Logan®' UNION ALL
-  SELECT 37, 'Millwood Pines' UNION ALL
-  SELECT 38, 'George Oliver' UNION ALL
-  SELECT 39, 'Brayden Studio®' UNION ALL
-  SELECT 40, 'Darby Home Co' UNION ALL
-  SELECT 41, 'Zoomie Kids' UNION ALL
-  SELECT 42, 'The Twillery Co.®' UNION ALL
-  SELECT 43, 'World Menagerie'
-),
+CREATE TEMP TABLE requested_brands AS
+SELECT 1 AS sort_order, 'Alcott Hill®' AS requested_brand UNION ALL
+SELECT 2, 'AllModern' UNION ALL
+SELECT 3, 'Red Barrel Studio®' UNION ALL
+SELECT 4, 'Gracie Oaks' UNION ALL
+SELECT 5, 'House of Hampton®' UNION ALL
+SELECT 6, 'Astoria Grand' UNION ALL
+SELECT 7, 'Latitude Run®' UNION ALL
+SELECT 8, 'Villeroy & Boch' UNION ALL
+SELECT 9, 'Ivy Bronx' UNION ALL
+SELECT 10, 'Lenox' UNION ALL
+SELECT 11, 'Winston Porter' UNION ALL
+SELECT 12, 'Mercer41' UNION ALL
+SELECT 13, 'Bungalow Rose' UNION ALL
+SELECT 14, 'Lark Manor™' UNION ALL
+SELECT 15, 'Highland Dunes' UNION ALL
+SELECT 16, 'Charlton Home®' UNION ALL
+SELECT 17, 'Ophelia & Co.' UNION ALL
+SELECT 18, 'August Grove®' UNION ALL
+SELECT 19, 'Rosecliff Heights' UNION ALL
+SELECT 20, 'Rosalind Wheeler' UNION ALL
+SELECT 21, 'The Holiday Aisle®' UNION ALL
+SELECT 22, 'Beachcrest Home™' UNION ALL
+SELECT 23, 'Jonathan Adler' UNION ALL
+SELECT 24, 'Symple Stuff' UNION ALL
+SELECT 25, 'Ebern Designs' UNION ALL
+SELECT 26, 'Canora Grey' UNION ALL
+SELECT 27, 'Rosdorf Park' UNION ALL
+SELECT 28, 'Wildon Home®' UNION ALL
+SELECT 29, '17 Stories' UNION ALL
+SELECT 30, 'Harriet Bee' UNION ALL
+SELECT 31, 'Bay Isle Home™' UNION ALL
+SELECT 32, 'Dakota Fields' UNION ALL
+SELECT 33, 'Breakwater Bay' UNION ALL
+SELECT 34, 'Elrene Home Fashions' UNION ALL
+SELECT 35, 'East Urban Home' UNION ALL
+SELECT 36, 'Wade Logan®' UNION ALL
+SELECT 37, 'Millwood Pines' UNION ALL
+SELECT 38, 'George Oliver' UNION ALL
+SELECT 39, 'Brayden Studio®' UNION ALL
+SELECT 40, 'Darby Home Co' UNION ALL
+SELECT 41, 'Zoomie Kids' UNION ALL
+SELECT 42, 'The Twillery Co.®' UNION ALL
+SELECT 43, 'World Menagerie';
 
-brand_lookup AS (
+CREATE TEMP TABLE candidate_source_tables AS
+WITH field_paths AS (
   SELECT
-    sort_order,
-    requested_brand,
-    normalize_match(requested_brand) AS brand_key
-  FROM requested_brands
+    table_name,
+    field_path
+  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`
+  WHERE NOT REGEXP_CONTAINS(LOWER(table_name), r'(agg|fact|order|traffic|visit|weekly|daily|event|log)')
+    -- Prefer flat dimension/catalog tables. Nested paths usually require
+    -- UNNESTs and are more likely to sit on wider/heavier fact tables.
+    AND NOT REGEXP_CONTAINS(field_path, r'\.')
 ),
 
-reporting_week AS (
+classified_fields AS (
   SELECT
-    COALESCE(
-      target_week_start,
-      MAX(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)))
-    ) AS week_start
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
-  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
-  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier
-    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey
-  WHERE retail_sku_store_date.agg_level = 'WEEKLY'
-    AND retail_sku_store_date.styname = target_country
-    AND retail_dim_supplier.origsuid = target_supplier_id
-    AND (
-      (
-        target_week_start IS NULL
-        AND retail_sku_store_date.date >= DATE_SUB(CURRENT_DATE(), INTERVAL latest_week_lookback_days DAY)
-      )
-      OR (
-        target_week_start IS NOT NULL
-        AND retail_sku_store_date.date >= target_week_start
-        AND retail_sku_store_date.date < DATE_ADD(target_week_start, INTERVAL 7 DAY)
-      )
-    )
+    table_name,
+    field_path,
+    CASE
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(origsuid|original_supplier_id|supplier_id|supplierid|suid)$')
+        THEN 'supplier_id'
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(origsuname|supplier_name|suppliername)$')
+        THEN 'supplier_name'
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(prsku|sku|sku_id|skuid|product_sku|productsku|part_number|partnumber)$')
+        THEN 'sku'
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(manufacturer_brand|supplier_brand|brand_catalog|product_brand|brand).*(name)$|^(brandname|brand_name)$')
+        THEN 'brand'
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(category|class|dept|department).*(name)$|^(clname|classname|categoryname|departmentname)$')
+        THEN 'category'
+      ELSE NULL
+    END AS field_type,
+    CASE
+      WHEN REGEXP_CONTAINS(LOWER(table_name), r'(sku|product|catalog|part|class|category)') THEN 200
+      ELSE 0
+    END
+    + CASE
+        WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(origsuid|prsku|sku|brandname|brand_name|clname|classname|categoryname|category_name)$') THEN 50
+        ELSE 0
+      END AS score
+  FROM field_paths
 ),
 
-supplier_rows AS (
+ranked_fields AS (
   SELECT
-    retail_dim_supplier.origsuid AS supplier_id,
-    retail_dim_supplier.origsuname AS supplier_name,
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
-    TO_JSON_STRING(supplier_part_struct) AS supplier_part_json
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
-  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
-  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct
-  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier
-    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey
-  CROSS JOIN reporting_week
-  WHERE retail_sku_store_date.agg_level = 'WEEKLY'
-    AND retail_sku_store_date.styname = target_country
-    AND retail_sku_store_date.date >= reporting_week.week_start
-    AND retail_sku_store_date.date < DATE_ADD(reporting_week.week_start, INTERVAL 7 DAY)
-    AND retail_dim_supplier.origsuid = target_supplier_id
-    AND supplier_part_struct IS NOT NULL
+    table_name,
+    field_type,
+    field_path,
+    score,
+    ROW_NUMBER() OVER (
+      PARTITION BY table_name, field_type
+      ORDER BY score DESC, field_path
+    ) AS field_rank
+  FROM classified_fields
+  WHERE field_type IS NOT NULL
 ),
 
-source_rows AS (
-  SELECT DISTINCT
-    supplier_id,
-    supplier_name,
-    week_start,
-
-    COALESCE(
-      NULLIF(JSON_VALUE(supplier_part_json, '$.sku'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.SKU'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.PrSKU'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.prsku'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.sku_id'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.SkuID'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.skuid'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.product_sku'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductSKU'), ''),
-      NULLIF(REGEXP_EXTRACT(COALESCE(supplier_part_json, ''), r'(?i)"[^"]*(?:prsku|sku)[^"]*"\s*:\s*"([^"]+)"'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.id'), '')
-    ) AS sku,
-
-    COALESCE(
-      NULLIF(JSON_VALUE(supplier_part_json, '$.manufacturer_brand_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.manufacturerbrandname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ManufacturerBrandName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.supplier_brand_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.supplierbrandname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.SupplierBrandName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.brand_catalog_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.brandcatalogname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.BrandCatalogName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.product_brand_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.productbrandname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductBrandName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.brand_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.brandname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.BrandName'), ''),
-      NULLIF(REGEXP_EXTRACT(COALESCE(supplier_part_json, ''), r'(?i)"[^"]*brand[^"]*(?:name|Name)[^"]*"\s*:\s*"([^"]+)"'), '')
-    ) AS matched_brand,
-
-    COALESCE(
-      NULLIF(JSON_VALUE(supplier_part_json, '$.category_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.categoryname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.CategoryName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.product_category_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.productcategoryname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductCategoryName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.class_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.classname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ClassName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.product_class_name'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.productclassname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductClassName'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.clname'), ''),
-      NULLIF(JSON_VALUE(supplier_part_json, '$.ClName'), ''),
-      NULLIF(REGEXP_EXTRACT(COALESCE(supplier_part_json, ''), r'(?i)"[^"]*(?:category|class)[^"]*(?:name|Name)[^"]*"\s*:\s*"([^"]+)"'), ''),
-      'Unknown category'
-    ) AS category,
-
-    normalize_match(COALESCE(supplier_part_json, '')) AS searchable_payload
-  FROM supplier_rows
-),
-
-normalized_source AS (
+table_fields AS (
   SELECT
-    supplier_id,
-    supplier_name,
-    week_start,
-    sku,
-    matched_brand,
-    normalize_match(matched_brand) AS brand_key,
-    category,
-    searchable_payload
-  FROM source_rows
-  WHERE sku IS NOT NULL
-),
-
-matched_source AS (
-  SELECT DISTINCT
-    brand_lookup.sort_order,
-    brand_lookup.requested_brand,
-    normalized_source.sku,
-    normalized_source.category,
-    normalized_source.week_start,
-    COALESCE(NULLIF(normalized_source.matched_brand, ''), brand_lookup.requested_brand) AS matched_source_brand
-  FROM brand_lookup
-  JOIN normalized_source
-    ON normalized_source.brand_key = brand_lookup.brand_key
-    OR STRPOS(normalized_source.searchable_payload, brand_lookup.brand_key) > 0
-),
-
-category_counts AS (
-  SELECT
-    sort_order,
-    requested_brand,
-    category,
-    COUNT(DISTINCT sku) AS sku_count,
-    STRING_AGG(DISTINCT matched_source_brand, ', ' ORDER BY matched_source_brand) AS matched_source_brands
-  FROM matched_source
-  GROUP BY
-    sort_order,
-    requested_brand,
-    category
-),
-
-brand_totals AS (
-  SELECT
-    brand_lookup.sort_order,
-    COUNT(DISTINCT matched_source.sku) AS total_sku_count
-  FROM brand_lookup
-  LEFT JOIN matched_source
-    ON matched_source.sort_order = brand_lookup.sort_order
-  GROUP BY brand_lookup.sort_order
+    table_name,
+    MAX(IF(field_type = 'supplier_id', field_path, NULL)) AS supplier_id_field,
+    MAX(IF(field_type = 'supplier_name', field_path, NULL)) AS supplier_name_field,
+    MAX(IF(field_type = 'sku', field_path, NULL)) AS sku_field,
+    MAX(IF(field_type = 'brand', field_path, NULL)) AS brand_field,
+    MAX(IF(field_type = 'category', field_path, NULL)) AS category_field,
+    SUM(score) AS table_score
+  FROM ranked_fields
+  WHERE field_rank = 1
+  GROUP BY table_name
 )
-
 SELECT
-  brand_lookup.requested_brand AS brand,
-  COALESCE(category_counts.category, 'No matching SKUs found') AS category,
-  COALESCE(category_counts.sku_count, 0) AS sku_count,
-  COALESCE(brand_totals.total_sku_count, 0) AS total_sku_count_for_brand,
-  category_counts.matched_source_brands,
-  target_supplier_id AS supplier_id,
-  reporting_week.week_start
-FROM brand_lookup
-CROSS JOIN reporting_week
-LEFT JOIN category_counts
-  ON category_counts.sort_order = brand_lookup.sort_order
-LEFT JOIN brand_totals
-  ON brand_totals.sort_order = brand_lookup.sort_order
-ORDER BY
-  brand_lookup.sort_order,
-  sku_count DESC,
-  category;
+  'wf-gcp-us-ae-retail-prod' AS project_id,
+  'cm_reporting' AS dataset_id,
+  table_name,
+  supplier_id_field,
+  supplier_name_field,
+  sku_field,
+  brand_field,
+  category_field,
+  table_score
+FROM table_fields
+WHERE supplier_id_field IS NOT NULL
+  AND sku_field IS NOT NULL
+  AND brand_field IS NOT NULL
+  AND category_field IS NOT NULL
+ORDER BY table_score DESC, table_name;
 
--- If the result still shows no matches or "Unknown category", do not switch
--- back to full-row JSON. Run this metadata-only probe instead and use the exact
--- field paths it returns to replace the JSON_VALUE candidates above:
+-- Result set 1: review this. It should be a short metadata-only result, not a
+-- TB-scale scan. The first row is the source used by the final report.
+SELECT
+  *
+FROM candidate_source_tables
+ORDER BY table_score DESC, table_name
+LIMIT 20;
+
+ASSERT (SELECT COUNT(*) FROM candidate_source_tables) > 0 AS
+  'No flat SKU/catalog source was found in cm_reporting metadata. Run the candidate_source_tables logic against another dataset that has product catalog fields, then use the explicit template at the bottom of this file.';
+
+SET report_sql = (
+  SELECT FORMAT(
+    """
+    WITH selected_source AS (
+      SELECT DISTINCT
+        CAST(src.`%s` AS STRING) AS supplier_id,
+        %s AS supplier_name,
+        CAST(src.`%s` AS STRING) AS sku,
+        CAST(src.`%s` AS STRING) AS source_brand,
+        COALESCE(NULLIF(TRIM(CAST(src.`%s` AS STRING)), ''), 'Unknown category') AS category
+      FROM `%s.%s.%s` AS src
+      WHERE CAST(src.`%s` AS STRING) = @target_supplier_id
+    ),
+
+    brand_lookup AS (
+      SELECT
+        sort_order,
+        requested_brand,
+        normalize_match(requested_brand) AS brand_key
+      FROM requested_brands
+    ),
+
+    matched_source AS (
+      SELECT DISTINCT
+        brand_lookup.sort_order,
+        brand_lookup.requested_brand,
+        selected_source.sku,
+        selected_source.category,
+        selected_source.source_brand,
+        selected_source.supplier_id,
+        selected_source.supplier_name
+      FROM brand_lookup
+      JOIN selected_source
+        ON normalize_match(selected_source.source_brand) = brand_lookup.brand_key
+      WHERE selected_source.sku IS NOT NULL
+        AND selected_source.source_brand IS NOT NULL
+    ),
+
+    category_counts AS (
+      SELECT
+        sort_order,
+        requested_brand,
+        category,
+        COUNT(DISTINCT sku) AS sku_count,
+        STRING_AGG(DISTINCT source_brand, ', ' ORDER BY source_brand) AS matched_source_brands
+      FROM matched_source
+      GROUP BY
+        sort_order,
+        requested_brand,
+        category
+    ),
+
+    brand_totals AS (
+      SELECT
+        brand_lookup.sort_order,
+        COUNT(DISTINCT matched_source.sku) AS total_sku_count
+      FROM brand_lookup
+      LEFT JOIN matched_source
+        ON matched_source.sort_order = brand_lookup.sort_order
+      GROUP BY brand_lookup.sort_order
+    )
+
+    SELECT
+      brand_lookup.requested_brand AS brand,
+      COALESCE(category_counts.category, 'No matching SKUs found') AS category,
+      COALESCE(category_counts.sku_count, 0) AS sku_count,
+      COALESCE(brand_totals.total_sku_count, 0) AS total_sku_count_for_brand,
+      category_counts.matched_source_brands,
+      @target_supplier_id AS supplier_id,
+      '%s.%s.%s' AS source_table
+    FROM brand_lookup
+    LEFT JOIN category_counts
+      ON category_counts.sort_order = brand_lookup.sort_order
+    LEFT JOIN brand_totals
+      ON brand_totals.sort_order = brand_lookup.sort_order
+    ORDER BY
+      brand_lookup.sort_order,
+      sku_count DESC,
+      category
+    """,
+    supplier_id_field,
+    IF(
+      supplier_name_field IS NULL,
+      "'Unknown supplier'",
+      FORMAT("CAST(src.`%s` AS STRING)", supplier_name_field)
+    ),
+    sku_field,
+    brand_field,
+    category_field,
+    project_id,
+    dataset_id,
+    table_name,
+    supplier_id_field,
+    project_id,
+    dataset_id,
+    table_name
+  )
+  FROM candidate_source_tables
+  ORDER BY table_score DESC, table_name
+  LIMIT 1
+);
+
+IF run_report THEN
+  -- Result set 2: the requested SKU counts by brand/category.
+  EXECUTE IMMEDIATE report_sql
+  USING target_supplier_id AS target_supplier_id;
+ELSE
+  SELECT
+    'Metadata discovery only. Review result set 1, confirm the first source table is a flat SKU/catalog source, then set run_report = TRUE to run the SKU count.' AS next_step;
+END IF;
+
+-- Explicit low-scan template:
+-- If you already know the right flat catalog table/columns, skip auto-discovery
+-- and use this shape directly. Replace the table and field names only.
 --
--- SELECT
---   field_path,
---   data_type
--- FROM `wf-gcp-us-ae-retail-prod.cm_reporting.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`
--- WHERE table_name = 'retail_sku_store_date_agg'
---   AND REGEXP_CONTAINS(LOWER(field_path), r'(brand|sku|class|category|dept|product)')
--- ORDER BY field_path;
+-- WITH requested_brands AS (...same brand list above...),
+-- source AS (
+--   SELECT DISTINCT
+--     CAST(supplier_id AS STRING) AS supplier_id,
+--     CAST(sku AS STRING) AS sku,
+--     CAST(brand_name AS STRING) AS source_brand,
+--     COALESCE(CAST(category_name AS STRING), CAST(class_name AS STRING), 'Unknown category') AS category
+--   FROM `project.dataset.flat_product_catalog_or_sku_dimension`
+--   WHERE CAST(supplier_id AS STRING) = '22255'
+-- )
+-- SELECT source_brand, category, COUNT(DISTINCT sku) AS sku_count
+-- FROM source
+-- GROUP BY source_brand, category;
