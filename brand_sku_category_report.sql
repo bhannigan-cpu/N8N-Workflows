@@ -5,13 +5,13 @@
 -- weekly aggregate is useful for sales/performance metrics, but it is far too
 -- large for a simple "which SKUs are in which brand/category" lookup.
 --
--- This script first uses INFORMATION_SCHEMA metadata to find a flatter
--- SKU/catalog-style table in cm_reporting with supplier, SKU, brand, and
--- category/class fields. Metadata scans are tiny. It then dynamically queries
--- only those columns from the best candidate table.
+-- This script first uses project-level INFORMATION_SCHEMA metadata to find a
+-- flatter SKU/catalog-style table with supplier, SKU, brand, and category/class
+-- fields. Metadata scans are tiny. It then dynamically queries only those
+-- columns from the best candidate table.
 --
--- If the selected table looks wrong, run just the "candidate_source_tables"
--- SELECT below and use one of the other candidate table names/fields.
+-- If the selected table looks wrong, use one of the other candidate table
+-- names/fields from result set 1 in the explicit template at the bottom.
 
 DECLARE target_supplier_id STRING DEFAULT '22255';
 -- Keep FALSE for the first run. Review result set 1, then change to TRUE once
@@ -79,10 +79,13 @@ SELECT 43, 'World Menagerie';
 CREATE TEMP TABLE candidate_source_tables AS
 WITH field_paths AS (
   SELECT
+    table_catalog,
+    table_schema,
     table_name,
     field_path
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`
+  FROM `wf-gcp-us-ae-retail-prod.region-us.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`
   WHERE NOT REGEXP_CONTAINS(LOWER(table_name), r'(agg|fact|order|traffic|visit|weekly|daily|event|log)')
+    AND NOT STARTS_WITH(table_schema, '_')
     -- Prefer flat dimension/catalog tables. Nested paths usually require
     -- UNNESTs and are more likely to sit on wider/heavier fact tables.
     AND NOT REGEXP_CONTAINS(field_path, r'\.')
@@ -90,6 +93,8 @@ WITH field_paths AS (
 
 classified_fields AS (
   SELECT
+    table_catalog,
+    table_schema,
     table_name,
     field_path,
     CASE
@@ -99,18 +104,18 @@ classified_fields AS (
         THEN 'supplier_name'
       WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(prsku|sku|sku_id|skuid|product_sku|productsku|part_number|partnumber)$')
         THEN 'sku'
-      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(manufacturer_brand|supplier_brand|brand_catalog|product_brand|brand).*(name)$|^(brandname|brand_name)$')
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(manufacturer_brand|supplier_brand|brand_catalog|product_brand|brand).*(name)$|^(brand|brandname|brand_name)$')
         THEN 'brand'
-      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(category|class|dept|department).*(name)$|^(clname|classname|categoryname|departmentname)$')
+      WHEN REGEXP_CONTAINS(LOWER(field_path), r'(category|class|dept|department).*(name)$|^(category|class|department|clname|classname|categoryname|departmentname)$')
         THEN 'category'
       ELSE NULL
     END AS field_type,
     CASE
-      WHEN REGEXP_CONTAINS(LOWER(table_name), r'(sku|product|catalog|part|class|category)') THEN 200
+      WHEN REGEXP_CONTAINS(LOWER(CONCAT(table_schema, '.', table_name)), r'(sku|product|catalog|part|class|category|item)') THEN 200
       ELSE 0
     END
     + CASE
-        WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(origsuid|prsku|sku|brandname|brand_name|clname|classname|categoryname|category_name)$') THEN 50
+        WHEN REGEXP_CONTAINS(LOWER(field_path), r'^(origsuid|prsku|sku|brand|brandname|brand_name|clname|class|classname|category|categoryname|category_name)$') THEN 50
         ELSE 0
       END AS score
   FROM field_paths
@@ -118,12 +123,14 @@ classified_fields AS (
 
 ranked_fields AS (
   SELECT
+    table_catalog,
+    table_schema,
     table_name,
     field_type,
     field_path,
     score,
     ROW_NUMBER() OVER (
-      PARTITION BY table_name, field_type
+      PARTITION BY table_catalog, table_schema, table_name, field_type
       ORDER BY score DESC, field_path
     ) AS field_rank
   FROM classified_fields
@@ -132,6 +139,8 @@ ranked_fields AS (
 
 table_fields AS (
   SELECT
+    table_catalog,
+    table_schema,
     table_name,
     MAX(IF(field_type = 'supplier_id', field_path, NULL)) AS supplier_id_field,
     MAX(IF(field_type = 'supplier_name', field_path, NULL)) AS supplier_name_field,
@@ -141,11 +150,11 @@ table_fields AS (
     SUM(score) AS table_score
   FROM ranked_fields
   WHERE field_rank = 1
-  GROUP BY table_name
+  GROUP BY table_catalog, table_schema, table_name
 )
 SELECT
-  'wf-gcp-us-ae-retail-prod' AS project_id,
-  'cm_reporting' AS dataset_id,
+  table_catalog AS project_id,
+  table_schema AS dataset_id,
   table_name,
   supplier_id_field,
   supplier_name_field,
@@ -168,118 +177,120 @@ FROM candidate_source_tables
 ORDER BY table_score DESC, table_name
 LIMIT 20;
 
-ASSERT (SELECT COUNT(*) FROM candidate_source_tables) > 0 AS
-  'No flat SKU/catalog source was found in cm_reporting metadata. Run the candidate_source_tables logic against another dataset that has product catalog fields, then use the explicit template at the bottom of this file.';
-
-SET report_sql = (
-  SELECT FORMAT(
-    """
-    WITH selected_source AS (
-      SELECT DISTINCT
-        CAST(src.`%s` AS STRING) AS supplier_id,
-        %s AS supplier_name,
-        CAST(src.`%s` AS STRING) AS sku,
-        CAST(src.`%s` AS STRING) AS source_brand,
-        COALESCE(NULLIF(TRIM(CAST(src.`%s` AS STRING)), ''), 'Unknown category') AS category
-      FROM `%s.%s.%s` AS src
-      WHERE CAST(src.`%s` AS STRING) = @target_supplier_id
-    ),
-
-    brand_lookup AS (
-      SELECT
-        sort_order,
-        requested_brand,
-        normalize_match(requested_brand) AS brand_key
-      FROM requested_brands
-    ),
-
-    matched_source AS (
-      SELECT DISTINCT
-        brand_lookup.sort_order,
-        brand_lookup.requested_brand,
-        selected_source.sku,
-        selected_source.category,
-        selected_source.source_brand,
-        selected_source.supplier_id,
-        selected_source.supplier_name
-      FROM brand_lookup
-      JOIN selected_source
-        ON normalize_match(selected_source.source_brand) = brand_lookup.brand_key
-      WHERE selected_source.sku IS NOT NULL
-        AND selected_source.source_brand IS NOT NULL
-    ),
-
-    category_counts AS (
-      SELECT
-        sort_order,
-        requested_brand,
-        category,
-        COUNT(DISTINCT sku) AS sku_count,
-        STRING_AGG(DISTINCT source_brand, ', ' ORDER BY source_brand) AS matched_source_brands
-      FROM matched_source
-      GROUP BY
-        sort_order,
-        requested_brand,
-        category
-    ),
-
-    brand_totals AS (
-      SELECT
-        brand_lookup.sort_order,
-        COUNT(DISTINCT matched_source.sku) AS total_sku_count
-      FROM brand_lookup
-      LEFT JOIN matched_source
-        ON matched_source.sort_order = brand_lookup.sort_order
-      GROUP BY brand_lookup.sort_order
-    )
-
-    SELECT
-      brand_lookup.requested_brand AS brand,
-      COALESCE(category_counts.category, 'No matching SKUs found') AS category,
-      COALESCE(category_counts.sku_count, 0) AS sku_count,
-      COALESCE(brand_totals.total_sku_count, 0) AS total_sku_count_for_brand,
-      category_counts.matched_source_brands,
-      @target_supplier_id AS supplier_id,
-      '%s.%s.%s' AS source_table
-    FROM brand_lookup
-    LEFT JOIN category_counts
-      ON category_counts.sort_order = brand_lookup.sort_order
-    LEFT JOIN brand_totals
-      ON brand_totals.sort_order = brand_lookup.sort_order
-    ORDER BY
-      brand_lookup.sort_order,
-      sku_count DESC,
-      category
-    """,
-    supplier_id_field,
-    IF(
-      supplier_name_field IS NULL,
-      "'Unknown supplier'",
-      FORMAT("CAST(src.`%s` AS STRING)", supplier_name_field)
-    ),
-    sku_field,
-    brand_field,
-    category_field,
-    project_id,
-    dataset_id,
-    table_name,
-    supplier_id_field,
-    project_id,
-    dataset_id,
-    table_name
-  )
-  FROM candidate_source_tables
-  ORDER BY table_score DESC, table_name
-  LIMIT 1
-);
-
-IF run_report THEN
-  -- Result set 2: the requested SKU counts by brand/category.
-  EXECUTE IMMEDIATE report_sql
-  USING target_supplier_id AS target_supplier_id;
-ELSE
+IF (SELECT COUNT(*) FROM candidate_source_tables) = 0 THEN
   SELECT
-    'Metadata discovery only. Review result set 1, confirm the first source table is a flat SKU/catalog source, then set run_report = TRUE to run the SKU count.' AS next_step;
+    'No candidate flat SKU/catalog source was found in project-level metadata. Use the explicit template at the bottom with the known catalog table, or broaden the metadata regexes in candidate_source_tables.' AS next_step;
+ELSE
+  SET report_sql = (
+    SELECT FORMAT(
+      """
+      WITH selected_source AS (
+        SELECT DISTINCT
+          CAST(src.`%s` AS STRING) AS supplier_id,
+          %s AS supplier_name,
+          CAST(src.`%s` AS STRING) AS sku,
+          CAST(src.`%s` AS STRING) AS source_brand,
+          COALESCE(NULLIF(TRIM(CAST(src.`%s` AS STRING)), ''), 'Unknown category') AS category
+        FROM `%s.%s.%s` AS src
+        WHERE CAST(src.`%s` AS STRING) = @target_supplier_id
+      ),
+
+      brand_lookup AS (
+        SELECT
+          sort_order,
+          requested_brand,
+          normalize_match(requested_brand) AS brand_key
+        FROM requested_brands
+      ),
+
+      matched_source AS (
+        SELECT DISTINCT
+          brand_lookup.sort_order,
+          brand_lookup.requested_brand,
+          selected_source.sku,
+          selected_source.category,
+          selected_source.source_brand,
+          selected_source.supplier_id,
+          selected_source.supplier_name
+        FROM brand_lookup
+        JOIN selected_source
+          ON normalize_match(selected_source.source_brand) = brand_lookup.brand_key
+        WHERE selected_source.sku IS NOT NULL
+          AND selected_source.source_brand IS NOT NULL
+      ),
+
+      category_counts AS (
+        SELECT
+          sort_order,
+          requested_brand,
+          category,
+          COUNT(DISTINCT sku) AS sku_count,
+          STRING_AGG(DISTINCT source_brand, ', ' ORDER BY source_brand) AS matched_source_brands
+        FROM matched_source
+        GROUP BY
+          sort_order,
+          requested_brand,
+          category
+      ),
+
+      brand_totals AS (
+        SELECT
+          brand_lookup.sort_order,
+          COUNT(DISTINCT matched_source.sku) AS total_sku_count
+        FROM brand_lookup
+        LEFT JOIN matched_source
+          ON matched_source.sort_order = brand_lookup.sort_order
+        GROUP BY brand_lookup.sort_order
+      )
+
+      SELECT
+        brand_lookup.requested_brand AS brand,
+        COALESCE(category_counts.category, 'No matching SKUs found') AS category,
+        COALESCE(category_counts.sku_count, 0) AS sku_count,
+        COALESCE(brand_totals.total_sku_count, 0) AS total_sku_count_for_brand,
+        category_counts.matched_source_brands,
+        @target_supplier_id AS supplier_id,
+        '%s.%s.%s' AS source_table
+      FROM brand_lookup
+      LEFT JOIN category_counts
+        ON category_counts.sort_order = brand_lookup.sort_order
+      LEFT JOIN brand_totals
+        ON brand_totals.sort_order = brand_lookup.sort_order
+      ORDER BY
+        brand_lookup.sort_order,
+        sku_count DESC,
+        category
+      """,
+      supplier_id_field,
+      IF(
+        supplier_name_field IS NULL,
+        "'Unknown supplier'",
+        FORMAT("CAST(src.`%s` AS STRING)", supplier_name_field)
+      ),
+      sku_field,
+      brand_field,
+      category_field,
+      project_id,
+      dataset_id,
+      table_name,
+      supplier_id_field,
+      project_id,
+      dataset_id,
+      table_name
+    )
+    FROM candidate_source_tables
+    ORDER BY table_score DESC, dataset_id, table_name
+    LIMIT 1
+  );
+
+  IF run_report THEN
+    -- Result set 2: the requested SKU counts by brand/category.
+    EXECUTE IMMEDIATE report_sql
+    USING target_supplier_id AS target_supplier_id;
+  ELSE
+    SELECT
+      'Metadata discovery only. Review result set 1, confirm the first source table is a flat SKU/catalog source, then set run_report = TRUE to run the SKU count.' AS next_step;
+  END IF;
 END IF;
 
 -- Explicit low-scan template:
