@@ -3,21 +3,23 @@
 --
 -- Paste this into a BigQuery node/query editor. The script uses the same
 -- reporting table and supplier join pattern as Weekly Supplier Report.json.
--- It normalizes brand names so trademark symbols in the request do not block
--- matches against source-system names that omit them.
+-- It normalizes brand names so trademark symbols and punctuation in the
+-- request do not block matches against source-system names that omit them.
 
 DECLARE target_supplier_id INT64 DEFAULT 22255;
 DECLARE target_country STRING DEFAULT 'United States';
 
--- Use the last complete reporting week, matching the existing workflow.
-DECLARE target_week_start DATE DEFAULT DATE_SUB(
-  DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)),
-  INTERVAL 1 WEEK
-);
+-- Leave NULL to use the latest available weekly row for this supplier. Set a
+-- specific Sunday week_start date here if you need to reproduce a past report.
+DECLARE target_week_start DATE DEFAULT NULL;
 
-CREATE TEMP FUNCTION normalize_brand(value STRING) AS (
+CREATE TEMP FUNCTION normalize_match(value STRING) AS (
   REGEXP_REPLACE(
-    LOWER(TRIM(REGEXP_REPLACE(COALESCE(value, ''), r'[®™]', ''))),
+    LOWER(TRIM(REGEXP_REPLACE(
+      REGEXP_REPLACE(COALESCE(value, ''), r'[®™]', ''),
+      r'[^A-Za-z0-9]+',
+      ' '
+    ))),
     r'\s+',
     ' '
   )
@@ -73,22 +75,73 @@ brand_lookup AS (
   SELECT
     sort_order,
     requested_brand,
-    normalize_brand(requested_brand) AS brand_key
+    normalize_match(requested_brand) AS brand_key
   FROM requested_brands
+),
+
+reporting_week AS (
+  SELECT
+    COALESCE(
+      target_week_start,
+      MAX(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)))
+    ) AS week_start
+  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
+  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
+  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier
+    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey
+  WHERE retail_sku_store_date.agg_level = 'WEEKLY'
+    AND retail_sku_store_date.styname = target_country
+    AND retail_dim_supplier.origsuid = target_supplier_id
+),
+
+supplier_rows AS (
+  SELECT
+    retail_dim_supplier.origsuid AS supplier_id,
+    retail_dim_supplier.origsuname AS supplier_name,
+    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
+    TO_JSON_STRING(retail_sku_store_date) AS row_json,
+    TO_JSON_STRING(supplier_struct) AS supplier_json,
+    TO_JSON_STRING(supplier_part_struct) AS supplier_part_json
+  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
+  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
+  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct
+  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier
+    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey
+  CROSS JOIN reporting_week
+  WHERE retail_sku_store_date.agg_level = 'WEEKLY'
+    AND retail_sku_store_date.styname = target_country
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = reporting_week.week_start
+    AND retail_dim_supplier.origsuid = target_supplier_id
 ),
 
 source_rows AS (
   SELECT DISTINCT
-    retail_dim_supplier.origsuid AS supplier_id,
-    retail_dim_supplier.origsuname AS supplier_name,
+    supplier_id,
+    supplier_name,
+    week_start,
 
     COALESCE(
       NULLIF(JSON_VALUE(row_json, '$.sku'), ''),
       NULLIF(JSON_VALUE(row_json, '$.SKU'), ''),
-      NULLIF(JSON_VALUE(row_json, '$.prsku'), ''),
       NULLIF(JSON_VALUE(row_json, '$.PrSKU'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.prsku'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.sku_id'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.SkuID'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.skuid'), ''),
       NULLIF(JSON_VALUE(row_json, '$.product_sku'), ''),
-      NULLIF(JSON_VALUE(row_json, '$.ProductSKU'), '')
+      NULLIF(JSON_VALUE(row_json, '$.ProductSKU'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.sku'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.SKU'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.PrSKU'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.prsku'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.sku_id'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.SkuID'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.skuid'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.product_sku'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductSKU'), ''),
+      NULLIF(REGEXP_EXTRACT(CONCAT(COALESCE(row_json, ''), ' ', COALESCE(supplier_part_json, '')), r'(?i)"[^"]*(?:prsku|sku)[^"]*"\s*:\s*"([^"]+)"'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.id'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.id'), '')
     ) AS sku,
 
     COALESCE(
@@ -106,7 +159,23 @@ source_rows AS (
       NULLIF(JSON_VALUE(row_json, '$.ProductBrandName'), ''),
       NULLIF(JSON_VALUE(row_json, '$.brand_name'), ''),
       NULLIF(JSON_VALUE(row_json, '$.brandname'), ''),
-      NULLIF(JSON_VALUE(row_json, '$.BrandName'), '')
+      NULLIF(JSON_VALUE(row_json, '$.BrandName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.manufacturer_brand_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.manufacturerbrandname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ManufacturerBrandName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.supplier_brand_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.supplierbrandname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.SupplierBrandName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.brand_catalog_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.brandcatalogname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.BrandCatalogName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.product_brand_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.productbrandname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductBrandName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.brand_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.brandname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.BrandName'), ''),
+      NULLIF(REGEXP_EXTRACT(CONCAT(COALESCE(row_json, ''), ' ', COALESCE(supplier_part_json, '')), r'(?i)"[^"]*brand[^"]*(?:name|Name)[^"]*"\s*:\s*"([^"]+)"'), '')
     ) AS matched_brand,
 
     COALESCE(
@@ -119,57 +188,88 @@ source_rows AS (
       NULLIF(JSON_VALUE(row_json, '$.class_name'), ''),
       NULLIF(JSON_VALUE(row_json, '$.classname'), ''),
       NULLIF(JSON_VALUE(row_json, '$.ClassName'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.product_class_name'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.productclassname'), ''),
+      NULLIF(JSON_VALUE(row_json, '$.ProductClassName'), ''),
       NULLIF(JSON_VALUE(row_json, '$.clname'), ''),
       NULLIF(JSON_VALUE(row_json, '$.ClName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.category_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.categoryname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.CategoryName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.product_category_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.productcategoryname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductCategoryName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.class_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.classname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ClassName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.product_class_name'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.productclassname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ProductClassName'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.clname'), ''),
+      NULLIF(JSON_VALUE(supplier_part_json, '$.ClName'), ''),
+      NULLIF(REGEXP_EXTRACT(CONCAT(COALESCE(row_json, ''), ' ', COALESCE(supplier_part_json, '')), r'(?i)"[^"]*(?:category|class)[^"]*(?:name|Name)[^"]*"\s*:\s*"([^"]+)"'), ''),
       'Unknown category'
-    ) AS category
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
-  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
-  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier
-    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey
-  CROSS JOIN UNNEST([TO_JSON_STRING(retail_sku_store_date)]) AS row_json
-  WHERE retail_sku_store_date.agg_level = 'WEEKLY'
-    AND retail_sku_store_date.styname = target_country
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = target_week_start
-    AND retail_dim_supplier.origsuid = target_supplier_id
+    ) AS category,
+
+    normalize_match(CONCAT(
+      COALESCE(row_json, ''),
+      ' ',
+      COALESCE(supplier_json, ''),
+      ' ',
+      COALESCE(supplier_part_json, '')
+    )) AS searchable_payload
+  FROM supplier_rows
 ),
 
 normalized_source AS (
   SELECT
     supplier_id,
     supplier_name,
+    week_start,
     sku,
     matched_brand,
-    normalize_brand(matched_brand) AS brand_key,
-    category
+    normalize_match(matched_brand) AS brand_key,
+    category,
+    searchable_payload
   FROM source_rows
   WHERE sku IS NOT NULL
-    AND matched_brand IS NOT NULL
+),
+
+matched_source AS (
+  SELECT DISTINCT
+    brand_lookup.sort_order,
+    brand_lookup.requested_brand,
+    normalized_source.sku,
+    normalized_source.category,
+    normalized_source.week_start,
+    COALESCE(NULLIF(normalized_source.matched_brand, ''), brand_lookup.requested_brand) AS matched_source_brand
+  FROM brand_lookup
+  JOIN normalized_source
+    ON normalized_source.brand_key = brand_lookup.brand_key
+    OR STRPOS(normalized_source.searchable_payload, brand_lookup.brand_key) > 0
 ),
 
 category_counts AS (
   SELECT
-    brand_lookup.sort_order,
-    brand_lookup.requested_brand,
-    normalized_source.category,
-    COUNT(DISTINCT normalized_source.sku) AS sku_count,
-    STRING_AGG(DISTINCT normalized_source.matched_brand, ', ' ORDER BY normalized_source.matched_brand) AS matched_source_brands
-  FROM brand_lookup
-  JOIN normalized_source
-    ON normalized_source.brand_key = brand_lookup.brand_key
+    sort_order,
+    requested_brand,
+    category,
+    COUNT(DISTINCT sku) AS sku_count,
+    STRING_AGG(DISTINCT matched_source_brand, ', ' ORDER BY matched_source_brand) AS matched_source_brands
+  FROM matched_source
   GROUP BY
-    brand_lookup.sort_order,
-    brand_lookup.requested_brand,
-    normalized_source.category
+    sort_order,
+    requested_brand,
+    category
 ),
 
 brand_totals AS (
   SELECT
     brand_lookup.sort_order,
-    COUNT(DISTINCT normalized_source.sku) AS total_sku_count
+    COUNT(DISTINCT matched_source.sku) AS total_sku_count
   FROM brand_lookup
-  LEFT JOIN normalized_source
-    ON normalized_source.brand_key = brand_lookup.brand_key
+  LEFT JOIN matched_source
+    ON matched_source.sort_order = brand_lookup.sort_order
   GROUP BY brand_lookup.sort_order
 )
 
@@ -180,8 +280,9 @@ SELECT
   COALESCE(brand_totals.total_sku_count, 0) AS total_sku_count_for_brand,
   category_counts.matched_source_brands,
   target_supplier_id AS supplier_id,
-  target_week_start AS week_start
+  reporting_week.week_start
 FROM brand_lookup
+CROSS JOIN reporting_week
 LEFT JOIN category_counts
   ON category_counts.sort_order = brand_lookup.sort_order
 LEFT JOIN brand_totals
