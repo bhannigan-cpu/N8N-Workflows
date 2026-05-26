@@ -218,8 +218,9 @@ FROM availability_metrics
 CROSS JOIN traffic_metrics
 CROSS JOIN mrpi_metrics
 CROSS JOIN wsi_metrics
+CROSS JOIN params
 LEFT JOIN order_metrics AS current_order
   ON current_order.week_start = params.current_week_start
 LEFT JOIN order_metrics AS prior_year_order
   ON prior_year_order.week_start = params.prior_year_week_start
-CROSS JOIN params;
+;
