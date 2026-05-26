@@ -1,0 +1,545 @@
+{
+  "name": "THE FINAL PRODUCT - MONDAY 9AM ET - ALL STORES ALL SUBENTITIES",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        288
+      ],
+      "id": "b986dece-02c6-47ae-ae1e-193f810a23a5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-test1-exp",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-test1-exp",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-test1-exp"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK) AS prior_week_start,\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 53 WEEK) AS prior_year_week_start\n),\n\ncurrency AS (\n  SELECT\n    ANY_VALUE(ExchangeRate) AS exchange_rate,\n    ANY_VALUE(currency_symbol) AS currency_symbol\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion`\n  WHERE CuyShortName = 'USD'\n),\n\ngrs_order_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    currency.currency_symbol,\n    orders.id AS order_id,\n    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs,\n    COALESCE(orders.productcostnorebates, 0) * COALESCE(currency.exchange_rate, 1) AS wsc\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start,\n      params.prior_year_week_start\n    )\n),\n\ndeduped_grs_orders AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    currency_symbol,\n    order_id,\n    ANY_VALUE(grs) AS grs,\n    ANY_VALUE(wsc) AS wsc\n  FROM grs_order_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    currency_symbol,\n    order_id\n),\n\nweekly_grs AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    currency_symbol,\n    SUM(grs) AS weekly_grs,\n    SUM(wsc) AS weekly_wsc\n  FROM deduped_grs_orders\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    currency_symbol\n),\n\ngrs_metrics AS (\n  SELECT\n    wg.supplier_name,\n    wg.supplier_id,\n    ANY_VALUE(wg.currency_symbol) AS currency_symbol,\n    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_grs, 0)) AS current_grs,\n    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_wsc, 0)) AS current_wsc,\n    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_wsc, 0)) AS prior_week_wsc,\n    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_wsc, 0)) AS prior_year_wsc,\n    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_grs, 0)) AS prior_week_grs,\n    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_grs, 0)) AS prior_year_grs\n  FROM weekly_grs AS wg\n  CROSS JOIN params\n  GROUP BY\n    wg.supplier_name,\n    wg.supplier_id\n),\n\navailability_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuid AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_ops.id AS ops_id,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_num, 0)\n      ELSE 0\n    END AS availability_num,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_denom, 0)\n      ELSE 0\n    END AS availability_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.opdimensions) AS retail_ops_dims\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS retail_ops\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_availability AS (\n  SELECT\n    week_start,\n    supplier_id,\n    supplier_name,\n    ops_id,\n    MAX(availability_num) AS availability_num,\n    MAX(availability_denom) AS availability_denom\n  FROM availability_rows\n  GROUP BY\n    week_start,\n    supplier_id,\n    supplier_name,\n    ops_id\n),\n\nweekly_availability AS (\n  SELECT\n    week_start,\n    supplier_id,\n    supplier_name,\n    SUM(availability_num) AS availability_num,\n    SUM(availability_denom) AS availability_denom\n  FROM deduped_availability\n  GROUP BY\n    week_start,\n    supplier_id,\n    supplier_name\n),\n\navailability_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, availability_num, 0)),\n      SUM(IF(week_start = params.current_week_start, availability_denom, 0))\n    ) AS current_availability,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, availability_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, availability_denom, 0))\n    ) AS prior_week_availability\n  FROM weekly_availability\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\ntraffic_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    traffic_source.id AS traffic_source_id,\n    COALESCE(traffic_source.skuvisits, 0) AS visits,\n    COALESCE(traffic_source.skuconverted, 0) AS converted\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.traffic_source) AS traffic_source\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_year_week_start\n    )\n),\n\ndeduped_traffic AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    traffic_source_id,\n    ANY_VALUE(visits) AS visits,\n    ANY_VALUE(converted) AS converted\n  FROM traffic_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    traffic_source_id\n),\n\nweekly_traffic AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(visits) AS visits,\n    SUM(converted) AS converted\n  FROM deduped_traffic\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\ntraffic_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    SUM(IF(week_start = params.current_week_start, visits, 0)) AS current_visits,\n    SUM(IF(week_start = params.prior_week_start, visits, 0)) AS prior_week_visits,\n    SUM(IF(week_start = params.prior_year_week_start, visits, 0)) AS prior_year_visits,\n    SUM(IF(week_start = params.current_week_start, converted, 0)) AS current_converted,\n    SUM(IF(week_start = params.prior_year_week_start, converted, 0)) AS prior_year_converted\n  FROM weekly_traffic\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nmrpi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    supplier_struct.id AS supplier_struct_id,\n    COALESCE(supplier_struct.mrpi28d_numerator, 0) AS mrpi_num,\n    COALESCE(supplier_struct.mrpi28d_denominator, 0) AS mrpi_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_mrpi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    supplier_struct_id,\n    ANY_VALUE(mrpi_num) AS mrpi_num,\n    ANY_VALUE(mrpi_denom) AS mrpi_denom\n  FROM mrpi_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    supplier_struct_id\n),\n\nweekly_mrpi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(mrpi_num) AS mrpi_num,\n    SUM(mrpi_denom) AS mrpi_denom\n  FROM deduped_mrpi\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\nmrpi_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, mrpi_num, 0)),\n      SUM(IF(week_start = params.current_week_start, mrpi_denom, 0))\n    ) AS current_mrpi,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, mrpi_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, mrpi_denom, 0))\n    ) AS prior_week_mrpi\n  FROM weekly_mrpi\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nwsi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    wpi_wsi.id AS wpi_wsi_id,\n    COALESCE(wpi_wsi.WSI28D_Numerator, 0) AS wsi_num,\n    COALESCE(wpi_wsi.WSI28D_Denominator, 0) AS wsi_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.wpi_wsi) AS wpi_wsi\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND CAST(wpi_wsi.indexdate AS STRING) = '2025-04-02'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_wsi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    wpi_wsi_id,\n    ANY_VALUE(wsi_num) AS wsi_num,\n    ANY_VALUE(wsi_denom) AS wsi_denom\n  FROM wsi_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    wpi_wsi_id\n),\n\nweekly_wsi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(wsi_num) AS wsi_num,\n    SUM(wsi_denom) AS wsi_denom\n  FROM deduped_wsi\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\nwsi_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.current_week_start, wsi_denom, 0))\n    ) AS current_wsi,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, wsi_denom, 0))\n    ) AS prior_week_wsi\n  FROM weekly_wsi\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nfinal_metrics AS (\n  SELECT\n    grs_metrics.supplier_name,\n    grs_metrics.supplier_id,\n    grs_metrics.currency_symbol,\n    grs_metrics.current_grs,\n    grs_metrics.prior_week_grs,\n    grs_metrics.prior_year_grs,\n    SAFE_DIVIDE(grs_metrics.current_grs, NULLIF(SUM(grs_metrics.current_grs) OVER (), 0)) AS grs_share,\n    SAFE_DIVIDE(grs_metrics.prior_year_grs, NULLIF(SUM(grs_metrics.prior_year_grs) OVER (), 0)) AS prior_year_grs_share,\n    grs_metrics.current_grs - grs_metrics.prior_week_grs AS wow_grs_change,\n    SAFE_DIVIDE(grs_metrics.current_grs - grs_metrics.prior_week_grs, NULLIF(grs_metrics.prior_week_grs, 0)) AS wow_grs_pct,\n    grs_metrics.current_grs - grs_metrics.prior_year_grs AS yoy_grs_change,\n    SAFE_DIVIDE(grs_metrics.current_grs - grs_metrics.prior_year_grs, NULLIF(grs_metrics.prior_year_grs, 0)) AS yoy_grs_pct,\n    availability_metrics.current_availability,\n    grs_metrics.current_wsc,\n    grs_metrics.prior_week_wsc,\n    grs_metrics.prior_year_wsc,\n    grs_metrics.current_wsc - grs_metrics.prior_week_wsc AS wow_wsc_change,\n    SAFE_DIVIDE(grs_metrics.current_wsc - grs_metrics.prior_week_wsc, NULLIF(grs_metrics.prior_week_wsc, 0)) AS wow_wsc_pct_change,\n    grs_metrics.current_wsc - grs_metrics.prior_year_wsc AS yoy_wsc_change,\n    SAFE_DIVIDE(grs_metrics.current_wsc - grs_metrics.prior_year_wsc, NULLIF(grs_metrics.prior_year_wsc, 0)) AS yoy_wsc_pct_change,\n    availability_metrics.prior_week_availability,\n    availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,\n    SAFE_DIVIDE(\n      availability_metrics.current_availability - availability_metrics.prior_week_availability,\n      NULLIF(availability_metrics.prior_week_availability, 0)\n    ) AS wow_availability_pct_change,\n    traffic_metrics.current_visits,\n    traffic_metrics.prior_week_visits,\n    traffic_metrics.prior_year_visits,\n    traffic_metrics.current_visits - traffic_metrics.prior_week_visits AS wow_visits_change,\n    SAFE_DIVIDE(\n      traffic_metrics.current_visits - traffic_metrics.prior_week_visits,\n      NULLIF(traffic_metrics.prior_week_visits, 0)\n    ) AS wow_visits_pct_change,\n    traffic_metrics.current_visits - traffic_metrics.prior_year_visits AS yoy_visits_change,\n    SAFE_DIVIDE(\n      traffic_metrics.current_visits - traffic_metrics.prior_year_visits,\n      NULLIF(traffic_metrics.prior_year_visits, 0)\n    ) AS yoy_visits_pct_change,\n    SAFE_DIVIDE(traffic_metrics.current_converted, NULLIF(traffic_metrics.current_visits, 0)) AS current_cvr,\n    SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)) AS prior_year_cvr,\n    SAFE_DIVIDE(traffic_metrics.current_converted, NULLIF(traffic_metrics.current_visits, 0))\n      - SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)) AS yoy_cvr_change,\n    SAFE_DIVIDE(\n      SAFE_DIVIDE(traffic_metrics.current_converted, NULLIF(traffic_metrics.current_visits, 0))\n        - SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)),\n      NULLIF(\n        SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)),\n        0\n      )\n    ) AS yoy_cvr_pct_change,\n    mrpi_metrics.current_mrpi,\n    mrpi_metrics.prior_week_mrpi,\n    mrpi_metrics.current_mrpi - mrpi_metrics.prior_week_mrpi AS wow_mrpi_change,\n    SAFE_DIVIDE(mrpi_metrics.current_mrpi - mrpi_metrics.prior_week_mrpi, NULLIF(mrpi_metrics.prior_week_mrpi, 0)) AS wow_mrpi_pct_change,\n    wsi_metrics.current_wsi,\n    wsi_metrics.prior_week_wsi,\n    wsi_metrics.current_wsi - wsi_metrics.prior_week_wsi AS wow_wsi_change,\n    SAFE_DIVIDE(wsi_metrics.current_wsi - wsi_metrics.prior_week_wsi, NULLIF(wsi_metrics.prior_week_wsi, 0)) AS wow_wsi_pct_change\n  FROM grs_metrics\n  LEFT JOIN availability_metrics\n    ON availability_metrics.supplier_id = grs_metrics.supplier_id\n  LEFT JOIN traffic_metrics\n    ON traffic_metrics.supplier_id = grs_metrics.supplier_id\n  LEFT JOIN mrpi_metrics\n    ON mrpi_metrics.supplier_id = grs_metrics.supplier_id\n  LEFT JOIN wsi_metrics\n    ON wsi_metrics.supplier_id = grs_metrics.supplier_id\n),\n\nranked_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    currency_symbol,\n    current_grs,\n    prior_week_grs,\n    prior_year_grs,\n    grs_share,\n    prior_year_grs_share,\n    grs_share - prior_year_grs_share AS share_yoy_change,\n    SAFE_DIVIDE(grs_share - prior_year_grs_share, NULLIF(prior_year_grs_share, 0)) AS share_yoy_pct_change,\n    wow_grs_change,\n    wow_grs_pct,\n    yoy_grs_change,\n    yoy_grs_pct,\n    current_availability,\n    current_wsc,\n    prior_week_wsc,\n    prior_year_wsc,\n    wow_wsc_change,\n    wow_wsc_pct_change,\n    yoy_wsc_change,\n    yoy_wsc_pct_change,\n    prior_week_availability,\n    wow_availability_change,\n    wow_availability_pct_change,\n    current_visits,\n    prior_week_visits,\n    prior_year_visits,\n    wow_visits_change,\n    wow_visits_pct_change,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_change,\n    yoy_cvr_pct_change,\n    current_mrpi,\n    prior_week_mrpi,\n    wow_mrpi_change,\n    wow_mrpi_pct_change,\n    current_wsi,\n    prior_week_wsi,\n    wow_wsi_change,\n    wow_wsi_pct_change\n  FROM final_metrics\n),\n\ntop_grs AS (\n  SELECT\n    'Top 15 Current GRS' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_grs DESC) AS rank,\n    *\n  FROM ranked_metrics\n  WHERE current_grs > 0\n  QUALIFY rank <= 15\n),\n\ntop_wow_movers AS (\n  SELECT\n    'Top 5 WoW GRS Movers' AS section,\n    ROW_NUMBER() OVER (ORDER BY wow_grs_pct DESC) AS rank,\n    *\n  FROM ranked_metrics\n  WHERE current_grs > 0\n    AND prior_week_grs > 0\n    AND wow_grs_pct IS NOT NULL\n  QUALIFY rank <= 5\n),\n\nbottom_wow_movers AS (\n  SELECT\n    'Bottom 5 WoW GRS Movers' AS section,\n    ROW_NUMBER() OVER (ORDER BY wow_grs_pct ASC) AS rank,\n    *\n  FROM ranked_metrics\n  WHERE current_grs > 0\n    AND prior_week_grs > 0\n    AND wow_grs_pct IS NOT NULL\n  QUALIFY rank <= 5\n),\n\ntop_yoy_movers AS (\n  SELECT\n    'Top 5 YoY GRS Movers' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_grs_pct DESC) AS rank,\n    *\n  FROM ranked_metrics\n  WHERE current_grs > 0\n    AND prior_year_grs > 0\n    AND yoy_grs_pct IS NOT NULL\n  QUALIFY rank <= 5\n),\n\nbottom_yoy_movers AS (\n  SELECT\n    'Bottom 5 YoY GRS Movers' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_grs_pct ASC) AS rank,\n    *\n  FROM ranked_metrics\n  WHERE current_grs > 0\n    AND prior_year_grs > 0\n    AND yoy_grs_pct IS NOT NULL\n  QUALIFY rank <= 5\n)\n\nSELECT * FROM top_grs\nUNION ALL\nSELECT * FROM top_wow_movers\nUNION ALL\nSELECT * FROM bottom_wow_movers\nUNION ALL\nSELECT * FROM top_yoy_movers\nUNION ALL\nSELECT * FROM bottom_yoy_movers\nORDER BY\n  section,\n  rank;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        288
+      ],
+      "id": "3e4977d9-b5da-4257-ba71-e20d68cb8c7a",
+      "name": "WSC/GRS Movers",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        384,
+        240
+      ],
+      "id": "0223eb24-a2d9-42a7-8a78-46c2fc261876",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK) AS prior_week_start\n),\n\nmrpi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    supplier_struct.id AS supplier_struct_id,\n    COALESCE(supplier_struct.mrpi28d_numerator, 0) AS mrpi_num,\n    COALESCE(supplier_struct.mrpi28d_denominator, 0) AS mrpi_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_mrpi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    supplier_struct_id,\n    ANY_VALUE(mrpi_num) AS mrpi_num,\n    ANY_VALUE(mrpi_denom) AS mrpi_denom\n  FROM mrpi_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    supplier_struct_id\n),\n\nweekly_supplier AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(mrpi_num) AS mrpi_num,\n    SUM(mrpi_denom) AS mrpi_denom,\n    SAFE_DIVIDE(SUM(mrpi_num), SUM(mrpi_denom)) AS mrpi\n  FROM deduped_mrpi\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\nsupplier_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, mrpi_num, 0)),\n      SUM(IF(week_start = params.current_week_start, mrpi_denom, 0))\n    ) AS current_mrpi,\n\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, mrpi_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, mrpi_denom, 0))\n    ) AS prior_week_mrpi\n  FROM weekly_supplier\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nfinal_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    current_mrpi,\n    prior_week_mrpi,\n    current_mrpi - prior_week_mrpi AS wow_mrpi_change\n  FROM supplier_metrics\n),\n\ntop_mrpi_value AS (\n  SELECT\n    'Top 10 MRPI Value' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_mrpi DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_mrpi,\n    prior_week_mrpi,\n    wow_mrpi_change\n  FROM final_metrics\n  WHERE current_mrpi IS NOT NULL\n  QUALIFY rank <= 10\n),\n\ntop_mrpi_movers AS (\n  SELECT\n    'Top 10 MRPI Increases' AS section,\n    ROW_NUMBER() OVER (ORDER BY wow_mrpi_change DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_mrpi,\n    prior_week_mrpi,\n    wow_mrpi_change\n  FROM final_metrics\n  WHERE current_mrpi IS NOT NULL\n    AND prior_week_mrpi IS NOT NULL\n    AND wow_mrpi_change > 0\n  QUALIFY ROW_NUMBER() OVER (ORDER BY wow_mrpi_change DESC) <= 10\n)\n\nSELECT * FROM top_mrpi_value\nUNION ALL\nSELECT * FROM top_mrpi_movers\nORDER BY\n  section,\n  rank;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        144
+      ],
+      "id": "2db7fe02-edf2-4403-8a75-cceb2512f3b9",
+      "name": "MRPI",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\nconst buckets = {\n  topCurrentGrs: [],\n  topWowGrsMovers: [],\n  bottomWowGrsMovers: [],\n  topYoyGrsMovers: [],\n  bottomYoyGrsMovers: [],\n};\n\nfor (const row of rows) {\n  switch (row.section) {\n    case 'Top 15 Current GRS':\n      buckets.topCurrentGrs.push(row);\n      break;\n\n    case 'Top 5 WoW GRS Movers':\n      buckets.topWowGrsMovers.push(row);\n      break;\n\n    case 'Bottom 5 WoW GRS Movers':\n      buckets.bottomWowGrsMovers.push(row);\n      break;\n\n    case 'Top 5 YoY GRS Movers':\n      buckets.topYoyGrsMovers.push(row);\n      break;\n\n    case 'Bottom 5 YoY GRS Movers':\n      buckets.bottomYoyGrsMovers.push(row);\n      break;\n  }\n}\n\nreturn [\n  {\n    json: buckets,\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        288
+      ],
+      "id": "704c1e79-a9f4-489d-97f3-c03a65621ac3",
+      "name": "Sales Buckets"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(function(item) {\n  return item.json;\n});\n\nconst buckets = {\n  topMrpiValue: [],\n  topMrpiMovers: []\n};\n\nfor (const row of rows) {\n  const section = String(row.section || \"\").trim();\n\n  if (section === \"Top 10 MRPI Value\") {\n    buckets.topMrpiValue.push(row);\n  } else if (section === \"Top 10 MRPI Increases\") {\n    buckets.topMrpiMovers.push(row);\n  }\n}\n\nreturn [\n  {\n    json: buckets\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        144
+      ],
+      "id": "5066c373-c90e-495a-b21a-3350fc8c4270",
+      "name": "MRPI Buckets"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputs = $input.all();\n\nconst merged = {};\n\nfor (const item of inputs) {\n  Object.assign(merged, item.json);\n}\n\nreturn [\n  {\n    json: merged\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        288
+      ],
+      "id": "7222f3ea-354b-4bd7-9a4a-473e7930be2a",
+      "name": "Prepare for Sheets"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK) AS prior_week_start\n),\n\ncurrency AS (\n  SELECT\n    ANY_VALUE(ExchangeRate) AS exchange_rate,\n    ANY_VALUE(currency_symbol) AS currency_symbol\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion`\n  WHERE CuyShortName = 'USD'\n),\n\navailability_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuid AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    currency.currency_symbol,\n    retail_ops.id AS ops_id,\n\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_num, 0)\n      ELSE 0\n    END AS availability_num,\n\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_denom, 0)\n      ELSE 0\n    END AS availability_denom\n\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.opdimensions) AS retail_ops_dims\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS retail_ops\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_availability AS (\n  SELECT\n    week_start,\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    ops_id,\n    MAX(availability_num) AS availability_num,\n    MAX(availability_denom) AS availability_denom\n  FROM availability_rows\n  GROUP BY\n    week_start,\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    ops_id\n),\n\nweekly_availability AS (\n  SELECT\n    week_start,\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    SUM(availability_num) AS availability_num,\n    SUM(availability_denom) AS availability_denom,\n    SAFE_DIVIDE(SUM(availability_num), SUM(availability_denom)) AS availability\n  FROM deduped_availability\n  GROUP BY\n    week_start,\n    supplier_id,\n    supplier_name,\n    currency_symbol\n),\n\norder_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuid AS supplier_id,\n    orders.id AS order_id,\n    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_orders AS (\n  SELECT\n    week_start,\n    supplier_id,\n    order_id,\n    ANY_VALUE(grs) AS grs\n  FROM order_rows\n  GROUP BY\n    week_start,\n    supplier_id,\n    order_id\n),\n\nweekly_grs AS (\n  SELECT\n    week_start,\n    supplier_id,\n    SUM(grs) AS grs\n  FROM deduped_orders\n  GROUP BY\n    week_start,\n    supplier_id\n),\n\nsupplier_metrics AS (\n  SELECT\n    availability.supplier_id,\n    availability.supplier_name,\n    ANY_VALUE(availability.currency_symbol) AS currency_symbol,\n\n    SAFE_DIVIDE(\n      SUM(IF(availability.week_start = params.current_week_start, availability.availability_num, 0)),\n      SUM(IF(availability.week_start = params.current_week_start, availability.availability_denom, 0))\n    ) AS current_availability,\n\n    SAFE_DIVIDE(\n      SUM(IF(availability.week_start = params.prior_week_start, availability.availability_num, 0)),\n      SUM(IF(availability.week_start = params.prior_week_start, availability.availability_denom, 0))\n    ) AS prior_week_availability,\n\n    SUM(IF(availability.week_start = params.current_week_start, grs.grs, 0)) AS current_grs,\n    SUM(IF(availability.week_start = params.prior_week_start, grs.grs, 0)) AS prior_week_grs\n\n  FROM weekly_availability AS availability\n  LEFT JOIN weekly_grs AS grs\n    ON grs.week_start = availability.week_start\n    AND grs.supplier_id = availability.supplier_id\n  CROSS JOIN params\n  GROUP BY\n    availability.supplier_id,\n    availability.supplier_name\n),\n\nfinal_metrics AS (\n  SELECT\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    current_availability,\n    prior_week_availability,\n    current_availability - prior_week_availability AS wow_availability_change,\n    current_grs,\n    prior_week_grs,\n    current_grs - prior_week_grs AS wow_grs_change\n  FROM supplier_metrics\n),\n\nbottom_availability AS (\n  SELECT\n    'Bottom 10 Availability' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_availability ASC) AS rank,\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    current_availability,\n    prior_week_availability,\n    wow_availability_change,\n    current_grs,\n    prior_week_grs,\n    wow_grs_change\n  FROM final_metrics\n  WHERE current_availability IS NOT NULL\n  QUALIFY rank <= 10\n),\n\nbottom_wow_movers AS (\n  SELECT\n    'Bottom 10 WoW Availability Movers' AS section,\n    ROW_NUMBER() OVER (ORDER BY wow_availability_change ASC) AS rank,\n    supplier_id,\n    supplier_name,\n    currency_symbol,\n    current_availability,\n    prior_week_availability,\n    wow_availability_change,\n    current_grs,\n    prior_week_grs,\n    wow_grs_change\n  FROM final_metrics\n  WHERE current_availability IS NOT NULL\n    AND prior_week_availability IS NOT NULL\n  QUALIFY rank <= 10\n)\n\nSELECT * FROM bottom_availability\nUNION ALL\nSELECT * FROM bottom_wow_movers\nORDER BY\n  section,\n  rank;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        464
+      ],
+      "id": "dbe440c5-d799-4fc4-a4e8-1904c8243ed2",
+      "name": "Availability",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_ADD(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL -1 WEEK) AS current_week_start,\n    DATE_ADD(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL -53 WEEK) AS prior_year_week_start\n),\n\ntraffic_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    traffic_source.id AS traffic_source_id,\n    COALESCE(traffic_source.skuvisits, 0) AS visits,\n    COALESCE(traffic_source.skuconverted, 0) AS converted\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.traffic_source) AS traffic_source\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_year_week_start\n    )\n),\n\ndeduped_traffic AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    traffic_source_id,\n    ANY_VALUE(visits) AS visits,\n    ANY_VALUE(converted) AS converted\n  FROM traffic_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    traffic_source_id\n),\n\nweekly_supplier AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(visits) AS visits,\n    SUM(converted) AS converted\n  FROM deduped_traffic\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\nsupplier_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    SUM(IF(week_start = params.current_week_start, visits, 0)) AS current_visits,\n    SUM(IF(week_start = params.prior_year_week_start, visits, 0)) AS prior_year_visits,\n    SUM(IF(week_start = params.current_week_start, converted, 0)) AS current_converted,\n    SUM(IF(week_start = params.prior_year_week_start, converted, 0)) AS prior_year_converted\n  FROM weekly_supplier\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nfinal_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    current_visits - prior_year_visits AS yoy_visits_change,\n    SAFE_DIVIDE(current_visits - prior_year_visits, NULLIF(prior_year_visits, 0)) AS yoy_visits_pct_change,\n    SAFE_DIVIDE(current_converted, current_visits) AS current_cvr,\n    SAFE_DIVIDE(prior_year_converted, prior_year_visits) AS prior_year_cvr,\n    SAFE_DIVIDE(\n      SAFE_DIVIDE(current_converted, current_visits)\n        - SAFE_DIVIDE(prior_year_converted, prior_year_visits),\n      NULLIF(SAFE_DIVIDE(prior_year_converted, prior_year_visits), 0)\n    ) AS yoy_cvr_pct_change\n  FROM supplier_metrics\n),\n\ntop_visits AS (\n  SELECT\n    'Top 5 Visits' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_visits DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n  QUALIFY ROW_NUMBER() OVER (ORDER BY current_visits DESC) <= 5\n),\n\ntop_cvr AS (\n  SELECT\n    'Top 5 CVR' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_cvr DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n  QUALIFY ROW_NUMBER() OVER (ORDER BY current_cvr DESC) <= 5\n),\n\ntop_yoy_visits AS (\n  SELECT\n    'Top 5 YoY Movers in Visits' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_visits_pct_change DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n    AND prior_year_visits > 0\n    AND yoy_visits_pct_change IS NOT NULL\n  QUALIFY ROW_NUMBER() OVER (ORDER BY yoy_visits_pct_change DESC) <= 5\n),\n\nbottom_yoy_visits AS (\n  SELECT\n    'Bottom 5 YoY Movers in Visits' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_visits_pct_change ASC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n    AND prior_year_visits > 0\n    AND yoy_visits_pct_change IS NOT NULL\n  QUALIFY ROW_NUMBER() OVER (ORDER BY yoy_visits_pct_change ASC) <= 5\n),\n\ntop_yoy_cvr AS (\n  SELECT\n    'Top 5 YoY Movers in CVR' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_cvr_pct_change DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n    AND prior_year_visits > 0\n    AND prior_year_cvr > 0\n    AND yoy_cvr_pct_change IS NOT NULL\n  QUALIFY ROW_NUMBER() OVER (ORDER BY yoy_cvr_pct_change DESC) <= 5\n),\n\nbottom_yoy_cvr AS (\n  SELECT\n    'Bottom 5 YoY Movers in CVR' AS section,\n    ROW_NUMBER() OVER (ORDER BY yoy_cvr_pct_change ASC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_visits,\n    prior_year_visits,\n    yoy_visits_change,\n    yoy_visits_pct_change,\n    current_cvr,\n    prior_year_cvr,\n    yoy_cvr_pct_change\n  FROM final_metrics\n  WHERE current_visits > 0\n    AND prior_year_visits > 0\n    AND prior_year_cvr > 0\n    AND yoy_cvr_pct_change IS NOT NULL\n  QUALIFY ROW_NUMBER() OVER (ORDER BY yoy_cvr_pct_change ASC) <= 5\n)\n\nSELECT * FROM top_visits\nUNION ALL\nSELECT * FROM top_cvr\nUNION ALL\nSELECT * FROM top_yoy_visits\nUNION ALL\nSELECT * FROM bottom_yoy_visits\nUNION ALL\nSELECT * FROM top_yoy_cvr\nUNION ALL\nSELECT * FROM bottom_yoy_cvr\nORDER BY\n  section,\n  rank\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b175ca75-3ea3-47d6-9281-841858e4e63c",
+      "name": "Visits/CVR",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,\n    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK) AS prior_week_start\n),\n\nwsi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_supplier.origsuid AS supplier_id,\n    wpi_wsi.id AS wpi_wsi_id,\n    COALESCE(wpi_wsi.WSI28D_Numerator, 0) AS wsi_num,\n    COALESCE(wpi_wsi.WSI28D_Denominator, 0) AS wsi_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.wpi_wsi) AS wpi_wsi\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_dim_supplier.srmcontactname = 'Hannigan, Benjamin'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND CAST(wpi_wsi.indexdate AS STRING) = '2025-04-02'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_wsi AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    wpi_wsi_id,\n    ANY_VALUE(wsi_num) AS wsi_num,\n    ANY_VALUE(wsi_denom) AS wsi_denom\n  FROM wsi_rows\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id,\n    wpi_wsi_id\n),\n\nweekly_supplier AS (\n  SELECT\n    week_start,\n    supplier_name,\n    supplier_id,\n    SUM(wsi_num) AS wsi_num,\n    SUM(wsi_denom) AS wsi_denom,\n    SAFE_DIVIDE(SUM(wsi_num), SUM(wsi_denom)) AS wsi\n  FROM deduped_wsi\n  GROUP BY\n    week_start,\n    supplier_name,\n    supplier_id\n),\n\nsupplier_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.current_week_start, wsi_denom, 0))\n    ) AS current_wsi,\n\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, wsi_denom, 0))\n    ) AS prior_week_wsi\n  FROM weekly_supplier\n  CROSS JOIN params\n  GROUP BY\n    supplier_name,\n    supplier_id\n),\n\nfinal_metrics AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    current_wsi,\n    prior_week_wsi,\n    current_wsi - prior_week_wsi AS wow_wsi_change\n  FROM supplier_metrics\n),\n\ntop_wsi AS (\n  SELECT\n    'Top 10 WSI' AS section,\n    ROW_NUMBER() OVER (ORDER BY current_wsi DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_wsi,\n    prior_week_wsi,\n    wow_wsi_change\n  FROM final_metrics\n  WHERE current_wsi IS NOT NULL\n  QUALIFY rank <= 10\n),\n\ntop_wsi_movers AS (\n  SELECT\n    'Top 10 WSI Increases' AS section,\n    ROW_NUMBER() OVER (ORDER BY wow_wsi_change DESC) AS rank,\n    supplier_name,\n    supplier_id,\n    current_wsi,\n    prior_week_wsi,\n    wow_wsi_change\n  FROM final_metrics\n  WHERE current_wsi IS NOT NULL\n    AND prior_week_wsi IS NOT NULL\n    AND wow_wsi_change > 0\n  QUALIFY ROW_NUMBER() OVER (ORDER BY wow_wsi_change DESC) <= 10\n)\n\nSELECT * FROM top_wsi\nUNION ALL\nSELECT * FROM top_wsi_movers\nORDER BY\n  section,\n  rank;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        624
+      ],
+      "id": "81816cdc-1c82-4287-93c8-ace1e516d2f0",
+      "name": "WSI",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(function(item) {\n  return item.json;\n});\n\nconst buckets = {\n  topVisits: [],\n  topCvr: [],\n  topYoyMoversVisits: [],\n  bottomYoyMoversVisits: [],\n  topYoyMoversCvr: [],\n  bottomYoyMoversCvr: []\n};\n\nfor (const row of rows) {\n  const section = String(row.section || \"\").trim();\n\n  if (section === \"Top 5 Visits\") {\n    buckets.topVisits.push(row);\n  } else if (section === \"Top 5 CVR\") {\n    buckets.topCvr.push(row);\n  } else if (section === \"Top 5 YoY Movers in Visits\") {\n    buckets.topYoyMoversVisits.push(row);\n  } else if (section === \"Bottom 5 YoY Movers in Visits\") {\n    buckets.bottomYoyMoversVisits.push(row);\n  } else if (section === \"Top 5 YoY Movers in CVR\") {\n    buckets.topYoyMoversCvr.push(row);\n  } else if (section === \"Bottom 5 YoY Movers in CVR\") {\n    buckets.bottomYoyMoversCvr.push(row);\n  }\n}\n\nreturn [\n  {\n    json: buckets\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "082fd92a-96c9-420a-aba2-bce5da5b419e",
+      "name": "Traffic Buckets"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(function(item) {\n  return item.json;\n});\n\nconst buckets = {\n  bottomAvailability: [],\n  bottomWowAvailabilityMovers: []\n};\n\nfor (const row of rows) {\n  if (row.section === \"Bottom 10 Availability\") {\n    buckets.bottomAvailability.push(row);\n  }\n\n  if (row.section === \"Bottom 10 WoW Availability Movers\") {\n    buckets.bottomWowAvailabilityMovers.push(row);\n  }\n}\n\nreturn [\n  {\n    json: buckets\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        464
+      ],
+      "id": "8ff41a15-43f3-41a1-b047-7a2fd59e3bbe",
+      "name": "Availability Buckets"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(function(item) {\n  return item.json;\n});\n\nconst buckets = {\n  topWsi: [],\n  topWsiMovers: []\n};\n\nfor (const row of rows) {\n  const section = String(row.section || \"\").trim();\n\n  if (section === \"Top 10 WSI\") {\n    buckets.topWsi.push(row);\n  } else if (section === \"Top 10 WSI Increases\") {\n    buckets.topWsiMovers.push(row);\n  }\n}\n\nreturn [\n  {\n    json: buckets\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        624
+      ],
+      "id": "f847a628-16e0-4c2c-9f4a-5cb8c5d961b3",
+      "name": "WSI Buckets"
+    },
+    {
+      "parameters": {
+        "sendTo": "bhannigan@wayfair.com",
+        "subject": "Weekly Action Items",
+        "message": "={{ $json.htmlBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        288
+      ],
+      "id": "9ff99fef-59ac-4f5b-b3a5-1ee95b570f9d",
+      "name": "Send a message1",
+      "webhookId": "6d4e072e-686e-4fc4-96dc-98623dc8ecf4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZmmontG7EgaANggr",
+          "name": "Gmail account 287"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nfunction asArray(value) {\n  return Array.isArray(value) ? value : [];\n}\n\nfunction toNumber(value) {\n  const num = Number(value);\n  return Number.isFinite(num) ? num : null;\n}\n\nfunction escapeHtml(value) {\n  if (value === null || value === undefined) return \"\";\n  return String(value)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\nfunction money(value) {\n  const num = toNumber(value);\n  if (num === null) return \"N/A\";\n  return \"$\" + num.toLocaleString(\"en-US\", {\n    minimumFractionDigits: 0,\n    maximumFractionDigits: 0\n  });\n}\n\nfunction number(value) {\n  const num = toNumber(value);\n  if (num === null) return \"N/A\";\n  return num.toLocaleString(\"en-US\", {\n    minimumFractionDigits: 0,\n    maximumFractionDigits: 0\n  });\n}\n\nfunction percent(value) {\n  const num = toNumber(value);\n  if (num === null) return \"N/A\";\n  return (num * 100).toFixed(2) + \"%\";\n}\n\nfunction signedPercent(value) {\n  const num = toNumber(value);\n  if (num === null) return \"N/A\";\n  const scaled = num * 100;\n  const sign = scaled > 0 ? \"+\" : \"\";\n  return sign + scaled.toFixed(1) + \"%\";\n}\n\nfunction signedBps(value) {\n  const num = toNumber(value);\n  if (num === null) return \"N/A\";\n  const scaled = num * 10000;\n  const sign = scaled > 0 ? \"+\" : \"\";\n  return sign + scaled.toFixed(0) + \" bps\";\n}\n\nfunction supplierKey(row) {\n  if (!row) return \"\";\n  return String(row.supplier_id || row.supplier_name || \"\");\n}\n\nfunction supplierName(row) {\n  if (!row || !row.supplier_name) return \"Unknown supplier\";\n  return String(row.supplier_name);\n}\n\nfunction topGrsSupplierKeys(rows) {\n  return new Set(asArray(rows).map(function(row) {\n    return supplierKey(row);\n  }));\n}\n\nfunction prioritySort(rows, metricKey, direction, preferredSupplierKeys) {\n  return asArray(rows)\n    .filter(function(row) {\n      return toNumber(row[metricKey]) !== null;\n    })\n    .slice()\n    .sort(function(left, right) {\n      const leftPreferred = preferredSupplierKeys.has(supplierKey(left)) ? 1 : 0;\n      const rightPreferred = preferredSupplierKeys.has(supplierKey(right)) ? 1 : 0;\n\n      if (leftPreferred !== rightPreferred) {\n        return rightPreferred - leftPreferred;\n      }\n\n      const leftValue = toNumber(left[metricKey]);\n      const rightValue = toNumber(right[metricKey]);\n      return direction === \"asc\" ? leftValue - rightValue : rightValue - leftValue;\n    });\n}\n\nfunction createActionItems(payload) {\n  const preferredSupplierKeys = topGrsSupplierKeys(payload.topCurrentGrs);\n  const suggestions = [];\n  const usedKeys = new Set();\n\n  function addSuggestion(kind, row, builder) {\n    if (!row) return;\n    const dedupeKey = `${kind}:${supplierKey(row)}`;\n    if (usedKeys.has(dedupeKey)) return;\n\n    const message = builder(row);\n    if (!message) return;\n\n    usedKeys.add(dedupeKey);\n    suggestions.push(message);\n  }\n\n  addSuggestion(\"availability-drop\", prioritySort(\n    payload.bottomWowAvailabilityMovers,\n    \"wow_availability_change\",\n    \"asc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Reach out to ${supplierName(row)} about inventory issues after availability moved ${signedBps(row.wow_availability_change)} WoW to ${percent(row.current_availability)}.`;\n  });\n\n  addSuggestion(\"low-availability\", prioritySort(\n    asArray(payload.topCurrentGrs).concat(asArray(payload.bottomAvailability)),\n    \"current_availability\",\n    \"asc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Pressure-test replenishment plans with ${supplierName(row)} because availability is only ${percent(row.current_availability)} on ${money(row.current_grs)} in current GRS.`;\n  });\n\n  addSuggestion(\"mrpi-increase\", prioritySort(\n    payload.topMrpiMovers,\n    \"wow_mrpi_change\",\n    \"desc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Check in with ${supplierName(row)} about recent price increases after MRPI rose ${signedBps(row.wow_mrpi_change)} WoW.`;\n  });\n\n  addSuggestion(\"wsi-increase\", prioritySort(\n    payload.topWsiMovers,\n    \"wow_wsi_change\",\n    \"desc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Review pricing competitiveness with ${supplierName(row)} because WSI increased ${signedBps(row.wow_wsi_change)} WoW.`;\n  });\n\n  addSuggestion(\"visits-drop\", prioritySort(\n    payload.bottomYoyMoversVisits,\n    \"yoy_visits_pct_change\",\n    \"asc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Investigate traffic softness with ${supplierName(row)} after visits declined ${signedPercent(row.yoy_visits_pct_change)} YoY.`;\n  });\n\n  addSuggestion(\"cvr-drop\", prioritySort(\n    payload.bottomYoyMoversCvr,\n    \"yoy_cvr_pct_change\",\n    \"asc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Audit PDP quality and promo support with ${supplierName(row)} because CVR is down ${signedPercent(row.yoy_cvr_pct_change)} YoY.`;\n  });\n\n  addSuggestion(\"share-loss\", prioritySort(\n    asArray(payload.topCurrentGrs).filter(function(row) {\n      const value = toNumber(row.share_yoy_pct_change);\n      return value !== null && value < 0;\n    }),\n    \"share_yoy_pct_change\",\n    \"asc\",\n    preferredSupplierKeys\n  )[0], function(row) {\n    return `Review share pressure with ${supplierName(row)} because share is down ${signedPercent(row.share_yoy_pct_change)} YoY while current GRS is ${money(row.current_grs)}.`;\n  });\n\n  return suggestions.slice(0, 6);\n}\n\nfunction safeGap(current, benchmark, multiplier) {\n  const currentNum = toNumber(current);\n  const benchmarkNum = toNumber(benchmark);\n  if (currentNum === null || benchmarkNum === null) return 0;\n  return (benchmarkNum - currentNum) * multiplier;\n}\n\nfunction safeExcess(current, benchmark, multiplier) {\n  const currentNum = toNumber(current);\n  const benchmarkNum = toNumber(benchmark);\n  if (currentNum === null || benchmarkNum === null) return 0;\n  return (currentNum - benchmarkNum) * multiplier;\n}\n\nfunction supplierIssueScore(row, benchmark) {\n  let score = 0;\n  score += Math.max(0, safeGap(row.wow_grs_pct, benchmark.wow_grs_pct, 120));\n  score += Math.max(0, safeGap(row.yoy_grs_pct, benchmark.yoy_grs_pct, 90));\n  score += Math.max(0, safeGap(row.wow_visits_pct_change, benchmark.wow_visits_pct_change, 80));\n  score += Math.max(0, safeGap(row.yoy_visits_pct_change, benchmark.yoy_visits_pct_change, 70));\n  score += Math.max(0, safeGap(row.current_cvr, benchmark.current_cvr, 7000));\n  score += Math.max(0, safeGap(row.current_availability, benchmark.current_availability, 5000));\n  score += Math.max(0, (toNumber(row.wow_availability_change) || 0) * -3500);\n  score += Math.max(0, safeExcess(row.current_mrpi, benchmark.current_mrpi, 7000));\n  score += Math.max(0, safeExcess(row.current_wsi, benchmark.current_wsi, 7000));\n  score += Math.max(0, safeExcess(row.wow_wsc_pct_change, benchmark.wow_wsc_pct_change, 40));\n  score += Math.max(0, safeExcess(row.yoy_wsc_pct_change, benchmark.yoy_wsc_pct_change, 30));\n  score += Math.max(0, (toNumber(row.grs_share) || 0) * 20);\n  return score;\n}\n\nfunction pickPrioritySuppliers(rows, benchmark, limit) {\n  const ranked = asArray(rows).map(function(row) {\n    return {\n      row: row,\n      score: supplierIssueScore(row, benchmark)\n    };\n  }).sort(function(left, right) {\n    if (right.score !== left.score) return right.score - left.score;\n    return (toNumber(right.row.current_grs) || 0) - (toNumber(left.row.current_grs) || 0);\n  });\n\n  const selected = ranked.filter(function(entry) {\n    return entry.score > 0;\n  }).slice(0, limit).map(function(entry) {\n    return entry.row;\n  });\n\n  if (selected.length) return selected;\n\n  return asArray(rows)\n    .slice()\n    .sort(function(left, right) {\n      return (toNumber(right.current_grs) || 0) - (toNumber(left.current_grs) || 0);\n    })\n    .slice(0, limit);\n}\n\nfunction buildSupplierSummary(row, benchmark) {\n  const sentences = [];\n\n  if ((toNumber(row.wow_grs_pct) || 0) < (toNumber(benchmark.wow_grs_pct) || 0) &&\n      (toNumber(row.yoy_grs_pct) || 0) < (toNumber(benchmark.yoy_grs_pct) || 0)) {\n    sentences.push(\"Sales are trailing the category on both the weekly and yearly views.\");\n  } else if ((toNumber(row.wow_grs_pct) || 0) < (toNumber(benchmark.wow_grs_pct) || 0)) {\n    sentences.push(\"Weekly sales momentum is lagging the category benchmark.\");\n  } else if ((toNumber(row.yoy_grs_pct) || 0) < (toNumber(benchmark.yoy_grs_pct) || 0)) {\n    sentences.push(\"Year-over-year sales growth is running behind the category benchmark.\");\n  }\n\n  if ((toNumber(row.wow_visits_pct_change) || 0) < (toNumber(benchmark.wow_visits_pct_change) || 0) ||\n      (toNumber(row.yoy_visits_pct_change) || 0) < (toNumber(benchmark.yoy_visits_pct_change) || 0)) {\n    sentences.push(\"Traffic is softer than benchmark, so the top-of-funnel looks like a meaningful part of the story this week.\");\n  }\n\n  if ((toNumber(row.current_cvr) || 0) < (toNumber(benchmark.current_cvr) || 0)) {\n    const cvrGap = (toNumber(benchmark.current_cvr) || 0) - (toNumber(row.current_cvr) || 0);\n    sentences.push(`Conversion is ${signedBps(-cvrGap).replace(\"-\", \"\")} below the benchmark, which points to PDP, assortment, or promo-quality pressure.`);\n  }\n\n  if ((toNumber(row.current_availability) || 0) < (toNumber(benchmark.current_availability) || 0) ||\n      (toNumber(row.wow_availability_change) || 0) < 0) {\n    sentences.push(\"Availability is below category levels and remains an operational watchout for near-term revenue capture.\");\n  }\n\n  if ((toNumber(row.current_mrpi) || 0) > (toNumber(benchmark.current_mrpi) || 0) ||\n      (toNumber(row.current_wsi) || 0) > (toNumber(benchmark.current_wsi) || 0)) {\n    sentences.push(\"Pricing looks like a pressure point because competitiveness is weaker than the benchmark on MRPI and/or WSI.\");\n  }\n\n  if ((toNumber(row.wow_wsc_pct_change) || 0) > (toNumber(benchmark.wow_wsc_pct_change) || 0) ||\n      (toNumber(row.yoy_wsc_pct_change) || 0) > (toNumber(benchmark.yoy_wsc_pct_change) || 0)) {\n    sentences.push(\"WSC is moving faster than the category, so cost pressure is worth monitoring alongside pricing and margin conversations.\");\n  }\n\n  if (!sentences.length) {\n    sentences.push(`This account still matters because it represents ${percent(row.grs_share)} of weekly GRS and should stay on the active watchlist.`);\n  }\n\n  return sentences.slice(0, 4).join(\" \");\n}\n\nfunction renderSupplierCard(row, benchmark) {\n  return `\n    <div class=\"supplier-card\">\n      <h3>${escapeHtml(supplierName(row))}</h3>\n      <p><strong>Sales:</strong> (GRS: ${money(row.current_grs)}, ${percent(row.grs_share)} Share) (${signedPercent(row.wow_grs_pct)} WoW, ${signedPercent(row.yoy_grs_pct)} YoY, Benchmark: ${signedPercent(benchmark.wow_grs_pct)} WoW, ${signedPercent(benchmark.yoy_grs_pct)} YoY)</p>\n      <p><strong>WSC:</strong> ${money(row.current_wsc)} (${signedPercent(row.wow_wsc_pct_change)} WoW, ${signedPercent(row.yoy_wsc_pct_change)} YoY, Benchmark: ${signedPercent(benchmark.wow_wsc_pct_change)} WoW, ${signedPercent(benchmark.yoy_wsc_pct_change)} YoY)</p>\n      <p><strong>Visits:</strong> ${number(row.current_visits)} (${signedPercent(row.wow_visits_pct_change)} WoW, ${signedPercent(row.yoy_visits_pct_change)} YoY, Benchmark: ${signedPercent(benchmark.wow_visits_pct_change)} WoW, ${signedPercent(benchmark.yoy_visits_pct_change)} YoY)</p>\n      <p><strong>Conversion:</strong> ${percent(row.current_cvr)}, Benchmark: ${percent(benchmark.current_cvr)}</p>\n      <p><strong>28D WSI:</strong> ${percent(row.current_wsi)}, Benchmark: ${percent(benchmark.current_wsi)}</p>\n      <p><strong>28D MRPI:</strong> ${percent(row.current_mrpi)}, Benchmark: ${percent(benchmark.current_mrpi)}</p>\n      <p><strong>Availability:</strong> ${percent(row.current_availability)} (${signedBps(row.wow_availability_change)} WoW, Benchmark: ${percent(benchmark.current_availability)})</p>\n      <p class=\"supplier-summary\">${escapeHtml(buildSupplierSummary(row, benchmark))}</p>\n    </div>\n  `;\n}\n\nconst benchmark = asArray(data.topCurrentGrsBenchmark)[0] || {};\nconst prioritySuppliers = pickPrioritySuppliers(data.topCurrentGrs, benchmark, 5);\nconst actionItems = createActionItems(data);\n\nconst supplierHtml = prioritySuppliers.map(function(row) {\n  return renderSupplierCard(row, benchmark);\n}).join(\"\");\n\nconst actionItemHtml = actionItems.length\n  ? `<ol>${actionItems.map(function(item) {\n      return `<li>${escapeHtml(item)}</li>`;\n    }).join(\"\")}</ol>`\n  : \"<p>No major action items were generated for this week's movers.</p>\";\n\nconst currentWeekLabel = benchmark.current_week_label || \"Current Week\";\nconst indexDateLabel = benchmark.wsi_index_date_label || \"04/02/25\";\nconst subentityLabel = benchmark.subentity_label || \"All Subentities\";\nconst storeLabel = benchmark.store_label || \"All Stores\";\n\nconst htmlBody = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      color: #1f2937;\n      line-height: 1.45;\n      font-size: 13px;\n      margin: 0;\n      padding: 16px;\n    }\n\n    h1 {\n      font-size: 22px;\n      margin: 0 0 6px 0;\n      color: #1f4e79;\n    }\n\n    h2 {\n      font-size: 17px;\n      margin: 20px 0 8px 0;\n      color: #1f4e79;\n      border-bottom: 2px solid #d7e3f4;\n      padding-bottom: 4px;\n    }\n\n    h3 {\n      font-size: 16px;\n      margin: 0 0 8px 0;\n      color: #0f3b63;\n    }\n\n    p {\n      margin: 6px 0;\n    }\n\n    .subtitle {\n      color: #4b5563;\n      margin-bottom: 12px;\n    }\n\n    .supplier-card {\n      border: 1px solid #d7e3f4;\n      border-radius: 8px;\n      padding: 14px 16px;\n      margin: 0 0 14px 0;\n      background: #fbfdff;\n    }\n\n    .supplier-summary {\n      margin-top: 10px;\n      color: #374151;\n    }\n\n    ol {\n      margin: 8px 0 0 18px;\n      padding: 0;\n    }\n\n    li {\n      margin-bottom: 8px;\n    }\n  </style>\n</head>\n<body>\n  <h1>Supplier Performance <em>*${escapeHtml(indexDateLabel)} index date*</em></h1>\n  <p class=\"subtitle\">Subentity: ${escapeHtml(subentityLabel)}, Store: ${escapeHtml(storeLabel)}</p>\n\n  <h2>Weekly Performance</h2>\n  <p><strong>W/O ${escapeHtml(currentWeekLabel)}</strong></p>\n\n  ${supplierHtml || \"<p>No supplier performance rows were available.</p>\"}\n\n  <h2>Weekly Action Items</h2>\n  ${actionItemHtml}\n</body>\n</html>\n`;\n\nreturn [\n  {\n    json: {\n      htmlBody: htmlBody\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        288
+      ],
+      "id": "36077972-862d-4354-b8e5-6f2aae5df2ba",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH params AS (\n  SELECT\n    DATE_ADD(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL -1 WEEK) AS current_week_start,\n    DATE_ADD(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL -2 WEEK) AS prior_week_start,\n    DATE_ADD(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL -53 WEEK) AS prior_year_week_start\n),\n\ncurrency AS (\n  SELECT\n    ANY_VALUE(ExchangeRate) AS exchange_rate\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion`\n  WHERE CuyShortName = 'USD'\n),\n\norder_metrics AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    COALESCE(SUM(orders.grossrevenuestable * COALESCE(currency.exchange_rate, 1)), 0) AS gross_revenue,\n    COALESCE(SUM(orders.productcostnorebates * COALESCE(currency.exchange_rate, 1)), 0) AS wsc\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_dim_sku.mkcname = 'Window'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start,\n      params.prior_year_week_start\n    )\n  GROUP BY\n    week_start\n),\n\navailability_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    retail_ops.id AS ops_id,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_num, 0)\n      ELSE 0\n    END AS availability_num,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_denom, 0)\n      ELSE 0\n    END AS availability_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.opdimensions) AS retail_ops_dims\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS retail_ops\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  CROSS JOIN params\n  WHERE retail_dim_sku.mkcname = 'Window'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_availability AS (\n  SELECT\n    week_start,\n    ops_id,\n    MAX(availability_num) AS availability_num,\n    MAX(availability_denom) AS availability_denom\n  FROM availability_rows\n  GROUP BY\n    week_start,\n    ops_id\n),\n\navailability_metrics AS (\n  SELECT\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, availability_num, 0)),\n      SUM(IF(week_start = params.current_week_start, availability_denom, 0))\n    ) AS current_availability,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, availability_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, availability_denom, 0))\n    ) AS prior_week_availability\n  FROM deduped_availability\n  CROSS JOIN params\n),\n\ntraffic_metrics AS (\n  SELECT\n    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS current_visits,\n    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS prior_week_visits,\n    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_year_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS prior_year_visits,\n    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(traffic_source.skuconverted, 0), 0)) AS current_converted,\n    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_year_week_start, COALESCE(traffic_source.skuconverted, 0), 0)) AS prior_year_converted\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.traffic_source) AS traffic_source\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  CROSS JOIN params\n  WHERE retail_dim_sku.mkcname = 'Window'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start,\n      params.prior_year_week_start\n    )\n),\n\nmrpi_metrics AS (\n  SELECT\n    SAFE_DIVIDE(\n      SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(supplier_struct.mrpi28d_numerator, 0), 0)),\n      SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(supplier_struct.mrpi28d_denominator, 0), 0))\n    ) AS current_mrpi,\n    SAFE_DIVIDE(\n      SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_week_start, COALESCE(supplier_struct.mrpi28d_numerator, 0), 0)),\n      SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_week_start, COALESCE(supplier_struct.mrpi28d_denominator, 0), 0))\n    ) AS prior_week_mrpi\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  CROSS JOIN params\n  WHERE retail_dim_sku.mkcname = 'Window'\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\nwsi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    wpi_wsi.id AS wpi_wsi_id,\n    COALESCE(wpi_wsi.WSI28D_Numerator, 0) AS wsi_num,\n    COALESCE(wpi_wsi.WSI28D_Denominator, 0) AS wsi_denom\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.wpi_wsi) AS wpi_wsi\n  CROSS JOIN params\n  WHERE retail_sku_store_date.agg_level = 'WEEKLY'\n    AND CAST(wpi_wsi.indexdate AS STRING) = '2025-04-02'\n    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (\n      params.current_week_start,\n      params.prior_week_start\n    )\n),\n\ndeduped_wsi AS (\n  SELECT\n    week_start,\n    wpi_wsi_id,\n    ANY_VALUE(wsi_num) AS wsi_num,\n    ANY_VALUE(wsi_denom) AS wsi_denom\n  FROM wsi_rows\n  GROUP BY\n    week_start,\n    wpi_wsi_id\n),\n\nwsi_metrics AS (\n  SELECT\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.current_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.current_week_start, wsi_denom, 0))\n    ) AS current_wsi,\n    SAFE_DIVIDE(\n      SUM(IF(week_start = params.prior_week_start, wsi_num, 0)),\n      SUM(IF(week_start = params.prior_week_start, wsi_denom, 0))\n    ) AS prior_week_wsi\n  FROM deduped_wsi\n  CROSS JOIN params\n)\n\nSELECT\n  FORMAT_DATE('%m/%d/%y', params.current_week_start) AS current_week_label,\n  FORMAT_DATE('%m/%d/%y', DATE '2025-04-02') AS wsi_index_date_label,\n  'All Subentities' AS subentity_label,\n  'All Stores' AS store_label,\n  'Top 15 Benchmark' AS section,\n  NULL AS rank,\n  'WINDOW BENCHMARK' AS supplier_name,\n  NULL AS supplier_id,\n  NULL AS current_grs,\n  SAFE_DIVIDE(\n    current_order.gross_revenue - prior_week_order.gross_revenue,\n    NULLIF(prior_week_order.gross_revenue, 0)\n  ) AS wow_grs_pct,\n  SAFE_DIVIDE(\n    current_order.gross_revenue - prior_year_order.gross_revenue,\n    NULLIF(prior_year_order.gross_revenue, 0)\n  ) AS yoy_grs_pct,\n  NULL AS grs_share,\n  NULL AS share_yoy_pct_change,\n  availability_metrics.current_availability,\n  availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,\n  NULL AS current_wsc,\n  SAFE_DIVIDE(\n    current_order.wsc - prior_week_order.wsc,\n    NULLIF(prior_week_order.wsc, 0)\n  ) AS wow_wsc_pct_change,\n  SAFE_DIVIDE(\n    current_order.wsc - prior_year_order.wsc,\n    NULLIF(prior_year_order.wsc, 0)\n  ) AS yoy_wsc_pct_change,\n  traffic_metrics.current_visits,\n  SAFE_DIVIDE(\n    traffic_metrics.current_visits - traffic_metrics.prior_week_visits,\n    NULLIF(traffic_metrics.prior_week_visits, 0)\n  ) AS wow_visits_pct_change,\n  SAFE_DIVIDE(\n    traffic_metrics.current_visits - traffic_metrics.prior_year_visits,\n    NULLIF(traffic_metrics.prior_year_visits, 0)\n  ) AS yoy_visits_pct_change,\n  SAFE_DIVIDE(\n    traffic_metrics.current_converted,\n    NULLIF(traffic_metrics.current_visits, 0)\n  ) AS current_cvr,\n  SAFE_DIVIDE(\n    SAFE_DIVIDE(traffic_metrics.current_converted, NULLIF(traffic_metrics.current_visits, 0))\n      - SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)),\n    NULLIF(\n      SAFE_DIVIDE(traffic_metrics.prior_year_converted, NULLIF(traffic_metrics.prior_year_visits, 0)),\n      0\n    )\n  ) AS yoy_cvr_pct_change,\n  mrpi_metrics.current_mrpi,\n  mrpi_metrics.current_mrpi - mrpi_metrics.prior_week_mrpi AS wow_mrpi_change,\n  wsi_metrics.current_wsi,\n  wsi_metrics.current_wsi - wsi_metrics.prior_week_wsi AS wow_wsi_change,\n  TRUE AS is_benchmark\nFROM availability_metrics\nCROSS JOIN traffic_metrics\nCROSS JOIN mrpi_metrics\nCROSS JOIN wsi_metrics\nCROSS JOIN params\nLEFT JOIN order_metrics AS current_order\n  ON current_order.week_start = params.current_week_start\nLEFT JOIN order_metrics AS prior_week_order\n  ON prior_week_order.week_start = params.prior_week_start\nLEFT JOIN order_metrics AS prior_year_order\n  ON prior_year_order.week_start = params.prior_year_week_start\n;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        64
+      ],
+      "id": "5ad90286-8795-4f6c-80f0-050e3c0a71d1",
+      "name": "Top 15 Category Benchmark",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(function(item) {\n  return item.json;\n});\n\nreturn [\n  {\n    json: {\n      topCurrentGrsBenchmark: rows\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        64
+      ],
+      "id": "bb841089-3fea-4aaf-8b2c-97d61652ef13",
+      "name": "Benchmark Buckets"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "MRPI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Availability",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WSI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Visits/CVR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WSC/GRS Movers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Top 15 Category Benchmark",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WSC/GRS Movers": {
+      "main": [
+        [
+          {
+            "node": "Sales Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MRPI": {
+      "main": [
+        [
+          {
+            "node": "MRPI Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sales Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "MRPI Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare for Sheets": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Availability": {
+      "main": [
+        [
+          {
+            "node": "Availability Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Visits/CVR": {
+      "main": [
+        [
+          {
+            "node": "Traffic Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WSI": {
+      "main": [
+        [
+          {
+            "node": "WSI Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traffic Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Availability Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "WSI Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 15 Category Benchmark": {
+      "main": [
+        [
+          {
+            "node": "Benchmark Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Benchmark Buckets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4675047a-3f7a-4d51-b8f3-94ca2ead49a0",
+  "meta": {
+    "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"
+  },
+  "id": "WDkGeUcjE9AhRdYu",
+  "tags": []
+}

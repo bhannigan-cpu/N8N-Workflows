@@ -142,6 +142,67 @@ def patch_top15_sql(sql: str) -> str:
         label="ranked metrics wsc block",
     )
 
+    sql = replace_once(
+        sql,
+        """    supplier_name,
+    supplier_id,
+    SUM(IF(week_start = params.current_week_start, visits, 0)) AS current_visits,
+    SUM(IF(week_start = params.prior_year_week_start, visits, 0)) AS prior_year_visits,
+    SUM(IF(week_start = params.current_week_start, converted, 0)) AS current_converted,
+    SUM(IF(week_start = params.prior_year_week_start, converted, 0)) AS prior_year_converted""",
+        """    supplier_name,
+    supplier_id,
+    SUM(IF(week_start = params.current_week_start, visits, 0)) AS current_visits,
+    SUM(IF(week_start = params.prior_week_start, visits, 0)) AS prior_week_visits,
+    SUM(IF(week_start = params.prior_year_week_start, visits, 0)) AS prior_year_visits,
+    SUM(IF(week_start = params.current_week_start, converted, 0)) AS current_converted,
+    SUM(IF(week_start = params.prior_year_week_start, converted, 0)) AS prior_year_converted""",
+        label="traffic metrics prior week visits block",
+    )
+
+    sql = replace_once(
+        sql,
+        """    traffic_metrics.current_visits,
+    traffic_metrics.prior_year_visits,
+    traffic_metrics.current_visits - traffic_metrics.prior_year_visits AS yoy_visits_change,
+    SAFE_DIVIDE(
+      traffic_metrics.current_visits - traffic_metrics.prior_year_visits,
+      NULLIF(traffic_metrics.prior_year_visits, 0)
+    ) AS yoy_visits_pct_change,""",
+        """    traffic_metrics.current_visits,
+    traffic_metrics.prior_week_visits,
+    traffic_metrics.prior_year_visits,
+    traffic_metrics.current_visits - traffic_metrics.prior_week_visits AS wow_visits_change,
+    SAFE_DIVIDE(
+      traffic_metrics.current_visits - traffic_metrics.prior_week_visits,
+      NULLIF(traffic_metrics.prior_week_visits, 0)
+    ) AS wow_visits_pct_change,
+    traffic_metrics.current_visits - traffic_metrics.prior_year_visits AS yoy_visits_change,
+    SAFE_DIVIDE(
+      traffic_metrics.current_visits - traffic_metrics.prior_year_visits,
+      NULLIF(traffic_metrics.prior_year_visits, 0)
+    ) AS yoy_visits_pct_change,""",
+        label="final metrics wow visits block",
+    )
+
+    sql = replace_once(
+        sql,
+        """    current_visits,
+    prior_year_visits,
+    yoy_visits_change,
+    yoy_visits_pct_change,
+    current_cvr,""",
+        """    current_visits,
+    prior_week_visits,
+    prior_year_visits,
+    wow_visits_change,
+    wow_visits_pct_change,
+    yoy_visits_change,
+    yoy_visits_pct_change,
+    current_cvr,""",
+        label="ranked metrics wow visits block",
+    )
+
     return sql
 
 

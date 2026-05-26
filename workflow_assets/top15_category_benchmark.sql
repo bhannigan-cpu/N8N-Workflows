@@ -95,6 +95,7 @@ availability_metrics AS (
 traffic_metrics AS (
   SELECT
     SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS current_visits,
+    SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS prior_week_visits,
     SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_year_week_start, COALESCE(traffic_source.skuvisits, 0), 0)) AS prior_year_visits,
     SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start, COALESCE(traffic_source.skuconverted, 0), 0)) AS current_converted,
     SUM(IF(DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.prior_year_week_start, COALESCE(traffic_source.skuconverted, 0), 0)) AS prior_year_converted
@@ -107,6 +108,7 @@ traffic_metrics AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
+      params.prior_week_start,
       params.prior_year_week_start
     )
 ),
@@ -179,11 +181,19 @@ wsi_metrics AS (
 )
 
 SELECT
+  FORMAT_DATE('%m/%d/%y', params.current_week_start) AS current_week_label,
+  FORMAT_DATE('%m/%d/%y', DATE '2025-04-02') AS wsi_index_date_label,
+  'All Subentities' AS subentity_label,
+  'All Stores' AS store_label,
   'Top 15 Benchmark' AS section,
   NULL AS rank,
   'WINDOW BENCHMARK' AS supplier_name,
   NULL AS supplier_id,
   NULL AS current_grs,
+  SAFE_DIVIDE(
+    current_order.gross_revenue - prior_week_order.gross_revenue,
+    NULLIF(prior_week_order.gross_revenue, 0)
+  ) AS wow_grs_pct,
   SAFE_DIVIDE(
     current_order.gross_revenue - prior_year_order.gross_revenue,
     NULLIF(prior_year_order.gross_revenue, 0)
@@ -202,6 +212,10 @@ SELECT
     NULLIF(prior_year_order.wsc, 0)
   ) AS yoy_wsc_pct_change,
   traffic_metrics.current_visits,
+  SAFE_DIVIDE(
+    traffic_metrics.current_visits - traffic_metrics.prior_week_visits,
+    NULLIF(traffic_metrics.prior_week_visits, 0)
+  ) AS wow_visits_pct_change,
   SAFE_DIVIDE(
     traffic_metrics.current_visits - traffic_metrics.prior_year_visits,
     NULLIF(traffic_metrics.prior_year_visits, 0)
