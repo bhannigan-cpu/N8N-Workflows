@@ -78,7 +78,71 @@ const supplierColumns = [""",
         label="top 15 table source",
     )
 
+    js_code = replace_once(
+        js_code,
+        """    { label: "WSC", key: "current_wsc" },
+    { label: "Visits", key: "current_visits" },""",
+        """    { label: "WSC", key: "current_wsc" },
+    { label: "WSC WoW %", key: "wow_wsc_pct_change" },
+    { label: "WSC YoY %", key: "yoy_wsc_pct_change" },
+    { label: "Visits", key: "current_visits" },""",
+        label="top 15 wsc columns",
+    )
+
     return js_code
+
+
+def patch_top15_sql(sql: str) -> str:
+    sql = replace_once(
+        sql,
+        """    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_grs, 0)) AS current_grs,
+    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_wsc, 0)) AS current_wsc,
+    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_grs, 0)) AS prior_week_grs,
+    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_grs, 0)) AS prior_year_grs""",
+        """    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_grs, 0)) AS current_grs,
+    SUM(IF(wg.week_start = params.current_week_start, wg.weekly_wsc, 0)) AS current_wsc,
+    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_wsc, 0)) AS prior_week_wsc,
+    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_wsc, 0)) AS prior_year_wsc,
+    SUM(IF(wg.week_start = params.prior_week_start, wg.weekly_grs, 0)) AS prior_week_grs,
+    SUM(IF(wg.week_start = params.prior_year_week_start, wg.weekly_grs, 0)) AS prior_year_grs""",
+        label="grs metrics wsc block",
+    )
+
+    sql = replace_once(
+        sql,
+        """    availability_metrics.current_availability,
+    grs_metrics.current_wsc,
+    availability_metrics.prior_week_availability,""",
+        """    availability_metrics.current_availability,
+    grs_metrics.current_wsc,
+    grs_metrics.prior_week_wsc,
+    grs_metrics.prior_year_wsc,
+    grs_metrics.current_wsc - grs_metrics.prior_week_wsc AS wow_wsc_change,
+    SAFE_DIVIDE(grs_metrics.current_wsc - grs_metrics.prior_week_wsc, NULLIF(grs_metrics.prior_week_wsc, 0)) AS wow_wsc_pct_change,
+    grs_metrics.current_wsc - grs_metrics.prior_year_wsc AS yoy_wsc_change,
+    SAFE_DIVIDE(grs_metrics.current_wsc - grs_metrics.prior_year_wsc, NULLIF(grs_metrics.prior_year_wsc, 0)) AS yoy_wsc_pct_change,
+    availability_metrics.prior_week_availability,""",
+        label="final metrics wsc block",
+    )
+
+    sql = replace_once(
+        sql,
+        """    current_availability,
+    current_wsc,
+    prior_week_availability,""",
+        """    current_availability,
+    current_wsc,
+    prior_week_wsc,
+    prior_year_wsc,
+    wow_wsc_change,
+    wow_wsc_pct_change,
+    yoy_wsc_change,
+    yoy_wsc_pct_change,
+    prior_week_availability,""",
+        label="ranked metrics wsc block",
+    )
+
+    return sql
 
 
 def benchmark_node(existing_credentials: dict) -> dict:
@@ -149,6 +213,9 @@ def main() -> int:
 
     nodes = {node["name"]: node for node in workflow["nodes"]}
     nodes["Merge"]["parameters"]["numberInputs"] = 6
+    nodes["WSC/GRS Movers"]["parameters"]["sqlQuery"] = patch_top15_sql(
+        nodes["WSC/GRS Movers"]["parameters"]["sqlQuery"]
+    )
     nodes["Code in JavaScript"]["parameters"]["jsCode"] = patch_formatter(
         nodes["Code in JavaScript"]["parameters"]["jsCode"]
     )

@@ -29,6 +29,7 @@ order_metrics AS (
     AND retail_sku_store_date.agg_level = 'WEEKLY'
     AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
       params.current_week_start,
+      params.prior_week_start,
       params.prior_year_week_start
     )
   GROUP BY
@@ -192,6 +193,14 @@ SELECT
   availability_metrics.current_availability,
   availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,
   NULL AS current_wsc,
+  SAFE_DIVIDE(
+    current_order.wsc - prior_week_order.wsc,
+    NULLIF(prior_week_order.wsc, 0)
+  ) AS wow_wsc_pct_change,
+  SAFE_DIVIDE(
+    current_order.wsc - prior_year_order.wsc,
+    NULLIF(prior_year_order.wsc, 0)
+  ) AS yoy_wsc_pct_change,
   traffic_metrics.current_visits,
   SAFE_DIVIDE(
     traffic_metrics.current_visits - traffic_metrics.prior_year_visits,
@@ -221,6 +230,8 @@ CROSS JOIN wsi_metrics
 CROSS JOIN params
 LEFT JOIN order_metrics AS current_order
   ON current_order.week_start = params.current_week_start
+LEFT JOIN order_metrics AS prior_week_order
+  ON prior_week_order.week_start = params.prior_week_start
 LEFT JOIN order_metrics AS prior_year_order
   ON prior_year_order.week_start = params.prior_year_week_start
 ;
