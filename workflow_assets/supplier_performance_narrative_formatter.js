@@ -237,48 +237,180 @@ function pickPrioritySuppliers(rows, benchmark, limit) {
     .slice(0, limit);
 }
 
+function hashString(value) {
+  return String(value || "").split("").reduce(function(acc, char) {
+    return (acc * 31 + char.charCodeAt(0)) >>> 0;
+  }, 7);
+}
+
+function chooseVariant(seed, options) {
+  if (!options.length) return "";
+  return options[seed % options.length];
+}
+
+function gapPercentPoints(current, benchmark) {
+  const currentNum = toNumber(current);
+  const benchmarkNum = toNumber(benchmark);
+  if (currentNum === null || benchmarkNum === null) return null;
+  return (benchmarkNum - currentNum) * 100;
+}
+
+function gapBps(current, benchmark) {
+  const currentNum = toNumber(current);
+  const benchmarkNum = toNumber(benchmark);
+  if (currentNum === null || benchmarkNum === null) return null;
+  return (benchmarkNum - currentNum) * 10000;
+}
+
+function addFinding(findings, type, score, text) {
+  if (!Number.isFinite(score) || score <= 0 || !text) return;
+  findings.push({ type: type, score: score, text: text });
+}
+
+function openingSentence(row, topFindingType) {
+  const seed = hashString(supplierName(row));
+  const name = supplierName(row);
+  const optionsByType = {
+    sales: [
+      `${name} looks like a sales-momentum story this week.`,
+      `The topline is the first thing that stands out for ${name} this week.`,
+      `${name} is showing real pressure in the sales trend right now.`
+    ],
+    traffic: [
+      `Traffic is the clearest headwind for ${name} right now.`,
+      `${name} mainly looks like a traffic issue this week.`,
+      `The top-of-funnel is where ${name} looks weakest this week.`
+    ],
+    conversion: [
+      `Conversion is the biggest watchout for ${name} this week.`,
+      `${name} is getting hurt most by conversion efficiency right now.`,
+      `The clearest drag for ${name} this week is lower conversion.`
+    ],
+    availability: [
+      `Inventory looks like the biggest blocker for ${name} right now.`,
+      `${name} still looks supply-constrained this week.`,
+      `Availability is the first operational issue I would flag for ${name}.`
+    ],
+    pricing: [
+      `Pricing competitiveness is the first thing I would watch for ${name}.`,
+      `${name} looks like a pricing conversation this week.`,
+      `The biggest strategic watchout for ${name} right now is pricing.`
+    ],
+    cost: [
+      `WSC pressure is standing out for ${name} this week.`,
+      `${name} looks like a cost-inflation watchout right now.`,
+      `The cost side is worth watching closely for ${name} this week.`
+    ],
+    balanced: [
+      `${name} looks mixed this week, with a couple of metrics moving in different directions.`,
+      `${name} has a more balanced read this week than some of the other pressured suppliers.`,
+      `The picture for ${name} is mixed rather than driven by one single issue.`
+    ]
+  };
+
+  const options = optionsByType[topFindingType] || optionsByType.balanced;
+  return chooseVariant(seed, options);
+}
+
 function buildSupplierSummary(row, benchmark) {
-  const sentences = [];
+  const findings = [];
+  const positives = [];
 
-  if ((toNumber(row.wow_grs_pct) || 0) < (toNumber(benchmark.wow_grs_pct) || 0) &&
-      (toNumber(row.yoy_grs_pct) || 0) < (toNumber(benchmark.yoy_grs_pct) || 0)) {
-    sentences.push("Sales are trailing the category on both the weekly and yearly views.");
-  } else if ((toNumber(row.wow_grs_pct) || 0) < (toNumber(benchmark.wow_grs_pct) || 0)) {
-    sentences.push("Weekly sales momentum is lagging the category benchmark.");
-  } else if ((toNumber(row.yoy_grs_pct) || 0) < (toNumber(benchmark.yoy_grs_pct) || 0)) {
-    sentences.push("Year-over-year sales growth is running behind the category benchmark.");
+  const salesWowGap = gapPercentPoints(row.wow_grs_pct, benchmark.wow_grs_pct);
+  const salesYoyGap = gapPercentPoints(row.yoy_grs_pct, benchmark.yoy_grs_pct);
+  if ((salesWowGap !== null && salesWowGap > 2) || (salesYoyGap !== null && salesYoyGap > 4)) {
+    addFinding(
+      findings,
+      "sales",
+      Math.max(salesWowGap || 0, salesYoyGap || 0),
+      `Sales are running ${signedPercent(row.wow_grs_pct)} WoW versus ${signedPercent(benchmark.wow_grs_pct)} for benchmark, and ${signedPercent(row.yoy_grs_pct)} YoY versus ${signedPercent(benchmark.yoy_grs_pct)}.`
+    );
+  } else if ((toNumber(row.wow_grs_pct) || 0) >= (toNumber(benchmark.wow_grs_pct) || 0) &&
+             (toNumber(row.yoy_grs_pct) || 0) >= (toNumber(benchmark.yoy_grs_pct) || 0)) {
+    positives.push(`Sales are holding up at or above benchmark on both WoW and YoY views.`);
   }
 
-  if ((toNumber(row.wow_visits_pct_change) || 0) < (toNumber(benchmark.wow_visits_pct_change) || 0) ||
-      (toNumber(row.yoy_visits_pct_change) || 0) < (toNumber(benchmark.yoy_visits_pct_change) || 0)) {
-    sentences.push("Traffic is softer than benchmark, so the top-of-funnel looks like a meaningful part of the story this week.");
+  const visitsWowGap = gapPercentPoints(row.wow_visits_pct_change, benchmark.wow_visits_pct_change);
+  const visitsYoyGap = gapPercentPoints(row.yoy_visits_pct_change, benchmark.yoy_visits_pct_change);
+  if ((visitsWowGap !== null && visitsWowGap > 2) || (visitsYoyGap !== null && visitsYoyGap > 3)) {
+    addFinding(
+      findings,
+      "traffic",
+      Math.max(visitsWowGap || 0, visitsYoyGap || 0),
+      `Traffic is softer than the category: visits are ${signedPercent(row.wow_visits_pct_change)} WoW and ${signedPercent(row.yoy_visits_pct_change)} YoY, versus ${signedPercent(benchmark.wow_visits_pct_change)} WoW and ${signedPercent(benchmark.yoy_visits_pct_change)} YoY for benchmark.`
+    );
+  } else if ((toNumber(row.wow_visits_pct_change) || 0) >= (toNumber(benchmark.wow_visits_pct_change) || 0)) {
+    positives.push(`Traffic is at least holding up versus the benchmark on the weekly view.`);
   }
 
-  if ((toNumber(row.current_cvr) || 0) < (toNumber(benchmark.current_cvr) || 0)) {
-    const cvrGap = (toNumber(benchmark.current_cvr) || 0) - (toNumber(row.current_cvr) || 0);
-    sentences.push(`Conversion is ${signedBps(-cvrGap).replace("-", "")} below the benchmark, which points to PDP, assortment, or promo-quality pressure.`);
+  const cvrGap = gapBps(row.current_cvr, benchmark.current_cvr);
+  if (cvrGap !== null && cvrGap > 12) {
+    addFinding(
+      findings,
+      "conversion",
+      cvrGap,
+      `Conversion is ${percent(row.current_cvr)} versus ${percent(benchmark.current_cvr)} for benchmark, so the PDP / promo / assortment story likely matters here.`
+    );
+  } else if ((toNumber(row.current_cvr) || 0) >= (toNumber(benchmark.current_cvr) || 0)) {
+    positives.push(`Conversion is at or above benchmark, so the issue does not look conversion-led right now.`);
   }
 
-  if ((toNumber(row.current_availability) || 0) < (toNumber(benchmark.current_availability) || 0) ||
-      (toNumber(row.wow_availability_change) || 0) < 0) {
-    sentences.push("Availability is below category levels and remains an operational watchout for near-term revenue capture.");
+  const availabilityGap = gapBps(row.current_availability, benchmark.current_availability);
+  const availabilityMove = toNumber(row.wow_availability_change) || 0;
+  if ((availabilityGap !== null && availabilityGap > 150) || availabilityMove < -0.005) {
+    addFinding(
+      findings,
+      "availability",
+      Math.max(availabilityGap || 0, Math.abs(availabilityMove) * 10000),
+      `Availability is ${percent(row.current_availability)} versus ${percent(benchmark.current_availability)} for benchmark, and it moved ${signedBps(row.wow_availability_change)} WoW.`
+    );
+  } else if ((toNumber(row.current_availability) || 0) >= (toNumber(benchmark.current_availability) || 0)) {
+    positives.push(`Availability is not the binding constraint this week because it is in line with or above the benchmark.`);
   }
 
-  if ((toNumber(row.current_mrpi) || 0) > (toNumber(benchmark.current_mrpi) || 0) ||
-      (toNumber(row.current_wsi) || 0) > (toNumber(benchmark.current_wsi) || 0)) {
-    sentences.push("Pricing looks like a pressure point because competitiveness is weaker than the benchmark on MRPI and/or WSI.");
+  const mrpiGap = gapBps(benchmark.current_mrpi, row.current_mrpi);
+  const wsiGap = gapBps(benchmark.current_wsi, row.current_wsi);
+  if ((mrpiGap !== null && mrpiGap > 25) || (wsiGap !== null && wsiGap > 25)) {
+    addFinding(
+      findings,
+      "pricing",
+      Math.max(mrpiGap || 0, wsiGap || 0),
+      `Pricing looks heavier than benchmark: MRPI is ${percent(row.current_mrpi)} versus ${percent(benchmark.current_mrpi)}, and WSI is ${percent(row.current_wsi)} versus ${percent(benchmark.current_wsi)}.`
+    );
+  } else if ((toNumber(row.current_mrpi) || 0) <= (toNumber(benchmark.current_mrpi) || 0) &&
+             (toNumber(row.current_wsi) || 0) <= (toNumber(benchmark.current_wsi) || 0)) {
+    positives.push(`Pricing does not look like the main issue because MRPI and WSI are roughly in line with or better than benchmark.`);
   }
 
-  if ((toNumber(row.wow_wsc_pct_change) || 0) > (toNumber(benchmark.wow_wsc_pct_change) || 0) ||
-      (toNumber(row.yoy_wsc_pct_change) || 0) > (toNumber(benchmark.yoy_wsc_pct_change) || 0)) {
-    sentences.push("WSC is moving faster than the category, so cost pressure is worth monitoring alongside pricing and margin conversations.");
+  const wscWowGap = gapPercentPoints(benchmark.wow_wsc_pct_change, row.wow_wsc_pct_change);
+  const wscYoyGap = gapPercentPoints(benchmark.yoy_wsc_pct_change, row.yoy_wsc_pct_change);
+  if ((wscWowGap !== null && wscWowGap > 2) || (wscYoyGap !== null && wscYoyGap > 3)) {
+    addFinding(
+      findings,
+      "cost",
+      Math.max(wscWowGap || 0, wscYoyGap || 0),
+      `WSC is moving faster than the category: ${signedPercent(row.wow_wsc_pct_change)} WoW and ${signedPercent(row.yoy_wsc_pct_change)} YoY versus ${signedPercent(benchmark.wow_wsc_pct_change)} and ${signedPercent(benchmark.yoy_wsc_pct_change)} for benchmark.`
+    );
   }
 
-  if (!sentences.length) {
-    sentences.push(`This account still matters because it represents ${percent(row.grs_share)} of weekly GRS and should stay on the active watchlist.`);
+  findings.sort(function(left, right) {
+    return right.score - left.score;
+  });
+
+  const primaryType = findings.length ? findings[0].type : "balanced";
+  const sentences = [openingSentence(row, primaryType)];
+
+  findings.slice(0, 3).forEach(function(finding) {
+    sentences.push(finding.text);
+  });
+
+  if (positives.length) {
+    sentences.push(positives[0]);
+  } else if (!findings.length) {
+    sentences.push(`Nothing is flashing red here relative to benchmark, and the account still represents ${percent(row.grs_share)} of weekly GRS.`);
   }
 
-  return sentences.slice(0, 4).join(" ");
+  return sentences.join(" ");
 }
 
 function renderSupplierCard(row, benchmark) {
