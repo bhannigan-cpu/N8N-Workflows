@@ -1,0 +1,22 @@
+{
+  "summary": "Move the schedule earlier, rename the workflow, and tweak the email subject.",
+  "operations": [
+    {
+      "op": "renameWorkflow",
+      "value": "Weekly Supplier Report REAL"
+    },
+    {
+      "op": "updateNodeParameters",
+      "nodeName": "Schedule Trigger",
+      "changes": {
+        "rule.interval[0].triggerAtHour": 8
+      }
+    },
+    {
+      "op": "setNodeValue",
+      "nodeName": "Send a message1",
+      "path": "parameters.subject",
+      "value": "Supplier Digest"
+    }
+  ]
+}
