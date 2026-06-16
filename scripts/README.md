@@ -56,30 +56,21 @@ WHERE table_name = '<table_name>'
 ORDER BY column_name;
 ```
 
-## New SKUs with supplier L12M GRS
+## Bedding SKUs launched in the last 90 days
 
 Use `../sql/new_skus_with_supplier_l12m_grs.sql` in the BigQuery editor to list
-all SKUs launched in the last 90 days with their supplier and supplier-level GRS
-metrics.
+all Bedding product-category SKUs launched in the last 90 days with their
+supplier.
 
 The SQL reports:
 
-- SKU and launch date proxy
+- SKU
+- Product category
+- Launch date proxy
 - Supplier key, supplier ID, and supplier name
-- Supplier L12M GRS
-- Supplier prior-L12M GRS
-- Supplier L12M GRS change
-- Supplier L12M GRS growth rate
-
-The growth rate is calculated as:
-
-```text
-(supplier_l12m_grs - supplier_prior_l12m_grs) / supplier_prior_l12m_grs
-```
 
 Because the SKU dimension table does not expose the expected launch date field,
 this query uses the first date a SKU/supplier pair appears in
 `cm_reporting.retail_sku_store_date_agg` as the launch date proxy. It
-dynamically detects the SKU column from common SKU field names on that table,
-then uses `retail_dim_supplier` and the currency conversion table from the
-weekly supplier workflow.
+dynamically detects the SKU and product category columns from common field names
+on that table, then uses `retail_dim_supplier` for supplier details.
