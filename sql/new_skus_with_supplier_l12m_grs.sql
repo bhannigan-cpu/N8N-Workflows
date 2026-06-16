@@ -1,38 +1,89 @@
 -- New SKUs launched in the last 90 days with supplier L12M GRS and growth.
 --
+-- This version does not depend on a SKU dimension launch-date field. It uses
+-- the first date a SKU/supplier pair appears in retail_sku_store_date_agg as
+-- the launch date proxy, then attaches supplier-level L12M GRS metrics.
+--
 -- Growth definition:
 --   supplier_l12m_grs_growth_rate =
 --     (supplier_l12m_grs - supplier_prior_l12m_grs) / supplier_prior_l12m_grs
---
--- Before running, confirm the SKU catalog table and column names in the
--- new_skus CTE. The rest of the query follows the supplier/order pattern used
--- in the Weekly Supplier Report workflow.
 
 DECLARE as_of_date DATE DEFAULT CURRENT_DATE();
 DECLARE new_sku_lookback_days INT64 DEFAULT 90;
+DECLARE sku_column STRING;
+DECLARE sku_expr STRING;
 
+SET sku_column = (
+  SELECT column_name
+  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.INFORMATION_SCHEMA.COLUMNS`
+  WHERE table_name = 'retail_sku_store_date_agg'
+    AND LOWER(column_name) IN (
+      'prsku',
+      'sku',
+      'skuid',
+      'sku_id',
+      'skukey',
+      'sku_key',
+      'productsku',
+      'product_sku'
+    )
+  ORDER BY
+    CASE LOWER(column_name)
+      WHEN 'prsku' THEN 1
+      WHEN 'sku' THEN 2
+      WHEN 'skuid' THEN 3
+      WHEN 'sku_id' THEN 4
+      WHEN 'skukey' THEN 5
+      WHEN 'sku_key' THEN 6
+      WHEN 'productsku' THEN 7
+      WHEN 'product_sku' THEN 8
+      ELSE 99
+    END
+  LIMIT 1
+);
+
+ASSERT sku_column IS NOT NULL AS
+  'Could not find a SKU column on cm_reporting.retail_sku_store_date_agg. Check INFORMATION_SCHEMA.COLUMNS and add the SKU column name to this script.';
+
+SET sku_expr = FORMAT('`%s`', sku_column);
+
+EXECUTE IMMEDIATE FORMAT("""
 WITH params AS (
   SELECT
-    as_of_date,
-    DATE_SUB(as_of_date, INTERVAL (new_sku_lookback_days - 1) DAY) AS new_sku_start_date,
-    DATE_SUB(as_of_date, INTERVAL 12 MONTH) AS current_l12m_start_date,
-    DATE_SUB(DATE_SUB(as_of_date, INTERVAL 12 MONTH), INTERVAL 12 MONTH) AS prior_l12m_start_date,
-    DATE_SUB(DATE_SUB(as_of_date, INTERVAL 12 MONTH), INTERVAL 1 DAY) AS prior_l12m_end_date
+    @as_of_date AS as_of_date,
+    DATE_SUB(@as_of_date, INTERVAL (@new_sku_lookback_days - 1) DAY) AS new_sku_start_date,
+    DATE_SUB(@as_of_date, INTERVAL 12 MONTH) AS current_l12m_start_date,
+    DATE_SUB(DATE_SUB(@as_of_date, INTERVAL 12 MONTH), INTERVAL 12 MONTH) AS prior_l12m_start_date,
+    DATE_SUB(DATE_SUB(@as_of_date, INTERVAL 12 MONTH), INTERVAL 1 DAY) AS prior_l12m_end_date
 ),
 
--- Edit this CTE if your SKU/product dimension uses different field names.
--- Required output columns: sku, supplier_key, launch_date.
+sku_supplier_first_seen AS (
+  SELECT
+    CAST(retail_sku_store_date.%s AS STRING) AS sku,
+    supplier_struct.supplierkey AS supplier_key,
+    MIN(retail_sku_store_date.date) AS launch_date
+  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
+  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
+  CROSS JOIN params
+  WHERE retail_sku_store_date.brandname = 'Wayfair'
+    AND retail_sku_store_date.styname = 'United States'
+    AND retail_sku_store_date.agg_level = 'WEEKLY'
+    AND retail_sku_store_date.date <= params.as_of_date
+    AND retail_sku_store_date.%s IS NOT NULL
+    AND supplier_struct.supplierkey IS NOT NULL
+  GROUP BY
+    1,
+    2
+),
+
 new_skus AS (
   SELECT
-    CAST(sku.prsku AS STRING) AS sku,
-    CAST(sku.supplierkey AS INT64) AS supplier_key,
-    CAST(sku.productname AS STRING) AS product_name,
-    CAST(sku.productmarketingcategory AS STRING) AS product_marketing_category,
-    SAFE_CAST(sku.launchdate AS DATE) AS launch_date
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS sku
+    sku,
+    supplier_key,
+    launch_date
+  FROM sku_supplier_first_seen
   CROSS JOIN params
-  WHERE SAFE_CAST(sku.launchdate AS DATE)
-    BETWEEN params.new_sku_start_date AND params.as_of_date
+  WHERE launch_date BETWEEN params.new_sku_start_date AND params.as_of_date
 ),
 
 currency AS (
@@ -123,8 +174,6 @@ supplier_metrics AS (
 new_skus_with_supplier AS (
   SELECT
     new_skus.sku,
-    new_skus.product_name,
-    new_skus.product_marketing_category,
     new_skus.launch_date,
     retail_dim_supplier.supplierkey AS supplier_key,
     retail_dim_supplier.origsuid AS supplier_id,
@@ -136,8 +185,6 @@ new_skus_with_supplier AS (
 
 SELECT
   new_skus_with_supplier.sku,
-  new_skus_with_supplier.product_name,
-  new_skus_with_supplier.product_marketing_category,
   new_skus_with_supplier.launch_date,
   new_skus_with_supplier.supplier_key,
   new_skus_with_supplier.supplier_id,
@@ -153,3 +200,7 @@ LEFT JOIN supplier_metrics
 ORDER BY
   new_skus_with_supplier.launch_date DESC,
   new_skus_with_supplier.sku;
+""", sku_expr, sku_expr)
+USING
+  as_of_date AS as_of_date,
+  new_sku_lookback_days AS new_sku_lookback_days;

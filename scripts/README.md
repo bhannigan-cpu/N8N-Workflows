@@ -63,7 +63,7 @@ metrics.
 
 The SQL reports:
 
-- SKU, product name, product marketing category, and launch date
+- SKU and launch date proxy
 - Supplier key, supplier ID, and supplier name
 - Supplier L12M GRS
 - Supplier prior-L12M GRS
@@ -76,7 +76,9 @@ The growth rate is calculated as:
 (supplier_l12m_grs - supplier_prior_l12m_grs) / supplier_prior_l12m_grs
 ```
 
-Before running, confirm the SKU dimension table and fields in the `new_skus`
-CTE. The supplier GRS section uses the same
-`cm_reporting.retail_sku_store_date_agg`, `retail_dim_supplier`, and currency
-conversion tables used by the weekly supplier workflow.
+Because the SKU dimension table does not expose `launchdate`, this query uses
+the first date a SKU/supplier pair appears in
+`cm_reporting.retail_sku_store_date_agg` as the launch date proxy. It
+dynamically detects the SKU column from common SKU field names on that table,
+then uses `retail_dim_supplier` and the currency conversion table from the
+weekly supplier workflow.
