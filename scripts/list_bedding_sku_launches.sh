@@ -47,6 +47,13 @@ die() {
   exit 1
 }
 
+require_value() {
+  local option="$1"
+  local value="${2-}"
+
+  [[ -n "$value" && "$value" != --* ]] || die "$option requires a value"
+}
+
 validate_days() {
   [[ "$DAYS" =~ ^[1-9][0-9]*$ ]] || die "--days must be a positive integer"
 }
@@ -84,38 +91,47 @@ quote_column_path() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -d|--days)
+      require_value "$1" "${2-}"
       DAYS="${2:-}"
       shift 2
       ;;
     --category)
+      require_value "$1" "${2-}"
       CATEGORY="${2:-}"
       shift 2
       ;;
     --project-id)
+      require_value "$1" "${2-}"
       PROJECT_ID="${2:-}"
       shift 2
       ;;
     --sku-table)
+      require_value "$1" "${2-}"
       SKU_TABLE="${2:-}"
       shift 2
       ;;
     --sku-column)
+      require_value "$1" "${2-}"
       SKU_COLUMN="${2:-}"
       shift 2
       ;;
     --category-column)
+      require_value "$1" "${2-}"
       CATEGORY_COLUMN="${2:-}"
       shift 2
       ;;
     --launch-date-column)
+      require_value "$1" "${2-}"
       LAUNCH_DATE_COLUMN="${2:-}"
       shift 2
       ;;
     --product-name-column)
+      require_value "$1" "${2-}"
       PRODUCT_NAME_COLUMN="${2:-}"
       shift 2
       ;;
     --format)
+      require_value "$1" "${2-}"
       FORMAT="${2:-}"
       shift 2
       ;;
