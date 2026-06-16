@@ -13,7 +13,8 @@ The script defaults to:
 - SKU table: `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku`
 - SKU column: `prsku`
 - Product marketing category column: `productmarketingcategory`
-- Launch date column: `launchdate`
+- Launch date column: provide your catalog launch date field with
+  `--launch-date-column`
 - Category value: `Bedding`
 
 If the catalog table uses different names, pass them as options:
@@ -24,7 +25,7 @@ scripts/list_bedding_sku_launches.sh \
   --sku-table wf-gcp-us-ae-retail-prod.cm_reporting.your_sku_table \
   --sku-column prsku \
   --category-column productmarketingcategory \
-  --launch-date-column launchdate \
+  --launch-date-column your_launch_date_column \
   --product-name-column productname \
   --format csv
 ```
@@ -76,8 +77,8 @@ The growth rate is calculated as:
 (supplier_l12m_grs - supplier_prior_l12m_grs) / supplier_prior_l12m_grs
 ```
 
-Because the SKU dimension table does not expose `launchdate`, this query uses
-the first date a SKU/supplier pair appears in
+Because the SKU dimension table does not expose the expected launch date field,
+this query uses the first date a SKU/supplier pair appears in
 `cm_reporting.retail_sku_store_date_agg` as the launch date proxy. It
 dynamically detects the SKU column from common SKU field names on that table,
 then uses `retail_dim_supplier` and the currency conversion table from the

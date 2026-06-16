@@ -5,7 +5,7 @@ PROJECT_ID="${PROJECT_ID:-wf-gcp-us-ae-eunarta-proc-prod}"
 SKU_TABLE="${SKU_TABLE:-wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku}"
 SKU_COLUMN="${SKU_COLUMN:-prsku}"
 CATEGORY_COLUMN="${CATEGORY_COLUMN:-productmarketingcategory}"
-LAUNCH_DATE_COLUMN="${LAUNCH_DATE_COLUMN:-launchdate}"
+LAUNCH_DATE_COLUMN="${LAUNCH_DATE_COLUMN:-}"
 PRODUCT_NAME_COLUMN="${PRODUCT_NAME_COLUMN:-}"
 DAYS="${DAYS:-7}"
 CATEGORY="${CATEGORY:-Bedding}"
@@ -28,7 +28,7 @@ Options:
       --sku-column COLUMN          SKU identifier column. Default: prsku
       --category-column COLUMN     Product marketing category column.
                                    Default: productmarketingcategory
-      --launch-date-column COLUMN  SKU launch date column. Default: launchdate
+      --launch-date-column COLUMN  SKU launch date column.
       --product-name-column COLUMN Optional product name/title column to include.
       --format FORMAT              bq output format: pretty, csv, json, prettyjson, etc.
                                    Default: pretty
@@ -39,6 +39,7 @@ Environment variables with the same uppercase names can also be used, for exampl
 
 Before first use, confirm the exact SKU table and column names in BigQuery. If your
 catalog table uses different names, pass them with the options above.
+The launch date column is required because catalog schemas vary.
 USAGE
 }
 
