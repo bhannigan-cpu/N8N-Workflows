@@ -37,8 +37,7 @@ sku_dim AS (
     retail_dim_sku.svclassname,
     retail_dim_sku.incastlegatename,
     retail_dim_sku.prhasmapname,
-    retail_dim_sku.wppname,
-    retail_dim_sku.isvisualduplicatename
+    retail_dim_sku.wppname
   FROM target_skus
   LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku
     ON UPPER(retail_dim_sku.skuname) = target_skus.sku
@@ -440,7 +439,6 @@ final_metrics AS (
     sku_dim.incastlegatename,
     sku_dim.prhasmapname,
     sku_dim.wppname,
-    sku_dim.isvisualduplicatename,
     review_metrics.active_sku_count_flag,
     traffic_metrics.current_visits,
     traffic_metrics.prior_week_visits,
