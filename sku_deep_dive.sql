@@ -297,6 +297,11 @@ combined AS (
     sku_dim.incastlegatename,
     sku_dim.prhasmapname,
     sku_dim.wppname,
+    CASE
+      WHEN REGEXP_CONTAINS(LOWER(COALESCE(sku_dim.prstatusname, '')), r'active|live')
+      THEN 1
+      ELSE 0
+    END AS is_live_or_active_status,
     traffic_l6m.visits_l6m,
     traffic_l6m.converted_l6m,
     traffic_l6m.cvr_l6m,
@@ -365,7 +370,7 @@ SELECT
   *,
   CASE
     WHEN skuid IS NULL THEN 'This SKU did not match retail_dim_sku, so the first step is validating the SKU identifier before interpreting ad performance.'
-    WHEN COALESCE(active_sku_count_flag, 0) = 0 OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%' THEN CONCAT('Traffic is likely constrained because the SKU is not cleanly active. Status: ', COALESCE(prstatusname, 'N/A'), '; reason: ', COALESCE(skustatusreasonname, 'N/A'), '.')
+    WHEN COALESCE(is_live_or_active_status, 0) = 0 THEN CONCAT('Traffic is likely constrained because the SKU status is not live/active. Status: ', COALESCE(prstatusname, 'N/A'), '; reason: ', COALESCE(skustatusreasonname, 'N/A'), '.')
     WHEN pricing_suppression_signal IN ('Yes', 'Likely') AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because visibility is being limited by pricing competitiveness/suppression signals. ', pricing_suppression_reason)
     WHEN missing_tags = 'Yes' AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because merchandising completeness is low: recommended tag coverage is ', CAST(ROUND(COALESCE(recommended_tag_coverage, 0) * 100, 1) AS STRING), '%, with ', CAST(COALESCE(missing_recommended_tag_count, 0) AS STRING), ' recommended tags missing.')
     WHEN current_availability IS NOT NULL AND current_availability < 0.90 AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic may be weak because availability is constrained: current availability is ', CAST(ROUND(current_availability * 100, 1) AS STRING), '%.')
@@ -378,19 +383,19 @@ SELECT
     WHEN missing_tags = 'Yes' THEN CONCAT('Conversion may be weak because product tagging is incomplete. Recommended tag coverage is ', CAST(ROUND(COALESCE(recommended_tag_coverage, 0) * 100, 1) AS STRING), '%.')
     WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN CONCAT('Conversion may be weak because shoppers are seeing an uncompetitive price/value equation. ', pricing_suppression_reason)
     WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN CONCAT('Conversion may be weak because availability is constrained at ', CAST(ROUND(current_availability * 100, 1) AS STRING), '%.')
-    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Conversion is weak, but the standard readiness checks do not identify one dominant blocker; review PDP content, price, imagery, shipping promise, and promo competitiveness.'
+    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Conversion is weak, but the standard readiness checks do not identify one dominant blocker; the next likely levers are PDP trust and expectation-setting: dimensions, scale imagery, material/color accuracy, price/value, shipping promise, and promo competitiveness.'
     ELSE 'CVR is not obviously weak over L6M; if ad ROAS is still poor, investigate traffic quality, query matching, and campaign structure.'
   END AS conversion_story,
   CASE
     WHEN skuid IS NULL THEN 'Validate SKU mapping.'
-    WHEN COALESCE(active_sku_count_flag, 0) = 0 OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%' THEN 'Resolve SKU active/suppression status before adding spend.'
-    WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN 'Resolve pricing competitiveness/suppression signal before increasing bids.'
-    WHEN missing_tags = 'Yes' THEN 'Complete missing recommended tags, then re-check search visibility.'
-    WHEN has_five_plus_reviews <> 'Yes' THEN 'Prioritize review generation / review acceleration before scaling traffic.'
-    WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN 'Fix availability before scaling ads.'
-    WHEN COALESCE(visits_l6m, 0) < 250 THEN 'Audit ad eligibility, search placement, bids, and keyword/category coverage.'
-    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Audit PDP content, pricing, reviews, shipping promise, promo, and competitor alternatives.'
-    ELSE 'Monitor; no major blocker flagged by this report.'
+    WHEN COALESCE(is_live_or_active_status, 0) = 0 THEN 'Resolve SKU live/active status before adding spend; confirm the status reason in catalog tools and only scale ads once the SKU is findable and purchasable.'
+    WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN 'Resolve pricing competitiveness before increasing bids: review MAP/MSRP/cost inputs, margin guardrail or quarantine signals, and whether retail price aligns with perceived quality. If quality/value is the issue, adjust cost/price or use promo support before scaling traffic.'
+    WHEN missing_tags = 'Yes' THEN 'Complete merchandising tags before scaling ads: fill recommended tags that map to customer search/filter behavior, especially material, color, size, style, pattern, product features, and option-level attributes. After tags are complete, re-check search visibility and category placement.'
+    WHEN has_five_plus_reviews <> 'Yes' THEN 'Prioritize review generation before scaling traffic: enroll in review acceleration or supplier-funded review programs, focus on SKUs closest to the 5+ review threshold, and avoid relying on higher bids until shoppers have enough social proof to convert.'
+    WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN 'Fix availability before scaling ads: recover inventory/availability, validate supplier part purchasability, and avoid sending paid traffic to a SKU that may be intermittently unavailable.'
+    WHEN COALESCE(visits_l6m, 0) < 250 THEN 'Traffic is the bottleneck: audit ad eligibility, campaign inclusion, bids, keyword/category coverage, and search placement. Pair that with merchandising cleanup: complete tags, ensure the title/class/category are aligned with how customers search, and confirm images make the item recognizable in browse/search results.'
+    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Conversion is the bottleneck: improve PDP expectation-setting before adding more traffic. Add accurate dimensions and scale imagery, high-resolution true-to-life photos, close-ups of texture/material/finish, clear material quality callouts, color descriptions/undertones, images in varied lighting or backgrounds, and side-by-side option imagery where applicable. Also review price/value alignment and promo competitiveness.'
+    ELSE 'Monitor and scale carefully: no major blocker was flagged, so validate traffic quality, query matching, campaign structure, and competitor alternatives before materially increasing spend.'
   END AS recommended_action
 FROM combined
 ORDER BY
