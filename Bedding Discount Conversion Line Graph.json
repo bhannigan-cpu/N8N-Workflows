@@ -1,0 +1,137 @@
+{
+  "name": "Bedding Discount Conversion Line Graph",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "bedding-discount-conversion-line-graph",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5e76354f-b5de-4fef-86e5-005d49ad1f2b",
+      "name": "Open Chart Webhook",
+      "webhookId": "94be0275-3547-4d7c-9dbe-94c5c714970d"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-sf-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-sf-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-sf-prod"
+        },
+        "sqlQuery": "WITH params AS (SELECT CURRENT_DATE('America/New_York') AS report_end_date, DATE_SUB(CURRENT_DATE('America/New_York'), INTERVAL 12 MONTH) AS report_start_date), DiscountedBeddingSKUs AS (SELECT DISTINCT op.OpPrSKU, 1 - (op.GrossRevenueStable / (op.ListPrice * op.OpQty)) AS discount_rate, 5 * FLOOR((1 - (op.GrossRevenueStable / (op.ListPrice * op.OpQty))) * 100 / 5) AS discount_bucket_pct FROM `wf-gcp-us-ae-sf-prod.curated_data_hub.tbl_fact_order_financials` AS orders CROSS JOIN params CROSS JOIN UNNEST(orders.OpMetrics) AS op WHERE orders.OrderDate_EST BETWEEN params.report_start_date AND params.report_end_date AND op.OpPrSkuCategoryName = 'Bedding' AND op.ListPrice > 0 AND op.OpQty > 0 AND (1 - (op.GrossRevenueStable / (op.ListPrice * op.OpQty))) >= 0), SessionsViewingDiscountedBedding AS (SELECT DISTINCT clicks.Event_SessionKey, skus.discount_bucket_pct FROM `wf-gcp-us-ae-sf-prod.curated_clickstream.tbl_dash_clicks` AS clicks INNER JOIN DiscountedBeddingSKUs AS skus ON clicks.Event_PrSKU = skus.OpPrSKU CROSS JOIN params WHERE clicks.SessionStartDate BETWEEN params.report_start_date AND params.report_end_date AND MOD(ABS(FARM_FINGERPRINT(clicks.Event_SessionKey)), 10) = 0) SELECT s.discount_bucket_pct, CONCAT(CAST(s.discount_bucket_pct AS STRING), '-', CAST(s.discount_bucket_pct + 5 AS STRING), '%') AS discount_bucket_label, SAFE_DIVIDE(CAST(SUM(visits.Converted) AS FLOAT64) * 100, COUNT(DISTINCT visits.Event_SessionKey)) AS conversion_rate_for_discounted_bedding_viewers, COUNT(DISTINCT visits.Event_SessionKey) AS sessions FROM `wf-gcp-us-ae-sf-prod.curated_clickstream.tbl_dash_visits` AS visits INNER JOIN SessionsViewingDiscountedBedding AS s ON visits.Event_SessionKey = s.Event_SessionKey CROSS JOIN params WHERE visits.SessionStartDate BETWEEN params.report_start_date AND params.report_end_date GROUP BY s.discount_bucket_pct ORDER BY s.discount_bucket_pct;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "152229a8-25cd-4923-bbdb-1ac2d2a672e8",
+      "name": "Discount Bucket Conversion Query",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).sort((a, b) => Number(a.discount_bucket_pct) - Number(b.discount_bucket_pct)); const htmlEscape = value => String(value ?? '').replace(/[&<>]/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[char])); if (rows.length === 0) { return [{ json: { html: '<!doctype html><html><head><meta charset=\\'utf-8\\'><title>Bedding Discount Conversion</title></head><body><h1>Bedding Discount Conversion</h1><p>No rows returned from BigQuery.</p></body></html>', rows: [] } }]; } const labels = rows.map(row => row.discount_bucket_label || `${row.discount_bucket_pct}-${Number(row.discount_bucket_pct) + 5}%`); const rates = rows.map(row => Number(row.conversion_rate_for_discounted_bedding_viewers || 0)); const chartConfig = { type: 'line', data: { labels, datasets: [{ label: 'Conversion rate (%)', data: rates, fill: false, borderColor: '#2563eb', backgroundColor: '#2563eb', pointBackgroundColor: '#2563eb', pointRadius: 4, lineTension: 0.25 }] }, options: { title: { display: true, text: 'Conversion Rate by Discount Bucket for Bedding Viewers' }, legend: { display: true }, scales: { xAxes: [{ scaleLabel: { display: true, labelString: 'Discount bucket' } }], yAxes: [{ ticks: { beginAtZero: true }, scaleLabel: { display: true, labelString: 'Conversion rate (%)' } }] } } }; const chartUrl = `https://quickchart.io/chart?width=1000&height=480&format=png&c=${encodeURIComponent(JSON.stringify(chartConfig))}`; const tableRows = rows.map((row, index) => `<tr><td>${htmlEscape(labels[index])}</td><td>${rates[index].toFixed(2)}%</td><td>${Number(row.sessions || 0).toLocaleString('en-US')}</td></tr>`).join(''); const generatedAt = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }); const html = `<!doctype html><html><head><meta charset='utf-8'><title>Bedding Discount Conversion Line Graph</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#172033;}h1{margin-bottom:4px;}p{color:#526070;}img{max-width:100%;border:1px solid #d7dde8;border-radius:8px;padding:12px;background:#fff;}table{border-collapse:collapse;margin-top:24px;min-width:480px;}th,td{border:1px solid #d7dde8;padding:8px 12px;text-align:right;}th:first-child,td:first-child{text-align:left;}th{background:#f4f7fb;}</style></head><body><h1>Bedding Discount Conversion Line Graph</h1><p>Last 12 months ending ${htmlEscape(generatedAt)} ET. Sessions are sampled with the same 10% session fingerprint logic as the query.</p><img alt='Line chart of conversion rate by discount bucket' src='${chartUrl}'><h2>Data</h2><table><thead><tr><th>Discount bucket</th><th>Conversion rate</th><th>Sessions</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`; return [{ json: { html, chartUrl, chartConfig, rows } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "c733340c-272b-4245-a0df-76622f827d56",
+      "name": "Build Line Graph HTML"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        912,
+        0
+      ],
+      "id": "bd0d2c91-93da-45c5-b2a5-e7280f19def5",
+      "name": "Return Line Graph"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Open Chart Webhook": {
+      "main": [
+        [
+          {
+            "node": "Discount Bucket Conversion Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discount Bucket Conversion Query": {
+      "main": [
+        [
+          {
+            "node": "Build Line Graph HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Line Graph HTML": {
+      "main": [
+        [
+          {
+            "node": "Return Line Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Line Graph": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "e198bb59-ac7d-4f81-8f44-8d81101a9617",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
