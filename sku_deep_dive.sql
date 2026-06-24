@@ -1,8 +1,7 @@
 WITH params AS (
   SELECT
     DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,
-    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK) AS prior_week_start,
-    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 53 WEEK) AS prior_year_week_start
+    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 26 WEEK) AS l6m_start_week
 ),
 
 target_skus AS (
@@ -49,13 +48,6 @@ sku_dim AS (
   ) = 1
 ),
 
-currency AS (
-  SELECT
-    ANY_VALUE(ExchangeRate) AS exchange_rate
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion`
-  WHERE CuyShortName = 'USD'
-),
-
 supplier_rows AS (
   SELECT
     sku_dim.sku,
@@ -98,11 +90,7 @@ traffic_rows AS (
   WHERE retail_sku_store_date.brandname = 'Wayfair'
     AND retail_sku_store_date.styname = 'United States'
     AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start,
-      params.prior_year_week_start
-    )
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) BETWEEN params.l6m_start_week AND params.current_week_start
 ),
 
 deduped_traffic AS (
@@ -119,82 +107,50 @@ deduped_traffic AS (
     traffic_source_id
 ),
 
-traffic_metrics AS (
+traffic_l6m AS (
   SELECT
     sku,
-    SUM(IF(week_start = params.current_week_start, visits, 0)) AS current_visits,
-    SUM(IF(week_start = params.prior_week_start, visits, 0)) AS prior_week_visits,
-    SUM(IF(week_start = params.prior_year_week_start, visits, 0)) AS prior_year_visits,
-    SUM(IF(week_start = params.current_week_start, converted, 0)) AS current_converted,
-    SUM(IF(week_start = params.prior_year_week_start, converted, 0)) AS prior_year_converted,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, converted, 0)),
-      SUM(IF(week_start = params.current_week_start, visits, 0))
-    ) AS current_cvr,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_year_week_start, converted, 0)),
-      SUM(IF(week_start = params.prior_year_week_start, visits, 0))
-    ) AS prior_year_cvr
+    SUM(visits) AS visits_l6m,
+    SUM(converted) AS converted_l6m,
+    SAFE_DIVIDE(SUM(converted), SUM(visits)) AS cvr_l6m,
+    COUNT(DISTINCT IF(visits > 0, week_start, NULL)) AS weeks_with_traffic_l6m,
+    SAFE_DIVIDE(SUM(visits), COUNT(DISTINCT week_start)) AS avg_weekly_visits_l6m
   FROM deduped_traffic
-  CROSS JOIN params
   GROUP BY sku
 ),
 
-order_rows AS (
+current_catalog_rows AS (
   SELECT
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
     sku_dim.sku,
-    orders.id AS order_id,
-    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs,
-    COALESCE(orders.componentqty, 0) AS units
+    retail_sku_store_date.soid,
+    COALESCE(retail_sku_store_date.active_sku_count_flag, 0) AS active_sku_count_flag,
+    COALESCE(retail_sku_store_date.five_plus_reviews_num, 0) AS five_plus_reviews_num,
+    COALESCE(retail_sku_store_date.five_plus_reviews_denom, 0) AS five_plus_reviews_denom,
+    COALESCE(retail_sku_store_date.rec_tag_cov_num, 0) AS rec_tag_cov_num,
+    COALESCE(retail_sku_store_date.rec_tag_cov_denom, 0) AS rec_tag_cov_denom
   FROM sku_dim
   JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
     ON retail_sku_store_date.skuid = sku_dim.skuid
-  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
-  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct
-  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders
-  CROSS JOIN currency
   CROSS JOIN params
   WHERE retail_sku_store_date.brandname = 'Wayfair'
     AND retail_sku_store_date.styname = 'United States'
     AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start,
-      params.prior_year_week_start
-    )
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start
 ),
 
-deduped_orders AS (
-  SELECT
-    week_start,
-    sku,
-    order_id,
-    ANY_VALUE(grs) AS grs,
-    ANY_VALUE(units) AS units
-  FROM order_rows
-  GROUP BY
-    week_start,
-    sku,
-    order_id
-),
-
-order_metrics AS (
+catalog_readiness AS (
   SELECT
     sku,
-    SUM(IF(week_start = params.current_week_start, grs, 0)) AS current_grs,
-    SUM(IF(week_start = params.prior_week_start, grs, 0)) AS prior_week_grs,
-    SUM(IF(week_start = params.prior_year_week_start, grs, 0)) AS prior_year_grs,
-    COUNT(DISTINCT IF(week_start = params.current_week_start AND order_id IS NOT NULL, order_id, NULL)) AS current_order_count,
-    SUM(IF(week_start = params.current_week_start, units, 0)) AS current_units
-  FROM deduped_orders
-  CROSS JOIN params
+    MAX(active_sku_count_flag) AS active_sku_count_flag,
+    SAFE_DIVIDE(SUM(five_plus_reviews_num), SUM(five_plus_reviews_denom)) AS five_plus_review_coverage,
+    SAFE_DIVIDE(SUM(rec_tag_cov_num), SUM(rec_tag_cov_denom)) AS recommended_tag_coverage,
+    SUM(rec_tag_cov_denom) - SUM(rec_tag_cov_num) AS missing_recommended_tag_count
+  FROM current_catalog_rows
   GROUP BY sku
 ),
 
 availability_rows AS (
   SELECT
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
     sku_dim.sku,
     retail_ops.id AS ops_id,
     CASE
@@ -220,15 +176,11 @@ availability_rows AS (
   WHERE retail_sku_store_date.brandname = 'Wayfair'
     AND retail_sku_store_date.styname = 'United States'
     AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start
-    )
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start
 ),
 
 deduped_availability AS (
   SELECT
-    week_start,
     sku,
     ops_id,
     MAX(availability_num) AS availability_num,
@@ -237,72 +189,21 @@ deduped_availability AS (
     MAX(availability_waterfall_denom) AS availability_waterfall_denom
   FROM availability_rows
   GROUP BY
-    week_start,
     sku,
     ops_id
 ),
 
-availability_metrics AS (
+availability_current AS (
   SELECT
     sku,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, availability_num, 0)),
-      SUM(IF(week_start = params.current_week_start, availability_denom, 0))
-    ) AS current_availability,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_week_start, availability_num, 0)),
-      SUM(IF(week_start = params.prior_week_start, availability_denom, 0))
-    ) AS prior_week_availability,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, physically_oos_num, 0)),
-      SUM(IF(week_start = params.current_week_start, availability_waterfall_denom, 0))
-    ) AS current_physical_oos_rate
+    SAFE_DIVIDE(SUM(availability_num), SUM(availability_denom)) AS current_availability,
+    SAFE_DIVIDE(SUM(physically_oos_num), SUM(availability_waterfall_denom)) AS current_physical_oos_rate
   FROM deduped_availability
-  CROSS JOIN params
-  GROUP BY sku
-),
-
-review_rows AS (
-  SELECT
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
-    sku_dim.sku,
-    retail_sku_store_date.soid,
-    COALESCE(retail_sku_store_date.five_plus_reviews_num, 0) AS five_plus_reviews_num,
-    COALESCE(retail_sku_store_date.five_plus_reviews_denom, 0) AS five_plus_reviews_denom,
-    COALESCE(retail_sku_store_date.active_sku_count_flag, 0) AS active_sku_count_flag
-  FROM sku_dim
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
-    ON retail_sku_store_date.skuid = sku_dim.skuid
-  CROSS JOIN params
-  WHERE retail_sku_store_date.brandname = 'Wayfair'
-    AND retail_sku_store_date.styname = 'United States'
-    AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start
-    )
-),
-
-review_metrics AS (
-  SELECT
-    sku,
-    MAX(IF(week_start = params.current_week_start, active_sku_count_flag, 0)) AS active_sku_count_flag,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, five_plus_reviews_num, 0)),
-      SUM(IF(week_start = params.current_week_start, five_plus_reviews_denom, 0))
-    ) AS current_five_plus_review_coverage,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_week_start, five_plus_reviews_num, 0)),
-      SUM(IF(week_start = params.prior_week_start, five_plus_reviews_denom, 0))
-    ) AS prior_week_five_plus_review_coverage
-  FROM review_rows
-  CROSS JOIN params
   GROUP BY sku
 ),
 
 mrpi_rows AS (
   SELECT
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
     sku_dim.sku,
     supplier_struct.id AS supplier_struct_id,
     COALESCE(supplier_struct.mrpi28d_numerator, 0) AS mrpi_num,
@@ -315,45 +216,27 @@ mrpi_rows AS (
   WHERE retail_sku_store_date.brandname = 'Wayfair'
     AND retail_sku_store_date.styname = 'United States'
     AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start
-    )
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start
 ),
 
-deduped_mrpi AS (
-  SELECT
-    week_start,
-    sku,
-    supplier_struct_id,
-    ANY_VALUE(mrpi_num) AS mrpi_num,
-    ANY_VALUE(mrpi_denom) AS mrpi_denom
-  FROM mrpi_rows
-  GROUP BY
-    week_start,
-    sku,
-    supplier_struct_id
-),
-
-mrpi_metrics AS (
+mrpi_current AS (
   SELECT
     sku,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, mrpi_num, 0)),
-      SUM(IF(week_start = params.current_week_start, mrpi_denom, 0))
-    ) AS current_mrpi,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_week_start, mrpi_num, 0)),
-      SUM(IF(week_start = params.prior_week_start, mrpi_denom, 0))
-    ) AS prior_week_mrpi
-  FROM deduped_mrpi
-  CROSS JOIN params
+    SAFE_DIVIDE(SUM(mrpi_num), SUM(mrpi_denom)) AS current_mrpi
+  FROM (
+    SELECT
+      sku,
+      supplier_struct_id,
+      ANY_VALUE(mrpi_num) AS mrpi_num,
+      ANY_VALUE(mrpi_denom) AS mrpi_denom
+    FROM mrpi_rows
+    GROUP BY sku, supplier_struct_id
+  )
   GROUP BY sku
 ),
 
 wsi_rows AS (
   SELECT
-    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,
     sku_dim.sku,
     wpi_wsi.id AS wpi_wsi_id,
     SAFE_CAST(wpi_wsi.indexdate AS DATE) AS index_date,
@@ -368,51 +251,34 @@ wsi_rows AS (
   WHERE retail_sku_store_date.brandname = 'Wayfair'
     AND retail_sku_store_date.styname = 'United States'
     AND retail_sku_store_date.agg_level = 'WEEKLY'
-    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) IN (
-      params.current_week_start,
-      params.prior_week_start
-    )
+    AND DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) = params.current_week_start
 ),
 
-deduped_wsi AS (
-  SELECT
-    week_start,
-    sku,
-    wpi_wsi_id,
-    ARRAY_AGG(
-      STRUCT(wsi_num, wsi_denom, index_date)
-      ORDER BY index_date DESC NULLS LAST
-      LIMIT 1
-    )[OFFSET(0)].wsi_num AS wsi_num,
-    ARRAY_AGG(
-      STRUCT(wsi_num, wsi_denom, index_date)
-      ORDER BY index_date DESC NULLS LAST
-      LIMIT 1
-    )[OFFSET(0)].wsi_denom AS wsi_denom
-  FROM wsi_rows
-  GROUP BY
-    week_start,
-    sku,
-    wpi_wsi_id
-),
-
-wsi_metrics AS (
+wsi_current AS (
   SELECT
     sku,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.current_week_start, wsi_num, 0)),
-      SUM(IF(week_start = params.current_week_start, wsi_denom, 0))
-    ) AS current_wsi,
-    SAFE_DIVIDE(
-      SUM(IF(week_start = params.prior_week_start, wsi_num, 0)),
-      SUM(IF(week_start = params.prior_week_start, wsi_denom, 0))
-    ) AS prior_week_wsi
-  FROM deduped_wsi
-  CROSS JOIN params
+    SAFE_DIVIDE(SUM(wsi_num), SUM(wsi_denom)) AS current_wsi
+  FROM (
+    SELECT
+      sku,
+      wpi_wsi_id,
+      ARRAY_AGG(
+        STRUCT(wsi_num, wsi_denom, index_date)
+        ORDER BY index_date DESC NULLS LAST
+        LIMIT 1
+      )[OFFSET(0)].wsi_num AS wsi_num,
+      ARRAY_AGG(
+        STRUCT(wsi_num, wsi_denom, index_date)
+        ORDER BY index_date DESC NULLS LAST
+        LIMIT 1
+      )[OFFSET(0)].wsi_denom AS wsi_denom
+    FROM wsi_rows
+    GROUP BY sku, wpi_wsi_id
+  )
   GROUP BY sku
 ),
 
-final_metrics AS (
+combined AS (
   SELECT
     sku_dim.requested_supplier,
     sku_dim.requested_issue,
@@ -424,100 +290,109 @@ final_metrics AS (
     sku_dim.skustatusreasonname,
     supplier_summary.supplier_names,
     supplier_summary.supplier_ids,
-    CASE
-      WHEN supplier_summary.supplier_names IS NULL THEN 'No current-week supplier row found'
-      WHEN LOWER(supplier_summary.supplier_names) LIKE CONCAT('%', LOWER(sku_dim.requested_supplier), '%') THEN 'Matches requested supplier'
-      ELSE 'Supplier mismatch or shared SKU'
-    END AS supplier_match_status,
     sku_dim.mkcname,
     sku_dim.clinternalref,
-    sku_dim.directorgroup,
-    sku_dim.origmaname,
-    sku_dim.cskumaname,
     sku_dim.pricegroupname,
     sku_dim.svclassname,
     sku_dim.incastlegatename,
     sku_dim.prhasmapname,
     sku_dim.wppname,
-    review_metrics.active_sku_count_flag,
-    traffic_metrics.current_visits,
-    traffic_metrics.prior_week_visits,
-    traffic_metrics.prior_year_visits,
-    traffic_metrics.current_converted,
-    traffic_metrics.prior_year_converted,
-    traffic_metrics.current_cvr,
-    traffic_metrics.prior_year_cvr,
-    traffic_metrics.current_cvr - traffic_metrics.prior_year_cvr AS yoy_cvr_change,
-    order_metrics.current_grs,
-    order_metrics.prior_week_grs,
-    order_metrics.prior_year_grs,
-    order_metrics.current_order_count,
-    order_metrics.current_units,
-    availability_metrics.current_availability,
-    availability_metrics.prior_week_availability,
-    availability_metrics.current_availability - availability_metrics.prior_week_availability AS wow_availability_change,
-    availability_metrics.current_physical_oos_rate,
-    review_metrics.current_five_plus_review_coverage,
-    review_metrics.prior_week_five_plus_review_coverage,
-    mrpi_metrics.current_mrpi,
-    mrpi_metrics.prior_week_mrpi,
-    wsi_metrics.current_wsi,
-    wsi_metrics.prior_week_wsi
+    traffic_l6m.visits_l6m,
+    traffic_l6m.converted_l6m,
+    traffic_l6m.cvr_l6m,
+    traffic_l6m.weeks_with_traffic_l6m,
+    traffic_l6m.avg_weekly_visits_l6m,
+    catalog_readiness.active_sku_count_flag,
+    catalog_readiness.five_plus_review_coverage,
+    catalog_readiness.recommended_tag_coverage,
+    catalog_readiness.missing_recommended_tag_count,
+    availability_current.current_availability,
+    availability_current.current_physical_oos_rate,
+    mrpi_current.current_mrpi,
+    wsi_current.current_wsi,
+    CASE
+      WHEN sku_dim.skuid IS NULL THEN 'Unknown SKU'
+      WHEN COALESCE(traffic_l6m.visits_l6m, 0) = 0 THEN 'No measurable traffic'
+      WHEN COALESCE(traffic_l6m.visits_l6m, 0) < 50 THEN 'Weak traffic'
+      WHEN COALESCE(traffic_l6m.visits_l6m, 0) < 250 THEN 'Limited traffic'
+      ELSE 'Meaningful traffic'
+    END AS traffic_readout,
+    CASE
+      WHEN COALESCE(traffic_l6m.visits_l6m, 0) = 0 THEN 'Cannot evaluate CVR without visits'
+      WHEN COALESCE(traffic_l6m.cvr_l6m, 0) < 0.01 THEN 'Very weak conversion'
+      WHEN COALESCE(traffic_l6m.cvr_l6m, 0) < 0.02 THEN 'Weak conversion'
+      ELSE 'Conversion not the primary blocker'
+    END AS conversion_readout,
+    CASE
+      WHEN sku_dim.skuid IS NULL THEN 'Unknown'
+      WHEN REGEXP_CONTAINS(LOWER(CONCAT(COALESCE(sku_dim.prstatusname, ''), ' ', COALESCE(sku_dim.skustatusreasonname, ''), ' ', COALESCE(sku_dim.pricegroupname, ''))), r'price|pricing|map|margin|lmgr|guardrail|quarantine') THEN 'Yes'
+      WHEN COALESCE(mrpi_current.current_mrpi, 0) >= 0.20 OR COALESCE(wsi_current.current_wsi, 0) >= 0.20 THEN 'Likely'
+      ELSE 'No'
+    END AS pricing_suppression_signal,
+    CASE
+      WHEN sku_dim.skuid IS NULL THEN 'SKU not found in retail_dim_sku.'
+      WHEN REGEXP_CONTAINS(LOWER(CONCAT(COALESCE(sku_dim.prstatusname, ''), ' ', COALESCE(sku_dim.skustatusreasonname, ''), ' ', COALESCE(sku_dim.pricegroupname, ''))), r'price|pricing|map|margin|lmgr|guardrail|quarantine') THEN CONCAT('Catalog/status text points to pricing: ', COALESCE(NULLIF(sku_dim.skustatusreasonname, ''), sku_dim.prstatusname, 'pricing-related status'))
+      WHEN COALESCE(mrpi_current.current_mrpi, 0) >= 0.20 THEN 'MRPI is elevated, indicating retail price competitiveness pressure.'
+      WHEN COALESCE(wsi_current.current_wsi, 0) >= 0.20 THEN 'WSI is elevated, indicating wholesale/search competitiveness pressure.'
+      ELSE 'No direct pricing suppression signal in status, MRPI, or WSI.'
+    END AS pricing_suppression_reason,
+    CASE
+      WHEN catalog_readiness.recommended_tag_coverage IS NULL THEN 'Unknown'
+      WHEN catalog_readiness.recommended_tag_coverage < 1 THEN 'Yes'
+      ELSE 'No'
+    END AS missing_tags,
+    CASE
+      WHEN catalog_readiness.five_plus_review_coverage IS NULL THEN 'Unknown'
+      WHEN catalog_readiness.five_plus_review_coverage >= 1 THEN 'Yes'
+      ELSE 'No'
+    END AS has_five_plus_reviews
   FROM sku_dim
   LEFT JOIN supplier_summary
     ON supplier_summary.sku = sku_dim.sku
-  LEFT JOIN traffic_metrics
-    ON traffic_metrics.sku = sku_dim.sku
-  LEFT JOIN order_metrics
-    ON order_metrics.sku = sku_dim.sku
-  LEFT JOIN availability_metrics
-    ON availability_metrics.sku = sku_dim.sku
-  LEFT JOIN review_metrics
-    ON review_metrics.sku = sku_dim.sku
-  LEFT JOIN mrpi_metrics
-    ON mrpi_metrics.sku = sku_dim.sku
-  LEFT JOIN wsi_metrics
-    ON wsi_metrics.sku = sku_dim.sku
+  LEFT JOIN traffic_l6m
+    ON traffic_l6m.sku = sku_dim.sku
+  LEFT JOIN catalog_readiness
+    ON catalog_readiness.sku = sku_dim.sku
+  LEFT JOIN availability_current
+    ON availability_current.sku = sku_dim.sku
+  LEFT JOIN mrpi_current
+    ON mrpi_current.sku = sku_dim.sku
+  LEFT JOIN wsi_current
+    ON wsi_current.sku = sku_dim.sku
 )
 
 SELECT
   *,
   CASE
-    WHEN skuid IS NULL THEN 'SKU not found in retail_dim_sku'
-    WHEN COALESCE(active_sku_count_flag, 0) = 0
-      OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%'
-      THEN 'Suppression/status risk'
-    WHEN current_visits IS NULL AND current_grs IS NULL THEN 'No current-week retail aggregate data'
-    WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN 'Availability constrained'
-    WHEN current_five_plus_review_coverage IS NOT NULL AND current_five_plus_review_coverage < 1 THEN 'Review coverage gap'
-    WHEN current_visits >= 100 AND COALESCE(current_cvr, 0) < 0.02 THEN 'Strong traffic, low conversion'
-    WHEN COALESCE(current_visits, 0) < 50 AND COALESCE(current_cvr, 0) < 0.02 THEN 'Low traffic and low conversion'
-    WHEN COALESCE(current_wsi, 0) >= 0.20 THEN 'Search/wholesale index pressure'
-    WHEN COALESCE(current_mrpi, 0) >= 0.20 THEN 'Retail price index pressure'
-    ELSE 'No single blocker flagged'
-  END AS diagnosis,
+    WHEN skuid IS NULL THEN 'This SKU did not match retail_dim_sku, so the first step is validating the SKU identifier before interpreting ad performance.'
+    WHEN COALESCE(active_sku_count_flag, 0) = 0 OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%' THEN CONCAT('Traffic is likely constrained because the SKU is not cleanly active. Status: ', COALESCE(prstatusname, 'N/A'), '; reason: ', COALESCE(skustatusreasonname, 'N/A'), '.')
+    WHEN pricing_suppression_signal IN ('Yes', 'Likely') AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because visibility is being limited by pricing competitiveness/suppression signals. ', pricing_suppression_reason)
+    WHEN missing_tags = 'Yes' AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because merchandising completeness is low: recommended tag coverage is ', CAST(ROUND(COALESCE(recommended_tag_coverage, 0) * 100, 1) AS STRING), '%, with ', CAST(COALESCE(missing_recommended_tag_count, 0) AS STRING), ' recommended tags missing.')
+    WHEN current_availability IS NOT NULL AND current_availability < 0.90 AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic may be weak because availability is constrained: current availability is ', CAST(ROUND(current_availability * 100, 1) AS STRING), '%.')
+    WHEN COALESCE(visits_l6m, 0) < 250 THEN 'Traffic is weak, but the report did not find a single clear pricing, tag, review, or availability blocker; next step is search/ad placement and bid diagnostics.'
+    ELSE 'Traffic is present; the main question is why shoppers are not converting.'
+  END AS traffic_story,
   CASE
-    WHEN skuid IS NULL THEN 'Validate SKU spelling or CDF mapping before ad changes.'
-    WHEN COALESCE(active_sku_count_flag, 0) = 0
-      OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%'
-      THEN 'Confirm SKU status, suppression, and status reason in catalog tools.'
-    WHEN current_visits IS NULL AND current_grs IS NULL
-      THEN 'Check findability/suppression and whether the SKU had any US Wayfair weekly activity.'
-    WHEN current_availability IS NOT NULL AND current_availability < 0.90
-      THEN 'Prioritize inventory/availability recovery before raising bids.'
-    WHEN current_five_plus_review_coverage IS NOT NULL AND current_five_plus_review_coverage < 1
-      THEN 'Prioritize review generation or review acceleration; low review coverage can suppress conversion.'
-    WHEN current_visits >= 100 AND COALESCE(current_cvr, 0) < 0.02
-      THEN 'Audit PDP merchandising, price competitiveness, review count, shipping promise, and promo fit.'
-    WHEN COALESCE(current_visits, 0) < 50 AND COALESCE(current_cvr, 0) < 0.02
-      THEN 'Diagnose visibility first: findability, ad eligibility, bid competitiveness, ranking, and catalog status.'
-    WHEN COALESCE(current_wsi, 0) >= 0.20
-      THEN 'Review wholesale/search competitiveness and whether bid increases are being offset by weak organic/ad rank signals.'
-    WHEN COALESCE(current_mrpi, 0) >= 0.20
-      THEN 'Review retail price competitiveness, promo strategy, and price group setup.'
-    ELSE 'Monitor weekly trend and compare against class/category benchmarks.'
-  END AS recommended_next_step
-FROM final_metrics
+    WHEN COALESCE(visits_l6m, 0) = 0 THEN 'Conversion cannot be diagnosed because the SKU had no measurable L6M visits.'
+    WHEN has_five_plus_reviews <> 'Yes' THEN CONCAT('Conversion is likely weak because the SKU lacks 5+ review coverage. Current 5+ review coverage is ', COALESCE(CAST(ROUND(five_plus_review_coverage * 100, 1) AS STRING), 'N/A'), '%.')
+    WHEN missing_tags = 'Yes' THEN CONCAT('Conversion may be weak because product tagging is incomplete. Recommended tag coverage is ', CAST(ROUND(COALESCE(recommended_tag_coverage, 0) * 100, 1) AS STRING), '%.')
+    WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN CONCAT('Conversion may be weak because shoppers are seeing an uncompetitive price/value equation. ', pricing_suppression_reason)
+    WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN CONCAT('Conversion may be weak because availability is constrained at ', CAST(ROUND(current_availability * 100, 1) AS STRING), '%.')
+    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Conversion is weak, but the standard readiness checks do not identify one dominant blocker; review PDP content, price, imagery, shipping promise, and promo competitiveness.'
+    ELSE 'CVR is not obviously weak over L6M; if ad ROAS is still poor, investigate traffic quality, query matching, and campaign structure.'
+  END AS conversion_story,
+  CASE
+    WHEN skuid IS NULL THEN 'Validate SKU mapping.'
+    WHEN COALESCE(active_sku_count_flag, 0) = 0 OR LOWER(COALESCE(prstatusname, '')) NOT LIKE '%active%' THEN 'Resolve SKU active/suppression status before adding spend.'
+    WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN 'Resolve pricing competitiveness/suppression signal before increasing bids.'
+    WHEN missing_tags = 'Yes' THEN 'Complete missing recommended tags, then re-check search visibility.'
+    WHEN has_five_plus_reviews <> 'Yes' THEN 'Prioritize review generation / review acceleration before scaling traffic.'
+    WHEN current_availability IS NOT NULL AND current_availability < 0.90 THEN 'Fix availability before scaling ads.'
+    WHEN COALESCE(visits_l6m, 0) < 250 THEN 'Audit ad eligibility, search placement, bids, and keyword/category coverage.'
+    WHEN COALESCE(cvr_l6m, 0) < 0.02 THEN 'Audit PDP content, pricing, reviews, shipping promise, promo, and competitor alternatives.'
+    ELSE 'Monitor; no major blocker flagged by this report.'
+  END AS recommended_action
+FROM combined
 ORDER BY
   requested_supplier,
   requested_issue,
