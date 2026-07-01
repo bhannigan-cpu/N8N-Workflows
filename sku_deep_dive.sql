@@ -1,7 +1,9 @@
 WITH params AS (
   SELECT
     DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 1 WEEK) AS current_week_start,
-    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 26 WEEK) AS l6m_start_week
+    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 26 WEEK) AS l6m_start_week,
+    DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) AS latest_completed_month_start,
+    DATE_TRUNC(CURRENT_DATE(), MONTH) AS current_month_start
 ),
 
 target_skus AS (
@@ -117,6 +119,30 @@ traffic_l6m AS (
     SAFE_DIVIDE(SUM(visits), COUNT(DISTINCT week_start)) AS avg_weekly_visits_l6m
   FROM deduped_traffic
   GROUP BY sku
+),
+
+sku_rank_latest_month AS (
+  SELECT
+    UPPER(rank_source.PrSKU) AS sku,
+    AVG(rank_source.SKURank) AS avg_sku_rank_latest_month,
+    COUNT(*) AS rank_impressions_latest_month,
+    CASE
+      WHEN AVG(rank_source.SKURank) <= 50 THEN 'Yes'
+      WHEN AVG(rank_source.SKURank) IS NULL THEN 'Unknown'
+      ELSE 'No'
+    END AS is_page_1_latest_month
+  FROM `wf-gcp-us-ae-sf-prod.curated_clickstream.tbl_dash_clicks_solr_request_sku_list` AS rank_source
+  CROSS JOIN params
+  WHERE rank_source.Event_SoID = 49
+    AND rank_source.SessionStartDate >= params.latest_completed_month_start
+    AND rank_source.SessionStartDate < params.current_month_start
+    AND UPPER(rank_source.PrSKU) IN (
+      SELECT sku
+      FROM target_skus
+    )
+    AND rank_source.SKURank IS NOT NULL
+  GROUP BY
+    sku
 ),
 
 current_catalog_rows AS (
@@ -307,6 +333,9 @@ combined AS (
     traffic_l6m.cvr_l6m,
     traffic_l6m.weeks_with_traffic_l6m,
     traffic_l6m.avg_weekly_visits_l6m,
+    sku_rank_latest_month.avg_sku_rank_latest_month,
+    sku_rank_latest_month.rank_impressions_latest_month,
+    COALESCE(sku_rank_latest_month.is_page_1_latest_month, 'Unknown') AS is_page_1_latest_month,
     catalog_readiness.active_sku_count_flag,
     catalog_readiness.five_plus_review_coverage,
     catalog_readiness.recommended_tag_coverage,
@@ -318,6 +347,7 @@ combined AS (
     CASE
       WHEN sku_dim.skuid IS NULL THEN 'Unknown SKU'
       WHEN COALESCE(traffic_l6m.visits_l6m, 0) = 0 THEN 'No measurable traffic'
+      WHEN sku_rank_latest_month.avg_sku_rank_latest_month > 50 THEN 'Not page 1'
       WHEN COALESCE(traffic_l6m.visits_l6m, 0) < 50 THEN 'Weak traffic'
       WHEN COALESCE(traffic_l6m.visits_l6m, 0) < 250 THEN 'Limited traffic'
       ELSE 'Meaningful traffic'
@@ -356,6 +386,8 @@ combined AS (
     ON supplier_summary.sku = sku_dim.sku
   LEFT JOIN traffic_l6m
     ON traffic_l6m.sku = sku_dim.sku
+  LEFT JOIN sku_rank_latest_month
+    ON sku_rank_latest_month.sku = sku_dim.sku
   LEFT JOIN catalog_readiness
     ON catalog_readiness.sku = sku_dim.sku
   LEFT JOIN availability_current
@@ -371,6 +403,7 @@ SELECT
   CASE
     WHEN skuid IS NULL THEN 'This SKU did not match retail_dim_sku, so the first step is validating the SKU identifier before interpreting ad performance.'
     WHEN COALESCE(is_live_or_active_status, 0) = 0 THEN CONCAT('Traffic is likely constrained because the SKU status is not live/active. Status: ', COALESCE(prstatusname, 'N/A'), '; reason: ', COALESCE(skustatusreasonname, 'N/A'), '.')
+    WHEN avg_sku_rank_latest_month > 50 THEN CONCAT('Traffic is likely weak because average SKU rank in the latest completed month was ', CAST(ROUND(avg_sku_rank_latest_month, 1) AS STRING), ', which is not page 1. Page 1 is rank 50 or better.')
     WHEN pricing_suppression_signal IN ('Yes', 'Likely') AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because visibility is being limited by pricing competitiveness/suppression signals. ', pricing_suppression_reason)
     WHEN missing_tags = 'Yes' AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic is likely weak because merchandising completeness is low: recommended tag coverage is ', CAST(ROUND(COALESCE(recommended_tag_coverage, 0) * 100, 1) AS STRING), '%, with ', CAST(COALESCE(missing_recommended_tag_count, 0) AS STRING), ' recommended tags missing.')
     WHEN current_availability IS NOT NULL AND current_availability < 0.90 AND COALESCE(visits_l6m, 0) < 250 THEN CONCAT('Traffic may be weak because availability is constrained: current availability is ', CAST(ROUND(current_availability * 100, 1) AS STRING), '%.')
@@ -389,6 +422,7 @@ SELECT
   CASE
     WHEN skuid IS NULL THEN 'Validate SKU mapping.'
     WHEN COALESCE(is_live_or_active_status, 0) = 0 THEN 'Resolve SKU live/active status before adding spend; confirm the status reason in catalog tools and only scale ads once the SKU is findable and purchasable.'
+    WHEN avg_sku_rank_latest_month > 50 THEN 'Visibility is the first lever: average rank is outside page 1. Before increasing spend, improve search/browse relevance through complete tags, title/class/category alignment, competitive pricing, review coverage, and ad eligibility/bid coverage.'
     WHEN pricing_suppression_signal IN ('Yes', 'Likely') THEN 'Resolve pricing competitiveness before increasing bids: review MAP/MSRP/cost inputs, margin guardrail or quarantine signals, and whether retail price aligns with perceived quality. If quality/value is the issue, adjust cost/price or use promo support before scaling traffic.'
     WHEN missing_tags = 'Yes' THEN 'Complete merchandising tags before scaling ads: fill recommended tags that map to customer search/filter behavior, especially material, color, size, style, pattern, product features, and option-level attributes. After tags are complete, re-check search visibility and category placement.'
     WHEN has_five_plus_reviews <> 'Yes' THEN 'Prioritize review generation before scaling traffic: enroll in review acceleration or supplier-funded review programs, focus on SKUs closest to the 5+ review threshold, and avoid relying on higher bids until shoppers have enough social proof to convert.'
