@@ -121,7 +121,7 @@ availability AS (
 
 sku_rank_latest_month AS (
   SELECT
-    UPPER(rank_source.Event_PrSKU) AS prsku,
+    UPPER(rank_source.SKU) AS prsku,
     AVG(rank_source.SKURank) AS avg_sku_rank_latest_month,
     COUNT(*) AS rank_impressions_latest_month,
     CASE
@@ -134,7 +134,7 @@ sku_rank_latest_month AS (
   WHERE rank_source.Event_SoID = 49
     AND rank_source.SessionStartDate >= params.current_month_start
     AND rank_source.SessionStartDate <= params.current_month_end
-    AND UPPER(rank_source.Event_PrSKU) IN (SELECT prsku FROM target_skus)
+    AND UPPER(rank_source.SKU) IN (SELECT prsku FROM target_skus)
     AND rank_source.SKURank IS NOT NULL
   GROUP BY prsku
 ),
