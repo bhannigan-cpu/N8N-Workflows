@@ -204,7 +204,7 @@ review_coverage AS (
 
 mrpi_current AS (
   SELECT
-    sku_dim.prsku,
+    prsku,
     SAFE_DIVIDE(SUM(mrpi_num), SUM(mrpi_denom)) AS current_mrpi
   FROM (
     SELECT
