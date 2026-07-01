@@ -58,8 +58,7 @@ sku_launch AS (
     UPPER(prsku) AS prsku,
     MIN(skuLaunchDate) AS sku_launch_date
   FROM `wf-gcp-us-ae-merch-prod.bi_merch_reporting.tbl_findability_sku_store_date_option_combination`
-  WHERE bclgid = 1
-    AND UPPER(prsku) IN (SELECT prsku FROM target_skus)
+  WHERE UPPER(prsku) IN (SELECT prsku FROM target_skus)
   GROUP BY prsku
 ),
 
