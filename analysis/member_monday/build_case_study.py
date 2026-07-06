@@ -274,55 +274,37 @@ def build_discount_buckets(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_chart_class_sales(class_summary: pd.DataFrame, out: Path) -> None:
-    plot_df = class_summary.sort_values("member_monday_sales", ascending=False)
-    x_positions = list(range(len(plot_df)))
-    width = 0.36
-    fig, ax = plt.subplots(figsize=(10.5, 5.8))
-    baseline_bars = ax.bar(
-        [idx - width / 2 for idx in x_positions],
+    plot_df = class_summary.sort_values("member_monday_sales")
+    y = range(len(plot_df))
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    ax.barh(
+        [idx - 0.18 for idx in y],
         plot_df["l10_non_promo_daily_avg"],
-        width=width,
+        height=0.35,
         label="L10 non-promo daily avg",
-        color="#9b7ce3",
+        color="#9aa6b2",
     )
-    member_monday_bars = ax.bar(
-        [idx + width / 2 for idx in x_positions],
+    ax.barh(
+        [idx + 0.18 for idx in y],
         plot_df["member_monday_sales"],
-        width=width,
+        height=0.35,
         label="Member Monday sales",
-        color="#4b347f",
+        color="#2f6fed",
     )
-    ax.set_xticks(x_positions, plot_df["class_name"], rotation=15, ha="right")
-    ax.set_xlabel("Class")
-    ax.set_ylabel("Sales dollars")
-    ax.set_title("Daily avg sales vs. Member Monday sales by class")
-    ax.yaxis.set_major_formatter(lambda y, _pos: f"${y:,.0f}")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=2, frameon=False)
+    ax.set_yticks(list(y), plot_df["class_name"])
+    ax.set_xlabel("Sales dollars")
+    ax.set_title("Member Monday sales vs. recent non-promo daily average by class")
+    ax.xaxis.set_major_formatter(lambda x, _pos: f"${x:,.0f}")
+    ax.legend(loc="lower right")
     for idx, row in enumerate(plot_df.itertuples()):
-        y_value = max(row.member_monday_sales, row.l10_non_promo_daily_avg)
+        lift_label = fmt_pct(row.weighted_lift_pct)
         ax.text(
-            idx,
-            y_value + max(plot_df["member_monday_sales"]) * 0.025,
-            fmt_pct(row.weighted_lift_pct),
-            ha="center",
-            va="bottom",
+            row.member_monday_sales + max(plot_df["member_monday_sales"]) * 0.01,
+            idx + 0.18,
+            lift_label,
+            va="center",
             fontsize=9,
         )
-    for bars in [baseline_bars, member_monday_bars]:
-        for bar in bars:
-            height = bar.get_height()
-            if height <= 0:
-                continue
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                height + max(plot_df["member_monday_sales"]) * 0.01,
-                fmt_currency(height),
-                ha="center",
-                va="bottom",
-                fontsize=7,
-                rotation=90,
-            )
-    ax.set_ylim(0, max(plot_df["member_monday_sales"].max(), plot_df["l10_non_promo_daily_avg"].max()) * 1.22)
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
@@ -413,26 +395,61 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
 
 def save_chart_discount_buckets(bucket_summary: pd.DataFrame, out: Path) -> None:
     plot_df = bucket_summary.copy()
-    fig, ax = plt.subplots(figsize=(9, 5))
-    bars = ax.bar(
-        plot_df["discount_bucket"].astype(str),
-        plot_df["weighted_lift_pct"] * 100,
+    x_positions = list(range(len(plot_df)))
+    width = 0.36
+    fig, ax = plt.subplots(figsize=(10, 5.8))
+    baseline_bars = ax.bar(
+        [idx - width / 2 for idx in x_positions],
+        plot_df["l10_non_promo_daily_avg"],
+        width=width,
+        label="L10 non-promo daily avg",
+        color="#9b7ce3",
+    )
+    member_monday_bars = ax.bar(
+        [idx + width / 2 for idx in x_positions],
+        plot_df["member_monday_sales"],
+        width=width,
+        label="Member Monday sales",
         color="#4b347f",
     )
-    ax.axhline(0, color="#59636e", linewidth=1)
-    ax.set_xlabel("Discount investment bucket")
-    ax.set_ylabel("Weighted sales lift")
-    ax.set_title("Lift by level of promotional investment")
-    ax.yaxis.set_major_formatter(lambda y, _pos: f"{y:.0f}%")
-    for bar, row in zip(bars, plot_df.itertuples(), strict=True):
+    ax.set_xticks(
+        x_positions,
+        [f"{bucket} B2C Disc." for bucket in plot_df["discount_bucket"].astype(str)],
+    )
+    ax.set_xlabel("Discount Applied on B2C")
+    ax.set_ylabel("Sales dollars")
+    ax.set_title("Daily avg sales vs. Member Monday sales by discount bucket")
+    ax.yaxis.set_major_formatter(lambda y, _pos: f"${y:,.0f}")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=2, frameon=False)
+    max_sales = max(
+        plot_df["member_monday_sales"].max(),
+        plot_df["l10_non_promo_daily_avg"].max(),
+    )
+    for idx, row in enumerate(plot_df.itertuples()):
         ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height(),
-            f"{row.weighted_lift_pct * 100:.0f}%",
+            idx,
+            max(row.member_monday_sales, row.l10_non_promo_daily_avg)
+            + max_sales * 0.025,
+            fmt_pct(row.weighted_lift_pct),
             ha="center",
-            va="bottom" if row.weighted_lift_pct >= 0 else "top",
+            va="bottom",
             fontsize=9,
         )
+    for bars in [baseline_bars, member_monday_bars]:
+        for bar in bars:
+            height = bar.get_height()
+            if height <= 0:
+                continue
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + max_sales * 0.01,
+                fmt_currency(height),
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                rotation=90,
+            )
+    ax.set_ylim(0, max_sales * 1.22)
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
@@ -708,8 +725,6 @@ Member Monday generated **{fmt_currency_2(sales)}** in participating SKU sales v
 
 ![Class sales lift](charts/class_sales_lift.png)
 
-In the class chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
-
 ## Class-level insights
 
 {markdown_table(class_table, [
@@ -731,6 +746,8 @@ In the class chart, light purple bars show the recent non-promo daily average an
 - **Use the active-SKU rate as a merchandising filter:** classes with many participating SKUs but fewer active SKUs should be reviewed for search placement, inventory, and item attractiveness before simply increasing discount depth.
 
 ![Class/investment lift buckets](charts/discount_bucket_lift.png)
+
+In the discount-bucket chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
 
 ## Promotional investment vs. lift
 

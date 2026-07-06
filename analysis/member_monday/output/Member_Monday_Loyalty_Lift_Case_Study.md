@@ -26,8 +26,6 @@ Member Monday generated **$11,116.60** in participating SKU sales versus a recen
 
 ![Class sales lift](charts/class_sales_lift.png)
 
-In the class chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
-
 ## Class-level insights
 
 | class_name                     | sku_count | active_skus | positive_lift_sku_rate | weighted_discount_pct | l10_non_promo_daily_avg | member_monday_sales | incremental_sales | weighted_lift_pct |
@@ -44,6 +42,8 @@ In the class chart, light purple bars show the recent non-promo daily average an
 - **Use the active-SKU rate as a merchandising filter:** classes with many participating SKUs but fewer active SKUs should be reviewed for search placement, inventory, and item attractiveness before simply increasing discount depth.
 
 ![Class/investment lift buckets](charts/discount_bucket_lift.png)
+
+In the discount-bucket chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
 
 ## Promotional investment vs. lift
 
