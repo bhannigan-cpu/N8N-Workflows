@@ -1,0 +1,373 @@
+source_page,source_row,supplier_id,supplier_name,srm,sku,class_name,rec_discount_pct,discount_pct,b2b_discount_pct,wsc_rev_l12m,grs_l12m,l10_non_promo_daily_avg,member_monday_sales,member_monday_lift_pct,incremental_sales,active_on_member_monday,positive_lift
+1,4,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1204,Curtains & Drapes,0.5,0.16,,4989.83,8935.52,727.42,1950.81,1.6818,1223.3899999999999,True,True
+1,5,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1075,Curtains & Drapes,0.44299999999999995,0.22,0.27,42985.0,55422.75,735.88,1143.79,0.5543,407.90999999999997,True,True
+1,6,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1081,Curtains & Drapes,0.38159999999999994,0.22,0.27,30020.41,44040.14,106.48,1041.96,8.7854,935.48,True,True
+1,7,1987,JLA Home,Missy Paragamian,NCWA1714,Curtains & Drapes,0.5,0.05,0.5,38826.72,54242.83,400.9,836.05,1.0854000000000001,435.15,True,True
+1,8,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1072,Curtains & Drapes,0.36979999999999996,0.22,0.27,49331.91,65433.85,685.24,677.47,-0.0113,-7.769999999999982,True,False
+1,9,1987,JLA Home,Missy Paragamian,NCWA2285,Blinds and Shades,0.4489,0.17,0.4904,13170.51,25619.54,158.12,574.46,2.633,416.34000000000003,True,True
+1,10,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1393,Curtains & Drapes,0.3346,0.16,,1121.53,1433.96,19.74,549.79,26.8582,530.05,True,True
+1,11,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1126,Curtains & Drapes,0.36979999999999996,0.22,0.27,9007.9,13145.22,351.99,514.65,0.4621,162.65999999999997,True,True
+1,12,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1376,Curtains & Drapes,0.4077,0.16,,2211.88,3176.42,129.6,310.3,1.3943,180.70000000000002,True,True
+1,13,1987,JLA Home,Missy Paragamian,IKIY1023,Curtains & Drapes,0.5,0.07,0.4022,128483.78,211406.55,499.77,256.72,-0.4863,-243.04999999999995,True,False
+1,14,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1089,Curtains & Drapes,0.44920000000000004,0.22,0.27,11934.45,17638.35,50.5,234.2,3.638,183.7,True,True
+1,15,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1084,Curtains & Drapes,0.4439,0.22,0.27,25092.62,33358.52,171.92,227.29,0.3221,55.370000000000005,True,True
+1,16,1987,JLA Home,Missy Paragamian,NCWA2896,Blinds and Shades,,0.12,,350.1,675.85,9.38,220.55,22.520300000000002,211.17000000000002,True,True
+1,17,1987,JLA Home,Missy Paragamian,NCWA1656,Blinds and Shades,0.5,0.25,0.5,11023.53,18714.65,117.36,212.19,0.8079999999999999,94.83,True,True
+1,18,37327,Instyle Products Corp.,Rikki Sartor,KBST1240,Curtains & Drapes,0.5,0.29,,3542.06,6809.74,117.16,202.91,0.732,85.75,True,True
+1,19,1987,JLA Home,Missy Paragamian,FMFC1009,Curtains & Drapes,0.5,0.17,0.46340000000000003,28594.66,45420.84,363.31,158.42,-0.564,-204.89000000000001,True,False
+1,20,1987,JLA Home,Missy Paragamian,HOHM7324,Curtains & Drapes,0.3953,0.12,0.4857,7141.66,10598.89,43.29,145.11,2.3521,101.82000000000002,True,True
+1,21,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1301,Curtains & Drapes,0.3346,0.16,,1114.98,1966.78,13.33,143.97,9.7996,130.64,True,True
+1,22,2554,Pem America,Benjamin Hannigan,BDOK1138,Curtains & Drapes,0.2,0.2,0.248,185.63,227.35,0.45,123.19,275.836,122.74,True,True
+1,23,1987,JLA Home,Missy Paragamian,NCWA2851,Curtains & Drapes,0.4517,0.15,0.49079999999999996,9297.58,14489.97,127.98,122.61,-0.04190000000000001,-5.3700000000000045,True,False
+1,24,1987,JLA Home,Missy Paragamian,NCWA2773,Blinds and Shades,0.39280000000000004,0.15,0.436,4368.78,8796.52,112.17,117.6,0.0484,5.429999999999993,True,True
+1,25,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1044,Curtains & Drapes,0.4439,0.22,0.27,21785.25,29691.34,186.2,113.64,-0.3897,-72.55999999999999,True,False
+1,26,1987,JLA Home,Missy Paragamian,WRLO7318,Curtains & Drapes,0.4517,0.2,0.3947,3287.9,4668.84,13.7,105.21,6.678999999999999,91.50999999999999,True,True
+1,27,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1439,Curtains & Drapes,0.3367,0.16,,3230.38,4270.29,265.87,100.8,-0.6209,-165.07,True,False
+1,28,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1310,Curtains & Drapes,0.3367,0.16,,2059.24,3281.49,37.24,96.54,1.5925,59.300000000000004,True,True
+1,29,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1187,Curtains & Drapes,0.2697,0.16,,4999.22,8799.06,233.06,89.68,-0.6152000000000001,-143.38,True,False
+1,30,1987,JLA Home,Missy Paragamian,NCWA1710,Curtains & Drapes,0.5,0.05,0.5,2648.65,4709.18,7.85,78.18,8.9592,70.33000000000001,True,True
+1,31,1987,JLA Home,Missy Paragamian,ANDV5134,Curtains & Drapes,0.5,0.17,0.5,18740.52,26649.94,159.57,72.8,-0.5438000000000001,-86.77,True,False
+1,32,1987,JLA Home,Missy Paragamian,ALCT7364,Curtains & Drapes,0.3953,0.15,0.4357,4391.65,6720.68,78.36,68.3,-0.1283,-10.060000000000002,True,False
+1,33,7344,Victoria Classics,Supplier Service Desk,RAOR1276,Valances & Kitchen Curtains,0.4767,0.19010000000000002,0.2401,2977.79,7185.72,30.25,65.29,1.1581000000000001,35.040000000000006,True,True
+1,34,1987,JLA Home,Missy Paragamian,ARGD1060,Valances & Kitchen Curtains,0.3885,0.17,0.44049999999999995,28657.19,36623.13,74.04,62.8,-0.1519,-11.240000000000009,True,False
+1,35,1987,JLA Home,Missy Paragamian,IKIY1022,Curtains & Drapes,0.3953,0.17,0.4357,2734.06,4410.7,0.0,59.92,,59.92,True,True
+1,36,1987,JLA Home,Missy Paragamian,MCRW5168,Valances & Kitchen Curtains,0.5,0.15,0.5,5949.47,7662.42,28.11,52.68,0.8741,24.57,True,True
+1,37,2554,Pem America,Benjamin Hannigan,BDOK1403,Curtains & Drapes,0.2,0.15,0.201,321.76,519.45,6.29,49.47,6.8699,43.18,True,True
+1,38,119490,Bes Home Corp.,Benjamin Hannigan,KLDF1235,Curtains & Drapes,0.3367,0.16,,652.21,973.92,17.73,46.79,1.6387,29.06,True,True
+1,39,1987,JLA Home,Missy Paragamian,NCWA2747,Curtains & Drapes,0.3953,0.17,0.23800000000000002,3843.4,6220.82,19.53,38.5,0.9712000000000001,18.97,True,True
+1,40,1987,JLA Home,Missy Paragamian,NCWA1609,Curtains & Drapes,0.5,0.17,0.3611,3859.74,5211.91,19.75,33.95,0.7190000000000001,14.200000000000003,True,True
+1,41,1987,JLA Home,Missy Paragamian,TDFM1003,Curtains & Drapes,0.3953,0.2,0.4894,818.74,1267.38,7.92,26.2,2.3068,18.28,True,True
+1,42,1987,JLA Home,Missy Paragamian,BCMH4792,Curtains & Drapes,0.3953,0.17,0.4357,6264.19,9295.03,37.98,25.63,-0.32520000000000004,-12.349999999999998,True,False
+1,43,7344,Victoria Classics,Supplier Service Desk,WNPO7378,Curtains & Drapes,0.5,0.1902,0.2402,3785.97,8472.14,16.15,25.35,0.5693,9.200000000000003,True,True
+1,44,1748,Revman International,Missy Paragamian,KBFC2081,Valances & Kitchen Curtains,0.2,0.22039999999999998,,3881.14,6224.43,5.63,22.63,3.0202999999999998,17.0,True,True
+1,45,1987,JLA Home,Missy Paragamian,TRPT5041,Valances & Kitchen Curtains,0.44409999999999994,0.15,0.24230000000000002,1430.83,2247.01,3.17,17.73,4.5966000000000005,14.56,True,True
+1,46,1987,JLA Home,Missy Paragamian,ENDE9935,Curtains & Drapes,0.4517,0.17,0.3417,4387.51,5975.16,25.43,17.23,-0.3225,-8.2,True,False
+1,47,1987,JLA Home,Missy Paragamian,SEHO8196,Valances & Kitchen Curtains,0.3885,0.12,0.44049999999999995,1971.85,3276.82,0.0,15.09,,15.09,True,True
+1,48,1987,JLA Home,Missy Paragamian,OPCO6892,Curtains & Drapes,0.4517,0.15,0.49079999999999996,3689.38,6304.23,30.78,13.24,-0.5699000000000001,-17.54,True,False
+1,49,1987,JLA Home,Missy Paragamian,CHRL5756,Valances & Kitchen Curtains,0.4996,0.25,0.41,2228.44,2737.43,22.24,11.68,-0.4747,-10.559999999999999,True,False
+1,50,1748,Revman International,Missy Paragamian,KBFC1891,Valances & Kitchen Curtains,0.3873,0.22,,4968.1,7760.36,6.83,11.56,0.6926000000000001,4.73,True,True
+1,51,22695,ELEGANCE LINEN,Benjamin Hannigan,HOHM5816,Curtains & Drapes,,0.25,0.3,95.2,314.54,5.18,10.8,1.0833,5.620000000000001,True,True
+1,52,1987,JLA Home,Missy Paragamian,ALTL5623,Valances & Kitchen Curtains,0.44409999999999994,0.15,0.25370000000000004,4259.84,8119.12,31.87,10.37,-0.6747,-21.5,True,False
+1,53,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1935,Curtains & Drapes,,0.25,0.3,47.25,119.93,0.63,9.44,13.984100000000002,8.809999999999999,True,True
+1,54,1987,JLA Home,Missy Paragamian,TDFM1001,Curtains & Drapes,0.5,0.15,0.5,5034.92,6586.14,19.57,1.07,-0.9453,-18.5,True,False
+1,55,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1079,Curtains & Drapes,0.4991,0.22,0.27,33487.58,43839.02,402.43,0.0,-1.0,-402.43,False,False
+1,56,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1401,Curtains & Drapes,0.2644,0.16,,5208.32,8184.26,328.78,0.0,-1.0,-328.78,False,False
+1,57,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1373,Curtains & Drapes,0.4803,0.16,,3785.46,5526.08,231.96,0.0,-1.0,-231.96,False,False
+1,58,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1085,Curtains & Drapes,0.44920000000000004,0.22,0.27,24882.68,34605.59,187.43,0.0,-1.0,-187.43,False,False
+1,59,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1137,Curtains & Drapes,0.36979999999999996,0.22,0.27,4892.5,6964.09,156.26,0.0,-1.0,-156.26,False,False
+1,60,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1094,Curtains & Drapes,0.38670000000000004,0.22,0.27,39233.26,59240.72,156.13,0.0,-1.0,-156.13,False,False
+2,1,225555,Maple Leaf curtain Corp._1,Asia Supplier Service Desk,ACCQ1000,Curtains & Drapes,0.4999,0.05,0.05,0.0,0.0,119.0,0.0,-1.0,-119.0,False,False
+2,2,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1074,Curtains & Drapes,0.3746,0.22,0.27,32650.34,50666.9,108.89,0.0,-1.0,-108.89,False,False
+2,3,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1012,Curtains & Drapes,0.4954,0.22,0.27,34223.47,50030.14,105.34,0.0,-1.0,-105.34,False,False
+2,4,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1374,Curtains & Drapes,0.3367,0.16,,3410.07,5014.61,102.89,0.0,-1.0,-102.89,False,False
+2,5,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1039,Curtains & Drapes,0.3482,0.22,0.27,16691.15,23017.91,87.15,0.0,-1.0,-87.15,False,False
+2,6,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1096,Curtains & Drapes,0.3918,0.22,0.27,11684.86,16284.76,76.89,0.0,-1.0,-76.89,False,False
+2,7,1987,JLA Home,Missy Paragamian,NCWA2392,Blinds and Shades,0.4489,0.15,0.3225,4152.98,7468.0,74.68,0.0,-1.0,-74.68,False,False
+2,8,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1065,Curtains & Drapes,0.44920000000000004,0.22,0.27,2839.83,4298.62,71.93,0.0,-1.0,-71.93,False,False
+2,9,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1662,Curtains & Drapes,0.2691,0.16,,7558.15,10419.94,71.45,0.0,-1.0,-71.45,False,False
+2,10,225555,Maple Leaf curtain Corp._1,Asia Supplier Service Desk,ACCQ1001,Curtains & Drapes,0.4999,0.05,0.05,0.0,0.0,70.55,0.0,-1.0,-70.55,False,False
+2,11,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1372,Curtains & Drapes,0.3367,0.16,,2831.58,4535.96,62.85,0.0,-1.0,-62.85,False,False
+2,12,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1042,Curtains & Drapes,0.4999,0.22,0.27,5908.63,7904.52,61.57,0.0,-1.0,-61.57,False,False
+2,13,1987,JLA Home,Missy Paragamian,MCRW8157,Curtains & Drapes,0.5,0.17,0.5,6328.27,8692.18,42.93,0.0,-1.0,-42.93,False,False
+2,14,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1064,Curtains & Drapes,0.36979999999999996,0.22,0.27,4164.81,6154.94,38.84,0.0,-1.0,-38.84,False,False
+2,15,1987,JLA Home,Missy Paragamian,TRPT5042,Curtains & Drapes,0.3953,0.17,0.4357,4551.74,5825.45,38.16,0.0,-1.0,-38.16,False,False
+2,16,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1119,Curtains & Drapes,0.4999,0.22,0.27,1234.71,1741.38,37.39,0.0,-1.0,-37.39,False,False
+2,17,1987,JLA Home,Missy Paragamian,WLAO4351,Curtains & Drapes,0.5,0.25,0.5,985.47,1941.79,32.76,0.0,-1.0,-32.76,False,False
+2,18,1987,JLA Home,Missy Paragamian,CHRL6701,Curtains & Drapes,0.4517,0.15,0.49079999999999996,3284.11,5743.16,31.92,0.0,-1.0,-31.92,False,False
+2,19,1987,JLA Home,Missy Paragamian,NCWA2000,Blinds and Shades,0.5,0.2,0.5,658.44,1187.21,30.95,0.0,-1.0,-30.95,False,False
+2,20,1987,JLA Home,Missy Paragamian,ARGD3019,Curtains & Drapes,0.4517,0.15,0.49079999999999996,5743.39,7867.04,27.73,0.0,-1.0,-27.73,False,False
+2,21,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1419,Curtains & Drapes,0.5,0.16,,2197.55,3222.78,24.34,0.0,-1.0,-24.34,False,False
+2,22,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1138,Curtains & Drapes,0.36979999999999996,0.22,0.27,2250.0,4269.86,23.03,0.0,-1.0,-23.03,False,False
+2,23,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1241,Curtains & Drapes,0.2902,0.16,,804.02,1829.66,23.0,0.0,-1.0,-23.0,False,False
+2,24,1987,JLA Home,Missy Paragamian,ALTL5697,Valances & Kitchen Curtains,0.33299999999999996,0.2,0.3847,3409.05,5641.35,20.99,0.0,-1.0,-20.99,False,False
+2,25,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1656,Curtains & Drapes,0.3367,0.16,,3678.63,3850.69,20.89,0.0,-1.0,-20.89,False,False
+2,26,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1498,Curtains & Drapes,0.3771,0.16,,525.36,2599.92,20.8,0.0,-1.0,-20.8,False,False
+2,27,1987,JLA Home,Missy Paragamian,CHLH5226,Curtains & Drapes,0.4517,0.17,0.5,4143.77,5599.03,19.38,0.0,-1.0,-19.38,False,False
+2,28,1748,Revman International,Missy Paragamian,KBFC2091,Valances & Kitchen Curtains,0.22010000000000002,0.22039999999999998,,6538.25,10799.86,18.3,0.0,-1.0,-18.3,False,False
+2,29,7344,Victoria Classics,Supplier Service Desk,ADML8471,Curtains & Drapes,0.3924,0.1724,0.2224,1978.98,3272.8,15.88,0.0,-1.0,-15.88,False,False
+2,30,1987,JLA Home,Missy Paragamian,NCWA2864,Valances & Kitchen Curtains,0.3882,0.12,0.43829999999999997,828.35,1812.94,15.84,0.0,-1.0,-15.84,False,False
+2,31,1987,JLA Home,Missy Paragamian,HMPT3546,Curtains & Drapes,0.4517,0.17,0.49079999999999996,2342.6,3365.24,15.58,0.0,-1.0,-15.58,False,False
+2,32,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1291,Curtains & Drapes,0.3346,0.16,,606.76,993.77,14.56,0.0,-1.0,-14.56,False,False
+2,33,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1240,Curtains & Drapes,0.2242,0.16,,471.12,970.17,14.3,0.0,-1.0,-14.3,False,False
+2,34,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1400,Curtains & Drapes,0.5,0.12,0.13,752.4,1279.98,13.34,0.0,-1.0,-13.34,False,False
+2,35,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1189,Curtains & Drapes,0.253,0.16,,625.07,1431.76,12.76,0.0,-1.0,-12.76,False,False
+2,36,7344,Victoria Classics,Supplier Service Desk,AAUB3698,Curtains & Drapes,0.5,0.2681,0.3181,106.73,442.72,11.2,0.0,-1.0,-11.2,False,False
+2,37,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,WRMH1011,Curtains & Drapes,0.3439,0.2,0.201,100.8,203.94,10.97,0.0,-1.0,-10.97,False,False
+2,38,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1076,Curtains & Drapes,0.4439,0.22,0.27,1267.32,1625.4,10.78,0.0,-1.0,-10.78,False,False
+2,39,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1116,Curtains & Drapes,0.44439999999999996,0.22,0.27,3161.34,4259.17,10.45,0.0,-1.0,-10.45,False,False
+2,40,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1375,Curtains & Drapes,0.3954,0.05,0.1,2501.47,3877.93,9.28,0.0,-1.0,-9.28,False,False
+2,41,1987,JLA Home,Missy Paragamian,HOHN8630,Curtains & Drapes,0.3953,0.2,0.43560000000000004,1340.83,1826.02,8.87,0.0,-1.0,-8.87,False,False
+2,42,1987,JLA Home,Missy Paragamian,CHRL6702,Curtains & Drapes,0.4517,0.15,0.49079999999999996,2243.4,4001.89,8.73,0.0,-1.0,-8.73,False,False
+2,43,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1369,Curtains & Drapes,0.4354,0.05,0.1,2427.09,3665.21,7.69,0.0,-1.0,-7.69,False,False
+2,44,1987,JLA Home,Missy Paragamian,TRPT7195,Curtains & Drapes,0.4517,0.15,0.49079999999999996,2473.51,3217.57,7.48,0.0,-1.0,-7.48,False,False
+2,45,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1305,Curtains & Drapes,0.2572,0.4,0.43,0.0,0.0,7.4,0.0,-1.0,-7.4,False,False
+2,46,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1190,Curtains & Drapes,0.3346,0.16,,107.74,200.61,6.9,0.0,-1.0,-6.9,False,False
+2,47,1987,JLA Home,Missy Paragamian,BL19323,Curtains & Drapes,0.5,0.15,0.35840000000000005,393.1,573.79,6.5,0.0,-1.0,-6.5,False,False
+2,48,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,GGGR1536,Valances & Kitchen Curtains,0.2,0.03,0.031,0.0,0.0,6.47,0.0,-1.0,-6.47,False,False
+2,49,22695,ELEGANCE LINEN,Benjamin Hannigan,HOHM5611,Curtains & Drapes,0.4999,0.25,0.3,335.96,934.51,5.93,0.0,-1.0,-5.93,False,False
+2,50,119490,Bes Home Corp.,Benjamin Hannigan,EBPD4004,Curtains & Drapes,,0.16,,179.8,392.74,5.75,0.0,-1.0,-5.75,False,False
+2,51,22695,ELEGANCE LINEN,Benjamin Hannigan,ASGA2230,Curtains & Drapes,0.5,0.25,0.3,1332.0,2154.43,5.45,0.0,-1.0,-5.45,False,False
+2,52,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,HSHD1281,Curtains & Drapes,0.3328,0.03,0.031,279.45,500.29,4.92,0.0,-1.0,-4.92,False,False
+2,53,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1367,Curtains & Drapes,,0.05,0.1,647.93,991.74,4.88,0.0,-1.0,-4.88,False,False
+2,54,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1323,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,4.46,0.0,-1.0,-4.46,False,False
+2,55,1987,JLA Home,Missy Paragamian,TDFM1008,Curtains & Drapes,0.5,0.25,0.5,471.54,642.58,4.37,0.0,-1.0,-4.37,False,False
+2,56,1987,JLA Home,Missy Paragamian,ALTH3078,Curtains & Drapes,0.4517,0.12,0.2748,1980.74,3614.81,4.11,0.0,-1.0,-4.11,False,False
+2,57,1987,JLA Home,Missy Paragamian,NCWA2861,Curtains & Drapes,0.3049,0.12,,348.19,489.24,4.06,0.0,-1.0,-4.06,False,False
+2,58,2554,Pem America,Benjamin Hannigan,SDCM1069,Curtains & Drapes,0.2,0.08,,319.09,653.78,4.06,0.0,-1.0,-4.06,False,False
+2,59,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1315,Curtains & Drapes,0.3775,0.16,,1049.4,1688.96,4.06,0.0,-1.0,-4.06,False,False
+2,60,1987,JLA Home,Missy Paragamian,THRE8547,Valances & Kitchen Curtains,0.44409999999999994,0.15,0.30510000000000004,1402.92,2049.78,4.02,0.0,-1.0,-4.02,False,False
+3,1,1987,JLA Home,Missy Paragamian,CHRL6945,Curtains & Drapes,0.5,0.15,0.3124,1075.68,1743.47,3.97,0.0,-1.0,-3.97,False,False
+3,2,119490,Bes Home Corp.,Benjamin Hannigan,DSOR1000,Curtains & Drapes,0.3367,0.16,,256.84,334.95,3.85,0.0,-1.0,-3.85,False,False
+3,3,7344,Victoria Classics,Supplier Service Desk,AAUB4445,Curtains & Drapes,0.3924,0.0699,0.1199,326.56,761.17,3.62,0.0,-1.0,-3.62,False,False
+3,4,24282,"Nanshing America, Inc.",Jaiden Lawlor,NAAM1118,Curtains & Drapes,0.325,0.12,0.13,1445.04,2767.29,3.21,0.0,-1.0,-3.21,False,False
+3,5,1748,Revman International,Missy Paragamian,KBFC2092,Valances & Kitchen Curtains,0.31579999999999997,0.22,,3124.72,5522.67,2.82,0.0,-1.0,-2.82,False,False
+3,6,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1808,Curtains & Drapes,,0.25,0.3,72.2,284.3,2.7,0.0,-1.0,-2.7,False,False
+3,7,7344,Victoria Classics,Supplier Service Desk,AAUB3686,Curtains & Drapes,0.5,0.2,0.25,126.68,402.86,2.37,0.0,-1.0,-2.37,False,False
+3,8,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1260,Curtains & Drapes,,0.12,0.13,87.25,213.89,2.26,0.0,-1.0,-2.26,False,False
+3,9,1987,JLA Home,Missy Paragamian,DRBC5857,Valances & Kitchen Curtains,0.46590000000000004,0.12,0.5,340.01,517.15,2.18,0.0,-1.0,-2.18,False,False
+3,10,1987,JLA Home,Missy Paragamian,NCWA2714,Curtains & Drapes,0.5,0.25,0.5,277.01,486.75,2.07,0.0,-1.0,-2.07,False,False
+3,11,1987,JLA Home,Missy Paragamian,NGIN1051,Curtains & Drapes,0.4517,0.17,0.3059,924.1,1843.35,2.05,0.0,-1.0,-2.05,False,False
+3,12,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1374,Valances & Kitchen Curtains,,0.05,0.1,471.77,1093.12,1.77,0.0,-1.0,-1.77,False,False
+3,13,7344,Victoria Classics,Supplier Service Desk,GGGR1603,Valances & Kitchen Curtains,0.41960000000000003,0.054000000000000006,,234.74,652.73,1.76,0.0,-1.0,-1.76,False,False
+3,14,2554,Pem America,Benjamin Hannigan,CANN1179,Curtains & Drapes,0.2554,0.2,0.248,182.35,362.85,1.48,0.0,-1.0,-1.48,False,False
+3,15,1987,JLA Home,Missy Paragamian,HOHM7528,Valances & Kitchen Curtains,0.3885,0.15,0.2591,3596.57,5954.97,1.31,0.0,-1.0,-1.31,False,False
+3,16,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1318,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,1.21,0.0,-1.0,-1.21,False,False
+3,17,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1018,Curtains & Drapes,0.4999,0.22,0.27,4697.84,7605.18,1.07,0.0,-1.0,-1.07,False,False
+3,18,1748,Revman International,Missy Paragamian,KBFC2083,Valances & Kitchen Curtains,0.3098,0.22,,2397.85,3690.86,0.75,0.0,-1.0,-0.75,False,False
+3,19,7344,Victoria Classics,Supplier Service Desk,AAUB3144,Curtains & Drapes,0.5,0.1725,0.2225,17.91,35.99,0.0,0.0,,0.0,False,False
+3,20,7344,Victoria Classics,Supplier Service Desk,AAUB3567,Curtains & Drapes,0.5,0.2792,0.3292,97.74,219.91,0.0,0.0,,0.0,False,False
+3,21,7344,Victoria Classics,Supplier Service Desk,AAUB3596,Curtains & Drapes,0.4819,0.1946,0.2446,319.49,575.62,0.0,0.0,,0.0,False,False
+3,22,7344,Victoria Classics,Supplier Service Desk,AAUB3683,Curtains & Drapes,0.4514,0.24,0.29,0.0,0.0,0.0,0.0,,0.0,False,False
+3,23,7344,Victoria Classics,Supplier Service Desk,AAUB3685,Curtains & Drapes,0.5,0.2577,0.3077,83.83,258.26,0.0,0.0,,0.0,False,False
+3,24,7344,Victoria Classics,Supplier Service Desk,AAUB3724,Curtains & Drapes,0.5,0.0695,,80.27,270.87,0.0,0.0,,0.0,False,False
+3,25,7344,Victoria Classics,Supplier Service Desk,AAUB3884,Curtains & Drapes,0.5,0.3921,0.4421,65.22,203.6,0.0,0.0,,0.0,False,False
+3,26,7344,Victoria Classics,Supplier Service Desk,AAUB3888,Curtains & Drapes,0.2,0.03,,30.64,53.98,0.0,0.0,,0.0,False,False
+3,27,7344,Victoria Classics,Supplier Service Desk,AAUB3893,Curtains & Drapes,0.4401,0.1723,0.2223,37.44,83.96,0.0,0.0,,0.0,False,False
+3,28,7344,Victoria Classics,Supplier Service Desk,AAUB4128,Curtains & Drapes,0.5,0.1723,0.2223,41.07,100.72,0.0,0.0,,0.0,False,False
+3,29,7344,Victoria Classics,Supplier Service Desk,AAUB4134,Curtains & Drapes,0.33380000000000004,0.1727,0.2227,14.66,63.14,0.0,0.0,,0.0,False,False
+3,30,7344,Victoria Classics,Supplier Service Desk,AAUB4135,Curtains & Drapes,0.2664,0.03,,0.0,0.0,0.0,0.0,,0.0,False,False
+3,31,7344,Victoria Classics,Supplier Service Desk,AAUB4378,Curtains & Drapes,0.3921,0.0697,0.1197,5.07,18.6,0.0,0.0,,0.0,False,False
+3,32,7344,Victoria Classics,Supplier Service Desk,AAUB4421,Curtains & Drapes,0.21309999999999998,0.2531,0.3031,58.21,229.16,0.0,0.0,,0.0,False,False
+3,33,7344,Victoria Classics,Supplier Service Desk,AAUB4440,Curtains & Drapes,0.3531,0.0701,0.1201,514.31,1242.15,0.0,0.0,,0.0,False,False
+3,34,7344,Victoria Classics,Supplier Service Desk,AAUB4442,Curtains & Drapes,0.2,0.0699,0.1199,0.0,0.0,0.0,0.0,,0.0,False,False
+3,35,7344,Victoria Classics,Supplier Service Desk,AAUB4446,Curtains & Drapes,0.5,0.0699,,46.86,143.94,0.0,0.0,,0.0,False,False
+3,36,112418,SAF IJAZ,Supplier Service Desk,ABEJ1054,Valances & Kitchen Curtains,,0.07,0.07,0.0,0.0,0.0,0.0,,0.0,False,False
+3,37,112418,SAF IJAZ,Supplier Service Desk,ABEJ1055,Valances & Kitchen Curtains,,0.07,0.07,0.0,0.0,0.0,0.0,,0.0,False,False
+3,38,112418,SAF IJAZ,Supplier Service Desk,ABEJ1121,Valances & Kitchen Curtains,,0.07,0.07,19.0,36.99,0.0,0.0,,0.0,False,False
+3,39,1987,JLA Home,Missy Paragamian,AGGR4056,Valances & Kitchen Curtains,0.4437,0.15,0.32880000000000004,1864.06,2801.97,0.0,0.0,,0.0,False,False
+3,40,7344,Victoria Classics,Supplier Service Desk,ANDV5489,Curtains & Drapes,0.29100000000000004,0.2382,0.2882,59.33,159.41,0.0,0.0,,0.0,False,False
+3,41,22695,ELEGANCE LINEN,Benjamin Hannigan,ASGA4420,Curtains & Drapes,,0.25,0.3,172.62,300.86,0.0,0.0,,0.0,False,False
+3,42,2554,Pem America,Benjamin Hannigan,AVEF1007,Curtains & Drapes,,0.25,0.295,36.02,59.98,0.0,0.0,,0.0,False,False
+3,43,2554,Pem America,Benjamin Hannigan,AVEF1008,Curtains & Drapes,0.5,0.25,0.295,74.73,108.72,0.0,0.0,,0.0,False,False
+3,44,2554,Pem America,Benjamin Hannigan,AVEF1010,Curtains & Drapes,,0.25,0.295,132.34,158.46,0.0,0.0,,0.0,False,False
+3,45,2554,Pem America,Benjamin Hannigan,AVEF1011,Curtains & Drapes,,0.25,0.295,509.63,800.74,0.0,0.0,,0.0,False,False
+3,46,2554,Pem America,Benjamin Hannigan,BDOK1182,Curtains & Drapes,,0.1,0.154,0.0,0.0,0.0,0.0,,0.0,False,False
+3,47,2554,Pem America,Benjamin Hannigan,BDOK1187,Curtains & Drapes,,0.15,0.201,0.0,0.0,0.0,0.0,,0.0,False,False
+3,48,2554,Pem America,Benjamin Hannigan,BDOK1188,Curtains & Drapes,,0.15,0.201,0.0,0.0,0.0,0.0,,0.0,False,False
+3,49,2554,Pem America,Benjamin Hannigan,BDOK1190,Curtains & Drapes,,0.15,0.201,0.0,0.0,0.0,0.0,,0.0,False,False
+3,50,7344,Victoria Classics,Supplier Service Desk,BVCG1038,Curtains & Drapes,0.2455,0.2126,0.2626,0.0,0.0,0.0,0.0,,0.0,False,False
+3,51,2554,Pem America,Benjamin Hannigan,CANN1227,Curtains & Drapes,0.2554,0.15,0.201,21.75,42.99,0.0,0.0,,0.0,False,False
+3,52,1987,JLA Home,Missy Paragamian,CHRL6947,Valances & Kitchen Curtains,0.5,0.12,0.5,471.67,714.77,0.0,0.0,,0.0,False,False
+3,53,1987,JLA Home,Missy Paragamian,CHRL6950,Curtains & Drapes,0.4517,0.12,0.3296,1337.85,2715.34,0.0,0.0,,0.0,False,False
+3,54,1987,JLA Home,Missy Paragamian,CKSC1011,Curtains & Drapes,0.4517,0.17,0.49079999999999996,1359.89,2116.99,0.0,0.0,,0.0,False,False
+3,55,1987,JLA Home,Missy Paragamian,CKSC1012,Valances & Kitchen Curtains,0.4437,0.2,0.4938,1061.4,2301.34,0.0,0.0,,0.0,False,False
+3,56,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1273,Valances & Kitchen Curtains,,0.05,0.1,166.11,471.75,0.0,0.0,,0.0,False,False
+3,57,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1274,Valances & Kitchen Curtains,,0.05,0.1,55.95,150.91,0.0,0.0,,0.0,False,False
+3,58,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1275,Curtains & Drapes,,0.05,0.1,38.54,81.65,0.0,0.0,,0.0,False,False
+3,59,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1276,Curtains & Drapes,,0.05,0.1,112.57,198.95,0.0,0.0,,0.0,False,False
+3,60,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1366,Valances & Kitchen Curtains,,0.05,0.1,474.43,1085.98,0.0,0.0,,0.0,False,False
+4,1,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1368,Valances & Kitchen Curtains,,0.05,0.1,369.53,850.18,0.0,0.0,,0.0,False,False
+4,2,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1370,Valances & Kitchen Curtains,,0.05,0.1,0.0,0.0,0.0,0.0,,0.0,False,False
+4,3,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1371,Curtains & Drapes,,0.05,0.1,124.29,153.43,0.0,0.0,,0.0,False,False
+4,4,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1372,Valances & Kitchen Curtains,,0.05,0.1,32.15,75.96,0.0,0.0,,0.0,False,False
+4,5,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1373,Curtains & Drapes,0.2,0.05,0.1,774.33,1167.69,0.0,0.0,,0.0,False,False
+4,6,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1376,Valances & Kitchen Curtains,0.4999,0.05,0.1,413.71,1156.97,0.0,0.0,,0.0,False,False
+4,7,23665,"Cozy Line Home Fashions, Inc.",Jaiden Lawlor,CLHF1377,Curtains & Drapes,0.2,0.05,0.1,961.87,1438.63,0.0,0.0,,0.0,False,False
+4,8,2554,Pem America,Benjamin Hannigan,CTGC1102,Curtains & Drapes,,0.15,0.201,0.0,0.0,0.0,0.0,,0.0,False,False
+4,9,1987,JLA Home,Missy Paragamian,DBYH6405,Curtains & Drapes,0.4517,0.17,0.2597,420.66,572.98,0.0,0.0,,0.0,False,False
+4,10,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1139,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,0.0,0.0,,0.0,False,False
+4,11,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1306,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,0.0,0.0,,0.0,False,False
+4,12,32808,CAN_Cathay Home Inc.,Paige Beattie,DRVU1319,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,0.0,0.0,,0.0,False,False
+4,13,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2349,Curtains & Drapes,,0.1,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,14,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2350,Curtains & Drapes,,0.1,,80.0,124.0,0.0,0.0,,0.0,False,False
+4,15,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2351,Curtains & Drapes,,0.1,,80.0,126.0,0.0,0.0,,0.0,False,False
+4,16,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2352,Curtains & Drapes,,0.1,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,17,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2353,Curtains & Drapes,,0.1,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,18,2387,Cloud9 Design Inc.,Supplier Service Desk,DUKM2356,Curtains & Drapes,,0.1,,80.0,126.0,0.0,0.0,,0.0,False,False
+4,19,17102,Trade-Linker,Jaiden Lawlor,EBND5832,Curtains & Drapes,,0.12,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,20,119490,Bes Home Corp.,Benjamin Hannigan,EBPD3999,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,21,119490,Bes Home Corp.,Benjamin Hannigan,EBPP3446,Curtains & Drapes,,0.16,,0.0,87.99,0.0,0.0,,0.0,False,False
+4,22,119490,Bes Home Corp.,Benjamin Hannigan,EBPP3447,Curtains & Drapes,0.3346,0.16,,166.98,221.97,0.0,0.0,,0.0,False,False
+4,23,119490,Bes Home Corp.,Benjamin Hannigan,EBPP3451,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,24,119490,Bes Home Corp.,Benjamin Hannigan,EBPP3453,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,25,119490,Bes Home Corp.,Benjamin Hannigan,EBPP3457,Curtains & Drapes,0.3346,0.16,,60.66,95.99,0.0,0.0,,0.0,False,False
+4,26,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1098,Curtains & Drapes,0.5,0.25,0.3,17.0,34.41,0.0,0.0,,0.0,False,False
+4,27,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1123,Curtains & Drapes,,0.25,0.3,31.32,61.16,0.0,0.0,,0.0,False,False
+4,28,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1813,Curtains & Drapes,,0.25,0.3,72.2,284.3,0.0,0.0,,0.0,False,False
+4,29,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1921,Blinds and Shades,0.33740000000000003,0.25,0.3,0.0,429.9,0.0,0.0,,0.0,False,False
+4,30,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1922,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,31,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1923,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,32,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1929,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,33,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1930,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,34,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1931,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,35,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1932,Blinds and Shades,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,36,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1933,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,37,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1934,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,38,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1936,Curtains & Drapes,,0.25,0.3,76.0,69.56,0.0,0.0,,0.0,False,False
+4,39,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1937,Curtains & Drapes,,0.25,0.3,0.0,42.33,0.0,0.0,,0.0,False,False
+4,40,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1938,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,41,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1939,Curtains & Drapes,,0.25,0.3,20.0,30.12,0.0,0.0,,0.0,False,False
+4,42,22695,ELEGANCE LINEN,Benjamin Hannigan,EEGA1940,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+4,43,32808,CAN_Cathay Home Inc.,Paige Beattie,EIFT1015,Curtains & Drapes,0.5,0.4,0.43,0.0,0.0,0.0,0.0,,0.0,False,False
+4,44,1748,Revman International,Missy Paragamian,ERB10657,Valances & Kitchen Curtains,,0.19510000000000002,,219.78,389.04,0.0,0.0,,0.0,False,False
+4,45,1748,Revman International,Missy Paragamian,ERB10658,Valances & Kitchen Curtains,,0.2922,,66.53,86.61,0.0,0.0,,0.0,False,False
+4,46,1748,Revman International,Missy Paragamian,ERB10660,Valances & Kitchen Curtains,,0.2922,,91.48,159.11,0.0,0.0,,0.0,False,False
+4,47,1748,Revman International,Missy Paragamian,ERB10661,Valances & Kitchen Curtains,,0.2922,,0.0,0.0,0.0,0.0,,0.0,False,False
+4,48,1748,Revman International,Missy Paragamian,ERB10662,Valances & Kitchen Curtains,,0.2922,,8.32,18.98,0.0,0.0,,0.0,False,False
+4,49,1748,Revman International,Missy Paragamian,ERB10663,Valances & Kitchen Curtains,,0.19510000000000002,,49.9,83.94,0.0,0.0,,0.0,False,False
+4,50,1748,Revman International,Missy Paragamian,ERB10664,Valances & Kitchen Curtains,,0.19510000000000002,,53.46,87.93,0.0,0.0,,0.0,False,False
+4,51,1748,Revman International,Missy Paragamian,ERB10665,Valances & Kitchen Curtains,,0.2922,,407.48,644.88,0.0,0.0,,0.0,False,False
+4,52,358408,"Xinyun Keji (Shanghai) Trading Co., Ltd.",Jessica Gu,FNYU1010,Curtains & Drapes,,0.3,0.4,531.92,136.58,0.0,0.0,,0.0,False,False
+4,53,358408,"Xinyun Keji (Shanghai) Trading Co., Ltd.",Jessica Gu,FNYU1012,Curtains & Drapes,,0.1,0.2,0.0,0.0,0.0,0.0,,0.0,False,False
+4,54,358408,"Xinyun Keji (Shanghai) Trading Co., Ltd.",Jessica Gu,FNYU1045,Curtains & Drapes,,0.4,0.5,93.6,62.97,0.0,0.0,,0.0,False,False
+4,55,1987,JLA Home,Missy Paragamian,HBEE6649,Curtains & Drapes,0.4517,0.17,0.49060000000000004,447.88,798.57,0.0,0.0,,0.0,False,False
+4,56,7344,Victoria Classics,Supplier Service Desk,HPSC1006,Curtains & Drapes,0.5,0.0655,,92.8,118.7,0.0,0.0,,0.0,False,False
+4,57,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,HSHD1282,Curtains & Drapes,0.3328,0.03,0.031,58.8,127.96,0.0,0.0,,0.0,False,False
+4,58,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,HSHD1367,Curtains & Drapes,0.4129,0.03,0.031,53.2,139.96,0.0,0.0,,0.0,False,False
+4,59,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,HSHD1376,Curtains & Drapes,0.3936,0.03,0.031,14.0,31.99,0.0,0.0,,0.0,False,False
+4,60,1987,JLA Home,Missy Paragamian,IKIY1200,Curtains & Drapes,0.5,0.25,0.5,200.47,368.64,0.0,0.0,,0.0,False,False
+5,1,7344,Victoria Classics,Supplier Service Desk,IVBX4061,Curtains & Drapes,0.40740000000000004,0.2379,0.2879,60.17,139.76,0.0,0.0,,0.0,False,False
+5,2,1987,JLA Home,Missy Paragamian,JLZF1243,Curtains & Drapes,0.4517,0.2,0.5,610.53,969.29,0.0,0.0,,0.0,False,False
+5,3,1987,JLA Home,Missy Paragamian,JLZL1102,Curtains & Drapes,0.4517,0.15,0.5,1154.23,1894.17,0.0,0.0,,0.0,False,False
+5,4,1987,JLA Home,Missy Paragamian,JLZL1119,Curtains & Drapes,0.4517,0.25,0.3601,204.62,382.87,0.0,0.0,,0.0,False,False
+5,5,1987,JLA Home,Missy Paragamian,JLZL1283,Curtains & Drapes,0.4517,0.17,0.5,2337.03,3428.98,0.0,0.0,,0.0,False,False
+5,6,1748,Revman International,Missy Paragamian,KBFC1861,Valances & Kitchen Curtains,0.308,0.22,,1414.41,2364.73,0.0,0.0,,0.0,False,False
+5,7,1748,Revman International,Missy Paragamian,KBFC1935,Valances & Kitchen Curtains,0.3012,0.27,,1754.69,2957.38,0.0,0.0,,0.0,False,False
+5,8,1748,Revman International,Missy Paragamian,KBFC1997,Valances & Kitchen Curtains,0.2,0.22039999999999998,,2250.33,3956.62,0.0,0.0,,0.0,False,False
+5,9,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1026,Valances & Kitchen Curtains,0.33640000000000003,0.16,,156.88,321.75,0.0,0.0,,0.0,False,False
+5,10,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1180,Curtains & Drapes,0.3367,0.16,,458.35,610.95,0.0,0.0,,0.0,False,False
+5,11,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1181,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,12,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1186,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,13,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1192,Valances & Kitchen Curtains,0.2741,0.16,,143.75,341.7,0.0,0.0,,0.0,False,False
+5,14,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1193,Curtains & Drapes,0.3346,0.16,,47.73,106.99,0.0,0.0,,0.0,False,False
+5,15,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1194,Valances & Kitchen Curtains,0.4132,0.16,,281.18,580.8,0.0,0.0,,0.0,False,False
+5,16,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1195,Valances & Kitchen Curtains,,0.16,,85.91,211.44,0.0,0.0,,0.0,False,False
+5,17,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1198,Valances & Kitchen Curtains,0.33640000000000003,0.16,,78.76,193.62,0.0,0.0,,0.0,False,False
+5,18,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1203,Curtains & Drapes,0.3346,0.16,,109.78,175.98,0.0,0.0,,0.0,False,False
+5,19,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1236,Curtains & Drapes,,0.16,,288.54,443.96,0.0,0.0,,0.0,False,False
+5,20,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1242,Valances & Kitchen Curtains,0.33640000000000003,0.16,,105.62,191.96,0.0,0.0,,0.0,False,False
+5,21,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1243,Valances & Kitchen Curtains,,0.16,,19.88,47.99,0.0,0.0,,0.0,False,False
+5,22,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1266,Valances & Kitchen Curtains,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,23,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1294,Curtains & Drapes,,0.16,,239.81,441.23,0.0,0.0,,0.0,False,False
+5,24,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1300,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,25,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1302,Curtains & Drapes,0.4657,0.16,,882.45,1506.4,0.0,0.0,,0.0,False,False
+5,26,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1303,Curtains & Drapes,,0.16,,597.75,1318.21,0.0,0.0,,0.0,False,False
+5,27,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1304,Curtains & Drapes,,0.16,,164.66,251.98,0.0,0.0,,0.0,False,False
+5,28,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1313,Curtains & Drapes,0.2195,0.16,,177.86,409.44,0.0,0.0,,0.0,False,False
+5,29,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1316,Curtains & Drapes,0.2597,0.16,,375.67,714.45,0.0,0.0,,0.0,False,False
+5,30,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1317,Curtains & Drapes,0.3346,0.16,,337.59,470.44,0.0,0.0,,0.0,False,False
+5,31,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1399,Curtains & Drapes,0.5,0.16,,939.63,1319.96,0.0,0.0,,0.0,False,False
+5,32,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1410,Curtains & Drapes,,0.16,,59.66,103.98,0.0,0.0,,0.0,False,False
+5,33,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1411,Valances & Kitchen Curtains,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,34,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1413,Valances & Kitchen Curtains,,0.16,,83.68,166.95,0.0,0.0,,0.0,False,False
+5,35,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1436,Curtains & Drapes,0.3367,0.16,,1209.84,1579.96,0.0,0.0,,0.0,False,False
+5,36,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1452,Curtains & Drapes,0.29710000000000003,0.16,,945.59,1221.91,0.0,0.0,,0.0,False,False
+5,37,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1500,Blinds and Shades,0.33490000000000003,0.16,,193.2,309.98,0.0,0.0,,0.0,False,False
+5,38,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1503,Blinds and Shades,0.33490000000000003,0.16,,95.55,159.98,0.0,0.0,,0.0,False,False
+5,39,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1504,Blinds and Shades,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,40,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1505,Blinds and Shades,0.33490000000000003,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,41,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1506,Blinds and Shades,0.33490000000000003,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,42,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1514,Blinds and Shades,0.33490000000000003,0.16,,322.6,485.98,0.0,0.0,,0.0,False,False
+5,43,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1516,Blinds and Shades,0.33490000000000003,0.16,,333.58,159.98,0.0,0.0,,0.0,False,False
+5,44,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1518,Blinds and Shades,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,45,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1520,Blinds and Shades,0.33490000000000003,0.16,,494.11,719.97,0.0,0.0,,0.0,False,False
+5,46,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1522,Blinds and Shades,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,47,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1526,Blinds and Shades,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,48,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1527,Blinds and Shades,0.33490000000000003,0.16,,1681.77,2560.87,0.0,0.0,,0.0,False,False
+5,49,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1659,Curtains & Drapes,,0.16,,148.12,223.25,0.0,0.0,,0.0,False,False
+5,50,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1673,Curtains & Drapes,0.2469,0.16,,1162.52,1599.96,0.0,0.0,,0.0,False,False
+5,51,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1676,Curtains & Drapes,0.24539999999999998,0.16,,1447.32,1999.92,0.0,0.0,,0.0,False,False
+5,52,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1679,Curtains & Drapes,,0.16,,0.0,0.0,0.0,0.0,,0.0,False,False
+5,53,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1682,Curtains & Drapes,0.2469,0.16,,1715.38,2079.92,0.0,0.0,,0.0,False,False
+5,54,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1692,Curtains & Drapes,0.3367,0.16,,1519.15,1939.43,0.0,0.0,,0.0,False,False
+5,55,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1693,Curtains & Drapes,0.3346,0.16,,408.4,525.42,0.0,0.0,,0.0,False,False
+5,56,119490,Bes Home Corp.,Benjamin Hannigan,LLIJ1710,Curtains & Drapes,,0.16,,203.62,331.96,0.0,0.0,,0.0,False,False
+5,57,173557,Penson & Co.,Jynn Jiang,LXDR1000,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+5,58,173557,Penson & Co.,Jynn Jiang,LXDR1001,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+5,59,173557,Penson & Co.,Jynn Jiang,LXDR1002,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+5,60,173557,Penson & Co.,Jynn Jiang,LXDR1003,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+6,1,173557,Penson & Co.,Jynn Jiang,LXDR1004,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+6,2,173557,Penson & Co.,Jynn Jiang,LXDR1005,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+6,3,173557,Penson & Co.,Jynn Jiang,LXDR1006,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+6,4,173557,Penson & Co.,Jynn Jiang,LXDR1007,Curtain Hardware & Accessories,,0.15,0.25,0.0,0.0,0.0,0.0,,0.0,False,False
+6,5,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1118,Curtains & Drapes,0.2942,0.12,0.13,663.67,1317.52,0.0,0.0,,0.0,False,False
+6,6,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1140,Curtains & Drapes,,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,7,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1152,Curtains & Drapes,,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,8,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1277,Curtains & Drapes,,0.12,0.13,43.2,114.94,0.0,0.0,,0.0,False,False
+6,9,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1278,Curtains & Drapes,,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,10,24282,"Nanshing America, Inc.",Jaiden Lawlor,MBSR1305,Curtains & Drapes,0.2,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,11,1987,JLA Home,Missy Paragamian,MCRR6024,Curtains & Drapes,0.4517,0.15,0.49079999999999996,1723.22,2946.91,0.0,0.0,,0.0,False,False
+6,12,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1022,Valances & Kitchen Curtains,,0.11,0.12,0.0,0.0,0.0,0.0,,0.0,False,False
+6,13,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1031,Valances & Kitchen Curtains,,0.11,0.12,134.33,305.0,0.0,0.0,,0.0,False,False
+6,14,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1032,Valances & Kitchen Curtains,,0.11,0.12,53.09,107.33,0.0,0.0,,0.0,False,False
+6,15,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1103,Valances & Kitchen Curtains,,0.11,0.12,9.79,21.99,0.0,0.0,,0.0,False,False
+6,16,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1232,Valances & Kitchen Curtains,0.2,0.11,0.12,928.92,2199.29,0.0,0.0,,0.0,False,False
+6,17,43431,ocean home fashion inc,Asia Supplier Service Desk,SRKCL1233,Valances & Kitchen Curtains,,0.11,0.12,371.04,869.68,0.0,0.0,,0.0,False,False
+6,18,24282,"Nanshing America, Inc.",Jaiden Lawlor,NAAM1100,Valances & Kitchen Curtains,,0.12,0.13,18.17,99.91,0.0,0.0,,0.0,False,False
+6,19,24282,"Nanshing America, Inc.",Jaiden Lawlor,NAAM1128,Curtains & Drapes,,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,20,24282,"Nanshing America, Inc.",Jaiden Lawlor,NAAM1130,Curtains & Drapes,,0.12,0.13,0.0,0.0,0.0,0.0,,0.0,False,False
+6,21,1987,JLA Home,Missy Paragamian,NCWA2117,Curtains & Drapes,0.3953,0.17,0.4357,441.98,718.34,0.0,0.0,,0.0,False,False
+6,22,1987,JLA Home,Missy Paragamian,NCWA2118,Curtains & Drapes,0.4517,0.17,,130.66,200.89,0.0,0.0,,0.0,False,False
+6,23,1987,JLA Home,Missy Paragamian,NCWA2342,Curtains & Drapes,0.5,0.17,0.3131,1885.97,2853.77,0.0,0.0,,0.0,False,False
+6,24,1987,JLA Home,Missy Paragamian,NCWA2379,Curtains & Drapes,0.5,0.17,0.5,1564.22,2789.36,0.0,0.0,,0.0,False,False
+6,25,1987,JLA Home,Missy Paragamian,NCWA2529,Curtains & Drapes,0.5,0.17,0.5,1281.69,1542.59,0.0,0.0,,0.0,False,False
+6,26,1987,JLA Home,Missy Paragamian,NCWA2539,Curtains & Drapes,0.5,0.17,0.5,1181.82,1618.71,0.0,0.0,,0.0,False,False
+6,27,1987,JLA Home,Missy Paragamian,NCWA2715,Curtains & Drapes,,0.2,,106.65,132.44,0.0,0.0,,0.0,False,False
+6,28,1987,JLA Home,Missy Paragamian,NCWA2830,Curtains & Drapes,0.4517,0.15,0.49079999999999996,2672.58,3665.66,0.0,0.0,,0.0,False,False
+6,29,1987,JLA Home,Missy Paragamian,NCWA2831,Blinds and Shades,0.4989,0.17,0.5,358.2,653.9,0.0,0.0,,0.0,False,False
+6,30,1987,JLA Home,Missy Paragamian,NCWA2863,Curtains & Drapes,0.5,0.25,,0.0,0.0,0.0,0.0,,0.0,False,False
+6,31,1987,JLA Home,Missy Paragamian,NCWA2865,Valances & Kitchen Curtains,,0.25,,51.29,128.53,0.0,0.0,,0.0,False,False
+6,32,1987,JLA Home,Missy Paragamian,NCWA2895,Curtains & Drapes,,0.15,,0.0,0.0,0.0,0.0,,0.0,False,False
+6,33,1987,JLA Home,Missy Paragamian,NCWA2897,Curtains & Drapes,,0.05,,0.0,0.0,0.0,0.0,,0.0,False,False
+6,34,1987,JLA Home,Missy Paragamian,NCWA2898,Curtains & Drapes,,0.12,,0.0,0.0,0.0,0.0,,0.0,False,False
+6,35,1987,JLA Home,Missy Paragamian,NCWA2900,Blinds and Shades,,0.12,,44.19,82.99,0.0,0.0,,0.0,False,False
+6,36,2554,Pem America,Benjamin Hannigan,SDCM1082,Curtains & Drapes,0.26170000000000004,0.15,0.201,259.7,492.02,0.0,0.0,,0.0,False,False
+6,37,2554,Pem America,Benjamin Hannigan,SDCM1252,Curtains & Drapes,,0.15,0.201,48.02,91.98,0.0,0.0,,0.0,False,False
+6,38,1748,Revman International,Missy Paragamian,TBL10432,Valances & Kitchen Curtains,,0.22,,0.0,0.0,0.0,0.0,,0.0,False,False
+6,39,2554,Pem America,Benjamin Hannigan,TDBR1014,Curtains & Drapes,,0.15,,36.0,16.69,0.0,0.0,,0.0,False,False
+6,40,1987,JLA Home,Missy Paragamian,TDFM1035,Curtains & Drapes,0.4517,0.12,0.2792,125.69,329.44,0.0,0.0,,0.0,False,False
+6,41,2554,Pem America,Benjamin Hannigan,TUBB1000,Curtains & Drapes,0.3887,0.2,0.248,120.06,201.96,0.0,0.0,,0.0,False,False
+6,42,2554,Pem America,Benjamin Hannigan,TUBB1001,Curtains & Drapes,,0.25,0.295,542.88,671.92,0.0,0.0,,0.0,False,False
+6,43,2554,Pem America,Benjamin Hannigan,TUBB1002,Curtains & Drapes,,0.2,0.248,93.96,105.38,0.0,0.0,,0.0,False,False
+6,44,2554,Pem America,Benjamin Hannigan,TUBB1003,Curtains & Drapes,,0.15,0.201,36.54,54.99,0.0,0.0,,0.0,False,False
+6,45,2554,Pem America,Benjamin Hannigan,TUBB1004,Curtains & Drapes,,0.2,0.248,126.0,207.94,0.0,0.0,,0.0,False,False
+6,46,2554,Pem America,Benjamin Hannigan,TUBB1005,Curtains & Drapes,,0.2,0.248,120.0,153.73,0.0,0.0,,0.0,False,False
+6,47,2554,Pem America,Benjamin Hannigan,TUBB1007,Curtains & Drapes,,0.15,0.201,0.0,0.0,0.0,0.0,,0.0,False,False
+6,48,2554,Pem America,Benjamin Hannigan,TUBB1008,Curtains & Drapes,,0.15,0.201,198.48,401.36,0.0,0.0,,0.0,False,False
+6,49,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1019,Curtains & Drapes,0.4999,0.22,0.27,0.0,0.0,0.0,0.0,,0.0,False,False
+6,50,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1037,Curtains & Drapes,0.4999,0.22,0.27,542.7,710.79,0.0,0.0,,0.0,False,False
+6,51,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1038,Curtains & Drapes,0.4999,0.22,0.27,0.0,0.0,0.0,0.0,,0.0,False,False
+6,52,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1040,Curtains & Drapes,0.4201,0.22,0.27,1513.25,2484.61,0.0,0.0,,0.0,False,False
+6,53,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1041,Curtains & Drapes,0.4999,0.22,0.27,4045.5,5657.14,0.0,0.0,,0.0,False,False
+6,54,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1049,Curtains & Drapes,0.4999,0.22,0.27,0.0,0.0,0.0,0.0,,0.0,False,False
+6,55,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1050,Curtains & Drapes,0.4999,0.22,0.27,0.0,193.99,0.0,0.0,,0.0,False,False
+6,56,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1051,Curtains & Drapes,0.44920000000000004,0.22,0.27,2079.2,3071.55,0.0,0.0,,0.0,False,False
+6,57,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1059,Curtains & Drapes,0.4999,0.22,0.27,5816.0,7376.23,0.0,0.0,,0.0,False,False
+6,58,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1073,Curtains & Drapes,0.3212,0.22,0.27,2513.47,4290.01,0.0,0.0,,0.0,False,False
+6,59,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1078,Curtains & Drapes,0.37549999999999994,0.22,0.27,2689.9,3761.64,0.0,0.0,,0.0,False,False
+6,60,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1086,Curtains & Drapes,0.4023,0.22,0.27,10869.98,18216.34,0.0,0.0,,0.0,False,False
+7,1,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1087,Curtains & Drapes,0.4999,0.22,0.27,0.0,0.0,0.0,0.0,,0.0,False,False
+7,2,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1095,Curtains & Drapes,0.44920000000000004,0.22,0.27,1878.4,2282.84,0.0,0.0,,0.0,False,False
+7,3,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1105,Curtains & Drapes,0.3393,0.22,0.27,5235.3,9033.78,0.0,0.0,,0.0,False,False
+7,4,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1106,Curtains & Drapes,0.4874,0.22,0.27,1078.0,1319.93,0.0,0.0,,0.0,False,False
+7,5,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1115,Curtains & Drapes,0.4131,0.22,0.27,4386.2,5144.37,0.0,0.0,,0.0,False,False
+7,6,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1117,Curtains & Drapes,0.43920000000000003,0.22,0.27,649.94,903.94,0.0,0.0,,0.0,False,False
+7,7,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1118,Curtains & Drapes,0.44439999999999996,0.22,0.27,2091.32,2875.64,0.0,0.0,,0.0,False,False
+7,8,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1120,Curtains & Drapes,0.44439999999999996,0.22,0.27,2448.26,3695.77,0.0,0.0,,0.0,False,False
+7,9,1987,JLA Home,Missy Paragamian,VVRE2936,Curtains & Drapes,0.4517,0.15,0.49060000000000004,720.34,1258.77,0.0,0.0,,0.0,False,False
+7,10,22695,ELEGANCE LINEN,Benjamin Hannigan,VVRE4106,Curtains & Drapes,,0.25,0.3,35.85,135.72,0.0,0.0,,0.0,False,False
+7,11,32808,CAN_Cathay Home Inc.,Paige Beattie,WFBS2104,Curtains & Drapes,0.5,0.4,0.43,28.3,63.81,0.0,0.0,,0.0,False,False
+7,12,7344,Victoria Classics,Supplier Service Desk,WRLO7923,Curtains & Drapes,0.5,0.0658,,214.41,582.58,0.0,0.0,,0.0,False,False
+7,13,24696,Daniel Linen/Home Sweet Home Dreams Inc.,Supplier Service Desk,WRMH1174,Valances & Kitchen Curtains,0.2,0.03,0.031,280.98,545.03,0.0,0.0,,0.0,False,False
+7,14,22695,ELEGANCE LINEN,Benjamin Hannigan,ZPCD4700,Curtains & Drapes,,0.25,0.3,0.0,0.0,0.0,0.0,,0.0,False,False
+7,15,1987,JLA Home,Missy Paragamian,ZPCD6011,Curtains & Drapes,0.4517,0.2,0.5,641.04,992.78,0.0,0.0,,0.0,False,False
