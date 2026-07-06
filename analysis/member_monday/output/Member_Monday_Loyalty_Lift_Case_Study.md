@@ -8,6 +8,13 @@ Member Monday generated **$11,116.60** in participating SKU sales versus a recen
 
 **Data QA note:** The cleaned SKU-detail reconstruction ties to the PDF total within $0.04 on the baseline and $0.01 on Member Monday sales.
 
+## Metric definitions
+
+- **Active SKUs:** participating SKUs that had more than `$0` in Member Monday sales. It answers, "How many of the submitted SKUs actually sold during the event?"
+- **Lift per discount point:** weighted sales lift divided by weighted discount investment. For example, a value of `2.0` means the supplier generated about 2 percentage points of sales lift for every 1 percentage point of discount. Use it as an efficiency read, not a margin or dollar ROI calculation.
+- **Weighted lift:** total incremental sales divided by the total recent non-promo daily average for that group.
+- **Weighted discount:** the `Discount` field averaged by baseline sales, so higher-volume SKUs influence the supplier/class average more than low-volume SKUs.
+
 ## What changed on Member Monday
 
 - **Overall lift:** 16.1% on $11,116.60 in Member Monday sales.

@@ -312,41 +312,82 @@ def save_chart_class_sales(class_summary: pd.DataFrame, out: Path) -> None:
 
 def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> None:
     plot_df = supplier_summary[
-        (supplier_summary["l10_non_promo_daily_avg"] > 0)
+        (
+            (supplier_summary["l10_non_promo_daily_avg"] > 0)
+            | (supplier_summary["member_monday_sales"] > 0)
+        )
         & supplier_summary["weighted_discount_pct"].notna()
         & supplier_summary["weighted_lift_pct"].notna()
     ].copy()
-    plot_df = plot_df.sort_values("member_monday_sales", ascending=False).head(14)
-    sizes = 120 + (
-        plot_df["member_monday_sales"] / plot_df["member_monday_sales"].max()
-    ) * 1100
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.scatter(
-        plot_df["weighted_discount_pct"] * 100,
-        plot_df["weighted_lift_pct"] * 100,
-        s=sizes,
-        alpha=0.65,
-        color="#2f6fed",
-        edgecolors="#0b1f44",
-        linewidths=0.7,
+    plot_df = plot_df.sort_values("incremental_sales", ascending=True).tail(12)
+    plot_df["lift_pct"] = plot_df["weighted_lift_pct"] * 100
+    plot_df["discount_pct"] = plot_df["weighted_discount_pct"] * 100
+    plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=150)
+    plot_df["display_name"] = plot_df["supplier_name"].map(
+        lambda name: name if len(name) <= 32 else name[:29] + "..."
     )
-    ax.axhline(0, color="#59636e", linewidth=1)
-    ax.set_xlabel("Weighted promo investment: Discount %")
-    ax.set_ylabel("Weighted sales lift")
-    ax.set_title("Supplier lift vs. promotional investment")
-    ax.yaxis.set_major_formatter(lambda y, _pos: f"{y:.0f}%")
+
+    colors = [
+        "#16a163" if value > 0 else "#c84c4c" if value < 0 else "#9aa6b2"
+        for value in plot_df["incremental_sales"]
+    ]
+    y_positions = range(len(plot_df))
+    fig, ax = plt.subplots(figsize=(11, 7))
+    ax.barh(
+        list(y_positions),
+        plot_df["display_lift_pct"],
+        color=colors,
+        alpha=0.82,
+        label="Weighted lift %",
+    )
+    ax.scatter(
+        plot_df["discount_pct"],
+        list(y_positions),
+        marker="D",
+        s=70,
+        color="#0b1f44",
+        label="Weighted discount %",
+        zorder=3,
+    )
+    ax.axvline(0, color="#59636e", linewidth=1)
+    ax.set_yticks(list(y_positions), plot_df["display_name"])
+    ax.set_xlabel("Percent")
+    ax.set_title("Supplier lift vs. promotional investment - readable view")
     ax.xaxis.set_major_formatter(lambda x, _pos: f"{x:.0f}%")
-    for row in plot_df.itertuples():
-        label = row.supplier_name
-        if len(label) > 22:
-            label = label[:20] + "..."
-        ax.annotate(
-            label,
-            (row.weighted_discount_pct * 100, row.weighted_lift_pct * 100),
-            xytext=(5, 4),
-            textcoords="offset points",
+    ax.set_xlim(-115, 165)
+    ax.legend(loc="lower right")
+
+    for idx, row in enumerate(plot_df.itertuples()):
+        lift_label = f"{row.lift_pct:,.0f}%"
+        if row.lift_pct > 150:
+            lift_label += " lift"
+        x_pos = row.display_lift_pct + 3 if row.display_lift_pct >= 0 else row.display_lift_pct - 3
+        ax.text(
+            x_pos,
+            idx,
+            lift_label,
+            ha="left" if row.display_lift_pct >= 0 else "right",
+            va="center",
             fontsize=8,
         )
+        ax.text(
+            row.discount_pct,
+            idx + 0.24,
+            f"{row.discount_pct:.0f}% disc.",
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            color="#0b1f44",
+        )
+    ax.text(
+        150,
+        -0.72,
+        "Bars capped at 150% so low-baseline outliers remain readable",
+        ha="right",
+        va="center",
+        fontsize=8,
+        color="#59636e",
+    )
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
@@ -423,6 +464,73 @@ def markdown_table(df: pd.DataFrame, columns: list[str], limit: int | None = Non
     lines = [render_row(headers), separator]
     lines.extend(render_row(row) for row in body)
     return "\n".join(lines)
+
+
+def metric_definitions() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "metric": "sku_count",
+                "definition": "Count of unique participating SKUs in the group.",
+            },
+            {
+                "metric": "active_skus",
+                "definition": (
+                    "Count of participating SKUs that recorded more than $0 in "
+                    "Member Monday sales."
+                ),
+            },
+            {
+                "metric": "positive_lift_skus",
+                "definition": (
+                    "Count of participating SKUs where Member Monday sales were "
+                    "greater than the recent non-promo daily average."
+                ),
+            },
+            {
+                "metric": "positive_lift_sku_rate",
+                "definition": "Positive lift SKUs divided by total participating SKUs.",
+            },
+            {
+                "metric": "l10_non_promo_daily_avg",
+                "definition": (
+                    "Recent non-promotional daily sales average used as the baseline."
+                ),
+            },
+            {
+                "metric": "member_monday_sales",
+                "definition": "Sales recorded for the SKU/group on Member Monday.",
+            },
+            {
+                "metric": "incremental_sales",
+                "definition": (
+                    "Member Monday sales minus the recent non-promo daily average."
+                ),
+            },
+            {
+                "metric": "weighted_lift_pct",
+                "definition": (
+                    "Incremental sales divided by the recent non-promo daily average."
+                ),
+            },
+            {
+                "metric": "weighted_discount_pct",
+                "definition": (
+                    "Supplier discount investment weighted by baseline sales, so "
+                    "higher-volume SKUs influence the average more than low-volume SKUs."
+                ),
+            },
+            {
+                "metric": "lift_per_discount_point",
+                "definition": (
+                    "Weighted lift divided by weighted discount. A value of 2.0 means "
+                    "the group produced 2 percentage points of sales lift for every "
+                    "1 percentage point of discount investment. Use this as an "
+                    "efficiency indicator, not as a dollar ROI."
+                ),
+            },
+        ]
+    )
 
 
 def prep_report_tables(
@@ -564,6 +672,13 @@ Member Monday generated **{fmt_currency_2(sales)}** in participating SKU sales v
 
 **Data QA note:** {qa_note}
 
+## Metric definitions
+
+- **Active SKUs:** participating SKUs that had more than `$0` in Member Monday sales. It answers, "How many of the submitted SKUs actually sold during the event?"
+- **Lift per discount point:** weighted sales lift divided by weighted discount investment. For example, a value of `2.0` means the supplier generated about 2 percentage points of sales lift for every 1 percentage point of discount. Use it as an efficiency read, not a margin or dollar ROI calculation.
+- **Weighted lift:** total incremental sales divided by the total recent non-promo daily average for that group.
+- **Weighted discount:** the `Discount` field averaged by baseline sales, so higher-volume SKUs influence the supplier/class average more than low-volume SKUs.
+
 ## What changed on Member Monday
 
 - **Overall lift:** {fmt_pct(lift)} on {fmt_currency_2(sales)} in Member Monday sales.
@@ -688,6 +803,9 @@ def main() -> None:
     bucket_summary.to_csv(args.out / "discount_bucket_summary.csv", index=False)
 
     with pd.ExcelWriter(args.out / "member_monday_case_study.xlsx") as writer:
+        metric_definitions().to_excel(
+            writer, sheet_name="Metric Definitions", index=False
+        )
         sku_df.to_excel(writer, sheet_name="SKU Data", index=False)
         class_summary.to_excel(writer, sheet_name="Class Summary", index=False)
         supplier_summary.to_excel(writer, sheet_name="Supplier Summary", index=False)
