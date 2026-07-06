@@ -26,6 +26,8 @@ Member Monday generated **$11,116.60** in participating SKU sales versus a recen
 
 ![Class sales lift](charts/class_sales_lift.png)
 
+In the class chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
+
 ## Class-level insights
 
 | class_name                     | sku_count | active_skus | positive_lift_sku_rate | weighted_discount_pct | l10_non_promo_daily_avg | member_monday_sales | incremental_sales | weighted_lift_pct |
@@ -54,8 +56,6 @@ Member Monday generated **$11,116.60** in participating SKU sales versus a recen
 | 25%+            | 61        | 27.0%                 | $340.12                 | $447.02             | $106.90           | 31.4%             |
 
 The investment story is not purely "deeper discount equals better lift." Mid- and higher-discount buckets both produced wins, but SKU relevance and baseline demand materially shaped outcomes. This is a useful supplier message: Member Monday works best when suppliers fund a compelling offer **and** nominate SKUs with enough demand signal to convert loyalty traffic.
-
-The chart above splits each B2C discount bucket into two groups: SKUs with no incremental B2B discount and SKUs where B2B was at least 5 percentage points deeper than the B2C discount. This makes it easier to show suppliers how extra B2B support performed inside each B2C discount level.
 
 ![Supplier lift vs investment](charts/supplier_lift_vs_investment.png)
 
@@ -110,6 +110,5 @@ The chart above splits each B2C discount bucket into two groups: SKUs with no in
 - `class_summary.csv`: class-level performance and investment metrics.
 - `supplier_summary.csv`: supplier-level performance and investment metrics.
 - `discount_bucket_summary.csv`: lift by supplier discount-investment bucket.
-- `b2b_discount_bucket_summary.csv`: lift by B2C discount bucket split by B2B discount support.
 - `member_monday_case_study.xlsx`: workbook with all summary tabs.
 - `charts/*.png`: visual assets for supplier-facing materials.

@@ -65,10 +65,6 @@ KNOWN_CLASSES = {
 }
 
 DISCOUNT_BUCKET_LABELS = ["<10%", "10-14.9%", "15-19.9%", "20-24.9%", "25%+"]
-B2B_SEGMENT_LABELS = [
-    "With No B2B Discount",
-    "With 5%+ Incremental B2B Discount",
-]
 
 
 def parse_currency(value: object) -> float:
@@ -277,73 +273,56 @@ def build_discount_buckets(df: pd.DataFrame) -> pd.DataFrame:
     return summary.sort_values("discount_bucket")
 
 
-def add_b2b_bucket_segments(df: pd.DataFrame) -> pd.DataFrame:
-    bucketed = df.copy()
-    bucketed["discount_bucket"] = pd.cut(
-        bucketed["discount_pct"],
-        bins=[-math.inf, 0.0999, 0.1499, 0.1999, 0.2499, math.inf],
-        labels=DISCOUNT_BUCKET_LABELS,
-    )
-    incremental_b2b_pct = (
-        bucketed["b2b_discount_pct"].fillna(bucketed["discount_pct"])
-        - bucketed["discount_pct"]
-    ).clip(lower=0)
-    bucketed["incremental_b2b_discount_pct"] = incremental_b2b_pct
-    bucketed["b2b_support_segment"] = incremental_b2b_pct.map(
-        lambda value: B2B_SEGMENT_LABELS[1] if value >= 0.05 else B2B_SEGMENT_LABELS[0]
-    )
-    return bucketed
-
-
-def build_b2b_discount_buckets(df: pd.DataFrame) -> pd.DataFrame:
-    summary = summarize(
-        add_b2b_bucket_segments(df), ["discount_bucket", "b2b_support_segment"]
-    )
-    summary["discount_bucket"] = pd.Categorical(
-        summary["discount_bucket"].astype(str),
-        categories=DISCOUNT_BUCKET_LABELS,
-        ordered=True,
-    )
-    summary["b2b_support_segment"] = pd.Categorical(
-        summary["b2b_support_segment"].astype(str),
-        categories=B2B_SEGMENT_LABELS,
-        ordered=True,
-    )
-    return summary.sort_values(["discount_bucket", "b2b_support_segment"])
-
-
 def save_chart_class_sales(class_summary: pd.DataFrame, out: Path) -> None:
-    plot_df = class_summary.sort_values("member_monday_sales")
-    y = range(len(plot_df))
-    fig, ax = plt.subplots(figsize=(10, 5.5))
-    ax.barh(
-        [idx - 0.18 for idx in y],
+    plot_df = class_summary.sort_values("member_monday_sales", ascending=False)
+    x_positions = list(range(len(plot_df)))
+    width = 0.36
+    fig, ax = plt.subplots(figsize=(10.5, 5.8))
+    baseline_bars = ax.bar(
+        [idx - width / 2 for idx in x_positions],
         plot_df["l10_non_promo_daily_avg"],
-        height=0.35,
+        width=width,
         label="L10 non-promo daily avg",
-        color="#9aa6b2",
+        color="#9b7ce3",
     )
-    ax.barh(
-        [idx + 0.18 for idx in y],
+    member_monday_bars = ax.bar(
+        [idx + width / 2 for idx in x_positions],
         plot_df["member_monday_sales"],
-        height=0.35,
+        width=width,
         label="Member Monday sales",
-        color="#2f6fed",
+        color="#4b347f",
     )
-    ax.set_yticks(list(y), plot_df["class_name"])
-    ax.set_xlabel("Sales dollars")
-    ax.set_title("Member Monday sales vs. recent non-promo daily average by class")
-    ax.xaxis.set_major_formatter(lambda x, _pos: f"${x:,.0f}")
-    ax.legend(loc="lower right")
+    ax.set_xticks(x_positions, plot_df["class_name"], rotation=15, ha="right")
+    ax.set_xlabel("Class")
+    ax.set_ylabel("Sales dollars")
+    ax.set_title("Daily avg sales vs. Member Monday sales by class")
+    ax.yaxis.set_major_formatter(lambda y, _pos: f"${y:,.0f}")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=2, frameon=False)
     for idx, row in enumerate(plot_df.itertuples()):
-        lift_label = fmt_pct(row.weighted_lift_pct)
+        y_value = max(row.member_monday_sales, row.l10_non_promo_daily_avg)
         ax.text(
-            row.member_monday_sales + max(plot_df["member_monday_sales"]) * 0.01,
-            idx + 0.18,
-            lift_label,
-            va="center",
+            idx,
+            y_value + max(plot_df["member_monday_sales"]) * 0.025,
+            fmt_pct(row.weighted_lift_pct),
+            ha="center",
+            va="bottom",
             fontsize=9,
         )
+    for bars in [baseline_bars, member_monday_bars]:
+        for bar in bars:
+            height = bar.get_height()
+            if height <= 0:
+                continue
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + max(plot_df["member_monday_sales"]) * 0.01,
+                fmt_currency(height),
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                rotation=90,
+            )
+    ax.set_ylim(0, max(plot_df["member_monday_sales"].max(), plot_df["l10_non_promo_daily_avg"].max()) * 1.22)
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
@@ -434,81 +413,26 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
 
 def save_chart_discount_buckets(bucket_summary: pd.DataFrame, out: Path) -> None:
     plot_df = bucket_summary.copy()
-    plot_df["discount_bucket"] = pd.Categorical(
+    fig, ax = plt.subplots(figsize=(9, 5))
+    bars = ax.bar(
         plot_df["discount_bucket"].astype(str),
-        categories=DISCOUNT_BUCKET_LABELS,
-        ordered=True,
-    )
-    plot_df["b2b_support_segment"] = pd.Categorical(
-        plot_df["b2b_support_segment"].astype(str),
-        categories=B2B_SEGMENT_LABELS,
-        ordered=True,
-    )
-    pivot = plot_df.pivot(
-        index="discount_bucket",
-        columns="b2b_support_segment",
-        values="weighted_lift_pct",
-    ).reindex(DISCOUNT_BUCKET_LABELS)
-    display = (pivot * 100).clip(lower=-110, upper=300)
-
-    x_positions = list(range(len(display)))
-    width = 0.36
-    fig, ax = plt.subplots(figsize=(10, 5.8))
-    no_b2b_bars = ax.bar(
-        [x - width / 2 for x in x_positions],
-        display[B2B_SEGMENT_LABELS[0]].fillna(0),
-        width=width,
-        label=B2B_SEGMENT_LABELS[0],
-        color="#9b7ce3",
-    )
-    b2b_bars = ax.bar(
-        [x + width / 2 for x in x_positions],
-        display[B2B_SEGMENT_LABELS[1]].fillna(0),
-        width=width,
-        label=B2B_SEGMENT_LABELS[1],
+        plot_df["weighted_lift_pct"] * 100,
         color="#4b347f",
     )
     ax.axhline(0, color="#59636e", linewidth=1)
-    ax.set_xticks(x_positions, [f"{label} B2C Disc." for label in DISCOUNT_BUCKET_LABELS])
-    ax.set_xlabel("Discount Applied on B2C")
+    ax.set_xlabel("Discount investment bucket")
     ax.set_ylabel("Weighted sales lift")
-    ax.set_title("Lift by B2C discount bucket and B2B discount support")
+    ax.set_title("Lift by level of promotional investment")
     ax.yaxis.set_major_formatter(lambda y, _pos: f"{y:.0f}%")
-    ax.set_ylim(-120, 325)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=2, frameon=False)
-
-    for bars, segment in [
-        (no_b2b_bars, B2B_SEGMENT_LABELS[0]),
-        (b2b_bars, B2B_SEGMENT_LABELS[1]),
-    ]:
-        for idx, bar in enumerate(bars):
-            actual = pivot.loc[DISCOUNT_BUCKET_LABELS[idx], segment]
-            if pd.isna(actual):
-                continue
-            actual_pct = actual * 100
-            label = f"{actual_pct:.0f}%"
-            if actual_pct > 300:
-                label += " lift"
-            if actual_pct < -110:
-                label += " lift"
-            height = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                height + (8 if height >= 0 else -8),
-                label,
-                ha="center",
-                va="bottom" if height >= 0 else "top",
-                fontsize=8,
-            )
-    ax.text(
-        len(display) - 0.15,
-        -112,
-        "Bars capped at -110% and 300% so low-baseline outliers remain readable",
-        ha="right",
-        va="bottom",
-        fontsize=8,
-        color="#59636e",
-    )
+    for bar, row in zip(bars, plot_df.itertuples(), strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height(),
+            f"{row.weighted_lift_pct * 100:.0f}%",
+            ha="center",
+            va="bottom" if row.weighted_lift_pct >= 0 else "top",
+            fontsize=9,
+        )
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
@@ -702,7 +626,6 @@ def write_report(
     class_summary: pd.DataFrame,
     supplier_summary: pd.DataFrame,
     bucket_summary: pd.DataFrame,
-    b2b_bucket_summary: pd.DataFrame,
     source_totals: dict[str, float] | None = None,
 ) -> None:
     extracted_baseline = float(sku_df["l10_non_promo_daily_avg"].sum())
@@ -785,6 +708,8 @@ Member Monday generated **{fmt_currency_2(sales)}** in participating SKU sales v
 
 ![Class sales lift](charts/class_sales_lift.png)
 
+In the class chart, light purple bars show the recent non-promo daily average and dark purple bars show Member Monday sales.
+
 ## Class-level insights
 
 {markdown_table(class_table, [
@@ -820,8 +745,6 @@ Member Monday generated **{fmt_currency_2(sales)}** in participating SKU sales v
 ])}
 
 The investment story is not purely "deeper discount equals better lift." Mid- and higher-discount buckets both produced wins, but SKU relevance and baseline demand materially shaped outcomes. This is a useful supplier message: Member Monday works best when suppliers fund a compelling offer **and** nominate SKUs with enough demand signal to convert loyalty traffic.
-
-The chart above splits each B2C discount bucket into two groups: SKUs with no incremental B2B discount and SKUs where B2B was at least 5 percentage points deeper than the B2C discount. This makes it easier to show suppliers how extra B2B support performed inside each B2C discount level.
 
 ![Supplier lift vs investment](charts/supplier_lift_vs_investment.png)
 
@@ -872,7 +795,6 @@ The chart above splits each B2C discount bucket into two groups: SKUs with no in
 - `class_summary.csv`: class-level performance and investment metrics.
 - `supplier_summary.csv`: supplier-level performance and investment metrics.
 - `discount_bucket_summary.csv`: lift by supplier discount-investment bucket.
-- `b2b_discount_bucket_summary.csv`: lift by B2C discount bucket split by B2B discount support.
 - `member_monday_case_study.xlsx`: workbook with all summary tabs.
 - `charts/*.png`: visual assets for supplier-facing materials.
 """
@@ -894,15 +816,11 @@ def main() -> None:
     class_summary = summarize(sku_df, ["class_name"])
     supplier_summary = summarize(sku_df, ["supplier_id", "supplier_name", "srm"])
     bucket_summary = build_discount_buckets(sku_df)
-    b2b_bucket_summary = build_b2b_discount_buckets(sku_df)
 
     sku_df.to_csv(args.out / "member_monday_sku_data.csv", index=False)
     class_summary.to_csv(args.out / "class_summary.csv", index=False)
     supplier_summary.to_csv(args.out / "supplier_summary.csv", index=False)
     bucket_summary.to_csv(args.out / "discount_bucket_summary.csv", index=False)
-    b2b_bucket_summary.to_csv(
-        args.out / "b2b_discount_bucket_summary.csv", index=False
-    )
 
     with pd.ExcelWriter(args.out / "member_monday_case_study.xlsx") as writer:
         metric_definitions().to_excel(
@@ -912,18 +830,13 @@ def main() -> None:
         class_summary.to_excel(writer, sheet_name="Class Summary", index=False)
         supplier_summary.to_excel(writer, sheet_name="Supplier Summary", index=False)
         bucket_summary.to_excel(writer, sheet_name="Discount Buckets", index=False)
-        b2b_bucket_summary.to_excel(
-            writer, sheet_name="B2B Bucket Lift", index=False
-        )
 
     plt.style.use("seaborn-v0_8-whitegrid")
     save_chart_class_sales(class_summary, charts_dir / "class_sales_lift.png")
     save_chart_supplier_scatter(
         supplier_summary, charts_dir / "supplier_lift_vs_investment.png"
     )
-    save_chart_discount_buckets(
-        b2b_bucket_summary, charts_dir / "discount_bucket_lift.png"
-    )
+    save_chart_discount_buckets(bucket_summary, charts_dir / "discount_bucket_lift.png")
     save_chart_top_incremental(
         supplier_summary, charts_dir / "top_supplier_incremental_sales.png"
     )
@@ -933,7 +846,6 @@ def main() -> None:
         class_summary,
         supplier_summary,
         bucket_summary,
-        b2b_bucket_summary,
         source_totals,
     )
 
