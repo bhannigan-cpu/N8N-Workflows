@@ -55,6 +55,8 @@ Member Monday generated **$11,116.60** in participating SKU sales versus a recen
 
 The investment story is not purely "deeper discount equals better lift." Mid- and higher-discount buckets both produced wins, but SKU relevance and baseline demand materially shaped outcomes. This is a useful supplier message: Member Monday works best when suppliers fund a compelling offer **and** nominate SKUs with enough demand signal to convert loyalty traffic.
 
+The chart above splits each B2C discount bucket into two groups: SKUs with no incremental B2B discount and SKUs where B2B was at least 5 percentage points deeper than the B2C discount. This makes it easier to show suppliers how extra B2B support performed inside each B2C discount level.
+
 ![Supplier lift vs investment](charts/supplier_lift_vs_investment.png)
 
 ## Supplier-level insights
@@ -108,5 +110,6 @@ The investment story is not purely "deeper discount equals better lift." Mid- an
 - `class_summary.csv`: class-level performance and investment metrics.
 - `supplier_summary.csv`: supplier-level performance and investment metrics.
 - `discount_bucket_summary.csv`: lift by supplier discount-investment bucket.
+- `b2b_discount_bucket_summary.csv`: lift by B2C discount bucket split by B2B discount support.
 - `member_monday_case_study.xlsx`: workbook with all summary tabs.
 - `charts/*.png`: visual assets for supplier-facing materials.
