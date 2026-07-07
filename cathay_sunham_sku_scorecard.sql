@@ -31,13 +31,26 @@ WITH sku_spine AS (
   ])
 ),
 
+target_retail_keys AS (
+  SELECT DISTINCT
+    k.SuID,
+    k.PrSKU,
+    sku.skuid,
+    su.supplierkey
+  FROM sku_spine k
+  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` sku
+    ON sku.SKUName = k.PrSKU
+  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` su
+    ON su.origsuid = k.SuID
+),
+
 -------------------------------------------------------------------------------
 -- 1. WHOLESALE REVENUE -- uses retail_dim_supplier instead of tbl_supplier_part
 -------------------------------------------------------------------------------
 revenue AS (
   SELECT
-    su.origsuid AS SuID,
-    UPPER(sku.SKUName) AS PrSKU,
+    k.SuID,
+    k.PrSKU,
 
     -- Current year month
     SUM(CASE WHEN a.OrderDate BETWEEN CY_START AND CY_END
@@ -57,13 +70,9 @@ revenue AS (
     SUM(CASE WHEN a.OrderDate BETWEEN PM_START AND PM_END
              THEN a.grossrevenuestable   END) AS PM_GRS
   FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost` a
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` sku
-    ON a.skuid = sku.skuid
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` su
-    ON a.supplierkey = su.supplierkey
-  JOIN (SELECT DISTINCT SuID, PrSKU FROM sku_spine) k
-    ON su.origsuid = k.SuID
-   AND UPPER(sku.SKUName) = k.PrSKU
+  JOIN target_retail_keys k
+    ON a.skuid = k.skuid
+   AND a.supplierkey = k.supplierkey
   WHERE a.SoID = 49
     AND (
       a.OrderDate BETWEEN CY_START AND CY_END
@@ -78,8 +87,8 @@ revenue AS (
 -------------------------------------------------------------------------------
 visits AS (
   SELECT
-    su.origsuid AS SuID,
-    UPPER(sku.SKUName) AS PrSKU,
+    k.SuID,
+    k.PrSKU,
 
     -- Current year month
     SUM(CASE WHEN v.VisitDate BETWEEN CY_START AND CY_END
@@ -99,13 +108,9 @@ visits AS (
     SUM(CASE WHEN v.VisitDate BETWEEN PM_START AND PM_END
              THEN v.skuconverted END) AS PM_SkuConverted
   FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_sku_visit` v
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` sku
-    ON v.skuid = sku.skuid
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` su
-    ON v.supplierkey = su.supplierkey
-  JOIN (SELECT DISTINCT SuID, PrSKU FROM sku_spine) k
-    ON su.origsuid = k.SuID
-   AND UPPER(sku.SKUName) = k.PrSKU
+  JOIN target_retail_keys k
+    ON v.skuid = k.skuid
+   AND v.supplierkey = k.supplierkey
   WHERE v.SoID = 49
     AND (
       v.VisitDate BETWEEN CY_START AND CY_END
@@ -120,8 +125,8 @@ visits AS (
 -------------------------------------------------------------------------------
 availability AS (
   SELECT
-    a.ParentSuID AS SuID,
-    UPPER(a.SKU) AS PrSKU,
+    k.SuID,
+    k.PrSKU,
 
     -- Current year month
     SUM(CASE WHEN a.Date BETWEEN CY_START AND CY_END AND a.ProgramID = 0
@@ -143,7 +148,7 @@ availability AS (
   FROM `wf-gcp-us-ae-gat-prod.analyticstech_reporting.tbl_fact_availability_waterfall_lost_sales_distribution_SKU_Store_reporting` a
   JOIN (SELECT DISTINCT SuID, PrSKU FROM sku_spine) k
     ON a.ParentSuID = k.SuID
-   AND UPPER(a.SKU) = k.PrSKU
+   AND a.SKU = k.PrSKU
   WHERE a.SoID = 49
     AND (
       a.Date BETWEEN CY_START AND CY_END
@@ -158,8 +163,8 @@ availability AS (
 -------------------------------------------------------------------------------
 wsi AS (
   SELECT
-    a.Supplier_ID AS SuID,
-    UPPER(a.SKU) AS PrSKU,
+    k.SuID,
+    k.PrSKU,
 
     -- Current year month
     SUM(CASE WHEN a.InsertDate BETWEEN CY_START AND CY_END
@@ -181,7 +186,7 @@ wsi AS (
   FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_indices_metrics_combined` a
   JOIN (SELECT DISTINCT SuID, PrSKU FROM sku_spine) k
     ON a.Supplier_ID = k.SuID
-   AND UPPER(a.SKU) = k.PrSKU
+   AND a.SKU = k.PrSKU
   WHERE a.BrandCatalog_ID = 1
     AND (
       a.InsertDate BETWEEN CY_START AND CY_END
@@ -194,27 +199,59 @@ wsi AS (
 -------------------------------------------------------------------------------
 -- 5+6. TAG COVERAGE + IMAGE COVERAGE -- point-in-time
 -------------------------------------------------------------------------------
-catalog_metrics AS (
+catalog_base AS (
   SELECT
     k.SuID,
-    UPPER(t.prsku) AS PrSKU,
-    SUM(CASE WHEN st.stagstprid = 0 AND st.complete = 1 THEN 1 END) AS ReqTag_Num,
-    SUM(CASE WHEN st.stagstprid = 0 THEN 1 END)                     AS ReqTag_Denom,
-    SUM(CASE WHEN oc.isimagerycoverageeligible = 1 AND oc.ocisimagerycovered = 1
-             THEN 1 END) AS ImgCov_Num,
-    SUM(CASE WHEN oc.isimagerycoverageeligible = 1
-             THEN 1 END) AS ImgCov_Denom
+    k.PrSKU,
+    t.schematag,
+    t.optioncombination
   FROM `wf-gcp-us-ae-merch-prod.bi_merch_reporting.tbl_catalog_content_sku_date_bclg` t
   JOIN (SELECT DISTINCT SuID, PrSKU FROM sku_spine) k
-    ON UPPER(t.prsku) = k.PrSKU
-  LEFT JOIN UNNEST(t.schematag) AS st
-  LEFT JOIN UNNEST(t.optioncombination) AS oc
-  LEFT JOIN UNNEST(t.supplierpart) AS sp_cat
+    ON t.prsku = k.PrSKU
   WHERE t.currentperiod = 1
     AND t.isskuactiveandbclgassociationactive = 1
     AND t.bclgid = 1
-    AND sp_cat.supplierid = k.SuID
+    AND EXISTS (
+      SELECT 1
+      FROM UNNEST(t.supplierpart) AS sp_cat
+      WHERE sp_cat.supplierid = k.SuID
+    )
+),
+
+tag_metrics AS (
+  SELECT
+    SuID,
+    PrSKU,
+    COUNTIF(st.stagstprid = 0 AND st.complete = 1) AS ReqTag_Num,
+    COUNTIF(st.stagstprid = 0) AS ReqTag_Denom
+  FROM catalog_base
+  LEFT JOIN UNNEST(schematag) AS st
   GROUP BY 1, 2
+),
+
+image_metrics AS (
+  SELECT
+    SuID,
+    PrSKU,
+    COUNTIF(oc.isimagerycoverageeligible = 1 AND oc.ocisimagerycovered = 1) AS ImgCov_Num,
+    COUNTIF(oc.isimagerycoverageeligible = 1) AS ImgCov_Denom
+  FROM catalog_base
+  LEFT JOIN UNNEST(optioncombination) AS oc
+  GROUP BY 1, 2
+),
+
+catalog_metrics AS (
+  SELECT
+    COALESCE(t.SuID, i.SuID) AS SuID,
+    COALESCE(t.PrSKU, i.PrSKU) AS PrSKU,
+    t.ReqTag_Num,
+    t.ReqTag_Denom,
+    i.ImgCov_Num,
+    i.ImgCov_Denom
+  FROM tag_metrics t
+  FULL OUTER JOIN image_metrics i
+    ON t.SuID = i.SuID
+   AND t.PrSKU = i.PrSKU
 ),
 
 -------------------------------------------------------------------------------
