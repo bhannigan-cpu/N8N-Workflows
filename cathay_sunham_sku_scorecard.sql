@@ -369,106 +369,110 @@ assembled AS (
 )
 
 SELECT
-  SupplierName,
-  SuID,
-  TrafficConversionSegment,
-  PrSKU,
+  FORMAT_DATE('%B %Y', CY_START) AS `Scorecard Month`,
+  SupplierName AS `Supplier`,
+  SuID AS `Supplier ID`,
+  PrSKU AS `SKU`,
+  TrafficConversionSegment AS `Traffic / Conversion Segment`,
+  ROW_NUMBER() OVER (
+    PARTITION BY SupplierName
+    ORDER BY WholesaleRevenue DESC NULLS LAST
+  ) AS `Supplier Revenue Rank`,
+
+  -- At-a-glance readout
+  CASE
+    WHEN ConversionRate IS NULL THEN 'No conversion data'
+    WHEN ConversionRate < 0.008 AND Availability < 0.80 THEN 'Fix conversion and availability'
+    WHEN ConversionRate < 0.008 AND SkuVisits > PY_SkuVisits THEN 'High traffic; fix conversion'
+    WHEN ConversionRate < 0.008 THEN 'Build traffic and fix conversion'
+    WHEN Availability < 0.80 THEN 'Fix availability'
+    WHEN ReqTagCoverage < 0.90 OR ImageCoverage < 1.0 THEN 'Improve catalog content'
+    ELSE 'Monitor'
+  END AS `Recommended Focus`,
+  CASE WHEN ConversionRate >= 0.008 THEN 'Above Target'
+       WHEN ConversionRate IS NULL THEN 'No Data'
+       ELSE 'Below Target' END AS `Conversion vs 0.8% Target`,
+  CASE WHEN Availability >= 0.80 THEN 'Above Target'
+       WHEN Availability IS NULL THEN 'No Data'
+       ELSE 'Below Target' END AS `Availability vs 80% Target`,
+  CASE WHEN ReqTagCoverage >= 0.90 THEN 'Above Target'
+       WHEN ReqTagCoverage IS NULL THEN 'No Data'
+       ELSE 'Below Target' END AS `Required Tags vs 90% Target`,
+  CASE WHEN ImageCoverage >= 1.0 THEN 'At/Above Target'
+       WHEN ImageCoverage IS NULL THEN 'No Data'
+       ELSE 'Below Target' END AS `Image Coverage vs 100% Target`,
 
   -- Revenue
-  CONCAT('$', FORMAT("%.2f", ROUND(WholesaleRevenue, 2)))      AS Wholesale_Revenue,
-  FORMAT("%.2f%%", ROUND(Pct_of_Sales * 100, 2))              AS Pct_of_Sales,
-  CONCAT('$', FORMAT("%.2f", ROUND(PY_WholesaleRevenue, 2)))  AS PY_Wholesale_Revenue,
-  FORMAT("%.2f%%", ROUND(WholesaleRevenue_YoY_Pct * 100, 2))  AS Wholesale_Revenue_YoY_Pct,
-  FORMAT("%.2f%%", ROUND(WholesaleRevenue_MoM_Pct * 100, 2))  AS Wholesale_Revenue_MoM_Pct,
-
-  -- Availability
-  FORMAT("%.2f%%", ROUND(Availability * 100, 2))              AS Availability_Pct,
-  CASE WHEN Availability >= 0.80 THEN 'Above Target'
-       WHEN Availability IS NULL THEN NULL
-       ELSE 'Below Target' END                                AS Availability_vs_Target_80,
-  FORMAT("%.2f%%", ROUND(PY_Availability * 100, 2))           AS PY_Availability_Pct,
-  FORMAT("%.2f%%", ROUND((Availability - PY_Availability) * 100, 2))
-                                                                AS Availability_YoY_PP_Change,
-  FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(Availability - PY_Availability,
-                                     PY_Availability) * 100, 2))
-                                                                AS Availability_YoY_Pct,
-  FORMAT("%.2f%%", ROUND((Availability - PM_Availability) * 100, 2))
-                                                                AS Availability_MoM_PP_Change,
-  FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(Availability - PM_Availability,
-                                     PM_Availability) * 100, 2))
-                                                                AS Availability_MoM_Pct,
+  CONCAT('$', FORMAT("%.2f", ROUND(WholesaleRevenue, 2))) AS `Wholesale Revenue`,
+  IFNULL(FORMAT("%.2f%%", ROUND(Pct_of_Sales * 100, 2)), 'N/A') AS `% of Sales`,
+  CONCAT('$', FORMAT("%.2f", ROUND(PY_WholesaleRevenue, 2))) AS `PY Wholesale Revenue`,
+  IFNULL(FORMAT("%.2f%%", ROUND(WholesaleRevenue_YoY_Pct * 100, 2)), 'N/A') AS `Wholesale Revenue YoY`,
+  IFNULL(FORMAT("%.2f%%", ROUND(WholesaleRevenue_MoM_Pct * 100, 2)), 'N/A') AS `Wholesale Revenue MoM`,
 
   -- Conversion
-  FORMAT("%.2f%%", ROUND(ConversionRate * 100, 2))            AS SKU_Conversion_Rate_Pct,
-  CASE WHEN ConversionRate >= 0.008 THEN 'Above Target'
-       WHEN ConversionRate IS NULL THEN NULL
-       ELSE 'Below Target' END                                AS Conversion_vs_Target_0_8,
-  FORMAT("%.2f%%", ROUND(PY_ConversionRate * 100, 2))         AS PY_SKU_Conversion_Rate_Pct,
-  FORMAT("%.2f bps", ROUND((ConversionRate - PY_ConversionRate) * 10000, 2))
-                                                                AS Conversion_YoY_BPS_Change,
-  FORMAT("%.2f bps", ROUND((ConversionRate - PM_ConversionRate) * 10000, 2))
-                                                                AS Conversion_MoM_BPS_Change,
+  IFNULL(FORMAT("%.2f%%", ROUND(ConversionRate * 100, 2)), 'N/A') AS `SKU Conversion Rate`,
+  IFNULL(FORMAT("%.2f%%", ROUND(PY_ConversionRate * 100, 2)), 'N/A') AS `PY SKU Conversion Rate`,
+  IFNULL(FORMAT("%.2f bps", ROUND((ConversionRate - PY_ConversionRate) * 10000, 2)), 'N/A') AS `Conversion YoY Change`,
+  IFNULL(FORMAT("%.2f bps", ROUND((ConversionRate - PM_ConversionRate) * 10000, 2)), 'N/A') AS `Conversion MoM Change`,
 
   -- Visits
-  SkuVisits                                                   AS SKU_Visit_Count,
-  PY_SkuVisits                                                AS PY_SKU_Visit_Count,
-  PM_SkuVisits                                                AS PM_SKU_Visit_Count,
-  FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(SkuVisits - PY_SkuVisits,
-                                     PY_SkuVisits) * 100, 2))
-                                                                AS SKU_Visits_YoY_Pct,
-  FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(SkuVisits - PM_SkuVisits,
-                                     PM_SkuVisits) * 100, 2))
-                                                                AS SKU_Visits_MoM_Pct,
+  SkuVisits AS `SKU Visits`,
+  PY_SkuVisits AS `PY SKU Visits`,
+  PM_SkuVisits AS `PM SKU Visits`,
+  IFNULL(FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(SkuVisits - PY_SkuVisits, PY_SkuVisits) * 100, 2)), 'N/A') AS `SKU Visits YoY`,
+  IFNULL(FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(SkuVisits - PM_SkuVisits, PM_SkuVisits) * 100, 2)), 'N/A') AS `SKU Visits MoM`,
   CASE WHEN SkuVisits > PY_SkuVisits  THEN 'Improved'
        WHEN SkuVisits < PY_SkuVisits  THEN 'Declined'
        WHEN SkuVisits = PY_SkuVisits  THEN 'Flat'
-       ELSE NULL END                                          AS SKU_Visits_YoY_Trend,
+       ELSE 'No Data' END AS `SKU Visits YoY Trend`,
   CASE WHEN SkuVisits > PM_SkuVisits  THEN 'Improved'
        WHEN SkuVisits < PM_SkuVisits  THEN 'Declined'
        WHEN SkuVisits = PM_SkuVisits  THEN 'Flat'
-       ELSE NULL END                                          AS SKU_Visits_MoM_Trend,
+       ELSE 'No Data' END AS `SKU Visits MoM Trend`,
 
-  -- Catalog metrics
-  FORMAT("%.2f%%", ROUND(ReqTagCoverage * 100, 2))            AS Req_Tag_Coverage_Pct,
-  CASE WHEN ReqTagCoverage >= 0.90 THEN 'Above Target'
-       WHEN ReqTagCoverage IS NULL THEN NULL
-       ELSE 'Below Target' END                                AS Req_Tag_vs_Target_90,
+  -- Availability
+  IFNULL(FORMAT("%.2f%%", ROUND(Availability * 100, 2)), 'N/A') AS `Availability`,
+  IFNULL(FORMAT("%.2f%%", ROUND(PY_Availability * 100, 2)), 'N/A') AS `PY Availability`,
+  IFNULL(FORMAT("%.2f pp", ROUND((Availability - PY_Availability) * 100, 2)), 'N/A') AS `Availability YoY Change`,
+  IFNULL(FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(Availability - PY_Availability, PY_Availability) * 100, 2)), 'N/A') AS `Availability YoY`,
+  IFNULL(FORMAT("%.2f pp", ROUND((Availability - PM_Availability) * 100, 2)), 'N/A') AS `Availability MoM Change`,
+  IFNULL(FORMAT("%.2f%%", ROUND(SAFE_DIVIDE(Availability - PM_Availability, PM_Availability) * 100, 2)), 'N/A') AS `Availability MoM`,
 
-  FORMAT("%.2f%%", ROUND(ImageCoverage * 100, 2))             AS Image_Coverage_Pct,
-  CASE WHEN ImageCoverage >= 1.0 THEN 'At/Above Target'
-       WHEN ImageCoverage IS NULL THEN NULL
-       ELSE 'Below Target' END                                AS Image_Coverage_vs_Target_100,
+  -- Catalog content
+  IFNULL(FORMAT("%.2f%%", ROUND(ReqTagCoverage * 100, 2)), 'N/A') AS `Required Tag Coverage`,
+  IFNULL(FORMAT("%.2f%%", ROUND(ImageCoverage * 100, 2)), 'N/A') AS `Image Coverage`,
 
-  -- Incidence Rate
-  FORMAT("%.2f%%", ROUND(IncidenceRate * 100, 2))             AS Incidence_Rate_Pct,
+  -- Supplier-level operations metrics
+  IFNULL(FORMAT("%.2f%%", ROUND(IncidenceRate * 100, 2)), 'N/A') AS `Incidence Rate`,
   CASE WHEN IncidenceRate <= 0.05 THEN 'At/Under Target'
-       WHEN IncidenceRate IS NULL THEN NULL
-       ELSE 'Above Target' END                                AS Incidence_Rate_vs_Target_5,
-  FORMAT("%.2f%%", ROUND((IncidenceRate - PM_IncidenceRate) * 100, 2))
-                                                                AS Incidence_Rate_MoM_PP_Change,
-
-  -- GIE
-  FORMAT("%.2f%%", ROUND(GIE_Pct_of_WSCNR * 100, 2))
-                                                                AS Gross_Incidence_Exposure_Pct_of_WSCNR,
+       WHEN IncidenceRate IS NULL THEN 'No Data'
+       ELSE 'Above Target' END AS `Incidence Rate vs 5% Target`,
+  IFNULL(FORMAT("%.2f pp", ROUND((IncidenceRate - PM_IncidenceRate) * 100, 2)), 'N/A') AS `Incidence Rate MoM Change`,
+  IFNULL(FORMAT("%.2f%%", ROUND(GIE_Pct_of_WSCNR * 100, 2)), 'N/A') AS `Gross Incidence Exposure % of WSCNR`,
   CASE WHEN GIE_Pct_of_WSCNR <= 0.05 THEN 'At/Under Target'
-       WHEN GIE_Pct_of_WSCNR IS NULL THEN NULL
-       ELSE 'Above Target' END                                AS GIE_vs_Target_5,
-  FORMAT("%.2f%%", ROUND((GIE_Pct_of_WSCNR - PM_GIE_Pct_of_WSCNR) * 100, 2))
-                                                                AS Gross_Incidence_Exposure_Pct_of_WSCNR_MoM_PP_Change,
+       WHEN GIE_Pct_of_WSCNR IS NULL THEN 'No Data'
+       ELSE 'Above Target' END AS `GIE vs 5% Target`,
+  IFNULL(FORMAT("%.2f pp", ROUND((GIE_Pct_of_WSCNR - PM_GIE_Pct_of_WSCNR) * 100, 2)), 'N/A') AS `GIE MoM Change`,
 
   -- WSI
-  ROUND(ItemLevel_WSI, 2)                                     AS Item_Level_WSI,
-  ROUND(PY_ItemLevel_WSI, 2)                                  AS PY_Item_Level_WSI,
-  ROUND(ItemLevel_WSI - PY_ItemLevel_WSI, 2)                  AS WSI_YoY_Change,
-  ROUND(ItemLevel_WSI - PM_ItemLevel_WSI, 2)                  AS WSI_MoM_Change,
+  IFNULL(CAST(ROUND(ItemLevel_WSI, 2) AS STRING), 'N/A') AS `Item-Level WSI`,
+  IFNULL(CAST(ROUND(PY_ItemLevel_WSI, 2) AS STRING), 'N/A') AS `PY Item-Level WSI`,
+  IFNULL(CAST(ROUND(ItemLevel_WSI - PY_ItemLevel_WSI, 2) AS STRING), 'N/A') AS `WSI YoY Change`,
+  IFNULL(CAST(ROUND(ItemLevel_WSI - PM_ItemLevel_WSI, 2) AS STRING), 'N/A') AS `WSI MoM Change`,
   CASE WHEN ItemLevel_WSI > PY_ItemLevel_WSI  THEN 'Improved'
        WHEN ItemLevel_WSI < PY_ItemLevel_WSI  THEN 'Declined'
        WHEN ItemLevel_WSI = PY_ItemLevel_WSI  THEN 'Flat'
-       ELSE NULL END                                          AS WSI_YoY_Trend,
+       ELSE 'No Data' END AS `WSI YoY Trend`,
   CASE WHEN ItemLevel_WSI > PM_ItemLevel_WSI  THEN 'Improved'
        WHEN ItemLevel_WSI < PM_ItemLevel_WSI  THEN 'Declined'
        WHEN ItemLevel_WSI = PM_ItemLevel_WSI  THEN 'Flat'
-       ELSE NULL END                                          AS WSI_MoM_Trend
+       ELSE 'No Data' END AS `WSI MoM Trend`
 
 FROM assembled
-ORDER BY SupplierName, TrafficConversionSegment, WholesaleRevenue DESC NULLS LAST;
+ORDER BY
+  SupplierName,
+  CASE TrafficConversionSegment
+    WHEN 'Strong traffic, low conversion' THEN 1
+    ELSE 2
+  END,
+  WholesaleRevenue DESC NULLS LAST;
