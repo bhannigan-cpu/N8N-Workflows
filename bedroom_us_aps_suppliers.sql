@@ -5,15 +5,15 @@ WITH bedroom_suppliers AS (
     suname,
     SupplierMarketingCategory,
     CASE
-      WHEN SupplierMarketingCategory LIKE 'US %' THEN 'US'
-      WHEN SupplierMarketingCategory LIKE 'APS %' THEN 'APS'
+      WHEN REGEXP_CONTAINS(UPPER(SupplierMarketingCategory), r'(^|[^A-Z])US([^A-Z]|$)') THEN 'US'
+      WHEN REGEXP_CONTAINS(UPPER(SupplierMarketingCategory), r'(^|[^A-Z])APS([^A-Z]|$)') THEN 'APS'
     END AS supplier_group
   FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_Supplier_Tiering_Consolidation_CM`
   WHERE SupplierStatus = 'Active'
     AND SupplierMarketingCategory LIKE '%Bedroom%'
     AND (
-      SupplierMarketingCategory LIKE 'US %'
-      OR SupplierMarketingCategory LIKE 'APS %'
+      REGEXP_CONTAINS(UPPER(SupplierMarketingCategory), r'(^|[^A-Z])US([^A-Z]|$)')
+      OR REGEXP_CONTAINS(UPPER(SupplierMarketingCategory), r'(^|[^A-Z])APS([^A-Z]|$)')
     )
 )
 
