@@ -2,11 +2,11 @@
 
 ## Executive takeaway
 
-Member Monday generated **$124,455.00** in participating SKU sales versus a recent non-promo daily average of **$97,551.63**, creating **$26,903.37 in incremental sales** and a **27.6% weighted lift**. The event gives suppliers a practical proof point that loyalty-led traffic can move bedding-category demand when promotion depth is paired with the right SKU selection.
+Member Monday generated **$120,149.08** in participating SKU sales versus a recent non-promo daily average of **$97,553.26**, creating **$22,595.82 in incremental sales** and a **23.2% weighted lift**. The event gives suppliers a practical proof point that loyalty-led traffic can move bedding-category demand when promotion depth is paired with the right SKU selection.
 
 **Important reading note:** the source file compares a one-day Member Monday result to each SKU's recent non-promo daily average. I treat the `Discount` field as the supplier promotional investment level and calculate portfolio lift as `(Member Monday Sales - L10 Non Promo Daily Avg) / L10 Non Promo Daily Avg`.
 
-**Data QA note:** The headline uses the PDF's displayed total. The visible SKU-detail rows sum to $97,553.26 baseline sales and $120,149.08 Member Monday sales, versus the PDF total of $97,551.63 and $124,455.00. Class, supplier, and discount-bucket summaries are based on the visible SKU-detail rows.
+**Data QA note:** The headline and summaries use the confirmed visible SKU-detail totals: $97,553.26 baseline sales and $120,149.08 Member Monday sales. The PDF displayed total showed $97,551.63 baseline and $124,455.00 Member Monday sales, but the detail-row total is the confirmed total.
 
 ## Metric definitions
 
@@ -17,8 +17,8 @@ Member Monday generated **$124,455.00** in participating SKU sales versus a rece
 
 ## What changed on Member Monday
 
-- **Overall lift:** 27.6% on $124,455.00 in Member Monday sales.
-- **Incremental sales:** $26,903.37 above the recent non-promo daily average.
+- **Overall lift:** 23.2% on $120,149.08 in Member Monday sales.
+- **Incremental sales:** $22,595.82 above the recent non-promo daily average.
 - **Participation breadth:** 911 of 2504 participating SKUs recorded Member Monday sales; 719 SKUs generated positive incremental dollars.
 - **Weighted supplier investment:** 17.8% average `Discount` rate, weighted by the recent non-promo daily average.
 - **Best class by lift:** Accent Pillows at 56.9% weighted lift.
@@ -108,7 +108,7 @@ The investment story is not purely "deeper discount equals better lift." Mid- an
 
 ## Recommended supplier-facing message
 
-> Member Monday created measurable incremental demand in the bedding category. Across participating SKUs, the event lifted sales **27.6%** above recent non-promo daily averages. The strongest results came when suppliers paired meaningful discount funding with SKUs that already had enough customer demand to convert loyalty traffic. For the next event, we should use this case study to ask suppliers for targeted funding on proven SKUs, then expand selectively into similar items/classes.
+> Member Monday created measurable incremental demand in the bedding category. Across participating SKUs, the event lifted sales **23.2%** above recent non-promo daily averages. The strongest results came when suppliers paired meaningful discount funding with SKUs that already had enough customer demand to convert loyalty traffic. For the next event, we should use this case study to ask suppliers for targeted funding on proven SKUs, then expand selectively into similar items/classes.
 
 ## Files generated
 

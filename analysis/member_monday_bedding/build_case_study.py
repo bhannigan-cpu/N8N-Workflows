@@ -24,6 +24,7 @@ DEFAULT_PDF = Path(
 )
 OUTPUT_DIR = Path("/workspace/analysis/member_monday_bedding/output")
 CATEGORY_NAME = "Bedding"
+USE_PDF_DISPLAYED_TOTAL_FOR_HEADLINE = False
 
 SUPPLIER_INFO = {
     "107502": ("QKXB INC", "Asia Supplier Service Desk"),
@@ -633,7 +634,7 @@ def write_report(
 ) -> None:
     extracted_baseline = float(sku_df["l10_non_promo_daily_avg"].sum())
     extracted_sales = float(sku_df["member_monday_sales"].sum())
-    if source_totals:
+    if source_totals and USE_PDF_DISPLAYED_TOTAL_FOR_HEADLINE:
         baseline = source_totals["l10_non_promo_daily_avg"]
         sales = source_totals["member_monday_sales"]
         lift = source_totals["weighted_lift_pct"]
@@ -644,7 +645,16 @@ def write_report(
     incremental = sales - baseline
     baseline_delta = abs(extracted_baseline - baseline)
     sales_delta = abs(extracted_sales - sales)
-    if baseline_delta < 1 and sales_delta < 1:
+    if source_totals and not USE_PDF_DISPLAYED_TOTAL_FOR_HEADLINE:
+        qa_note = (
+            "The headline and summaries use the confirmed visible SKU-detail "
+            f"totals: {fmt_currency_2(extracted_baseline)} baseline sales and "
+            f"{fmt_currency_2(extracted_sales)} Member Monday sales. The PDF "
+            f"displayed total showed {fmt_currency_2(source_totals['l10_non_promo_daily_avg'])} "
+            f"baseline and {fmt_currency_2(source_totals['member_monday_sales'])} "
+            "Member Monday sales, but the detail-row total is the confirmed total."
+        )
+    elif baseline_delta < 1 and sales_delta < 1:
         qa_note = (
             "The cleaned SKU-detail reconstruction ties to the PDF total within "
             f"{fmt_currency_2(baseline_delta)} on the baseline and "
