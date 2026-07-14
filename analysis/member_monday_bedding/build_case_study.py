@@ -24,7 +24,7 @@ DEFAULT_PDF = Path(
 )
 OUTPUT_DIR = Path("/workspace/analysis/member_monday_bedding/output")
 CATEGORY_NAME = "Bedding"
-USE_PDF_DISPLAYED_TOTAL_FOR_HEADLINE = False
+USE_PDF_DISPLAYED_TOTAL_FOR_HEADLINE = True
 
 SUPPLIER_INFO = {
     "107502": ("QKXB INC", "Asia Supplier Service Desk"),
@@ -662,12 +662,12 @@ def write_report(
         )
     else:
         qa_note = (
-            "The headline uses the PDF's displayed total. The visible SKU-detail "
-            f"rows sum to {fmt_currency_2(extracted_baseline)} baseline sales and "
-            f"{fmt_currency_2(extracted_sales)} Member Monday sales, versus the PDF "
-            f"total of {fmt_currency_2(baseline)} and {fmt_currency_2(sales)}. "
-            "Class, supplier, and discount-bucket summaries are based on the "
-            "visible SKU-detail rows."
+            "The headline uses the full Bedding event total from the source file: "
+            f"{fmt_currency_2(baseline)} baseline sales and {fmt_currency_2(sales)} "
+            "Member Monday sales. The class, supplier, and discount-bucket "
+            "summaries use the post-cleanup visible SKU-detail rows, which sum to "
+            f"{fmt_currency_2(extracted_baseline)} baseline sales and "
+            f"{fmt_currency_2(extracted_sales)} Member Monday sales."
         )
     active_skus = int(sku_df.loc[sku_df["active_on_member_monday"], "sku"].nunique())
     positive_skus = int(sku_df.loc[sku_df["positive_lift"], "sku"].nunique())
