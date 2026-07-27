@@ -319,75 +319,66 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
         & supplier_summary["weighted_discount_pct"].notna()
         & supplier_summary["weighted_lift_pct"].notna()
     ].copy()
-    plot_df = plot_df.sort_values("incremental_sales", ascending=True).tail(12)
+    plot_df = plot_df.sort_values("member_monday_sales", ascending=False).head(14)
     plot_df["lift_pct"] = plot_df["weighted_lift_pct"] * 100
     plot_df["discount_pct"] = plot_df["weighted_discount_pct"] * 100
-    plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=150)
+    plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=200)
     plot_df["display_name"] = plot_df["supplier_name"].map(
-        lambda name: name if len(name) <= 32 else name[:29] + "..."
+        lambda name: name if len(name) <= 20 else name[:17] + "..."
     )
 
-    colors = [
-        "#16a163" if value > 0 else "#c84c4c" if value < 0 else "#9aa6b2"
-        for value in plot_df["incremental_sales"]
-    ]
-    y_positions = range(len(plot_df))
     fig, ax = plt.subplots(figsize=(11, 7))
-    ax.barh(
-        list(y_positions),
-        plot_df["display_lift_pct"],
-        color=colors,
-        alpha=0.82,
-        label="Weighted lift %",
-    )
-    ax.scatter(
-        plot_df["discount_pct"],
-        list(y_positions),
-        marker="D",
-        s=70,
-        color="#0b1f44",
-        label="Weighted discount %",
-        zorder=3,
-    )
-    ax.axvline(0, color="#59636e", linewidth=1)
-    ax.set_yticks(list(y_positions), plot_df["display_name"])
-    ax.set_xlabel("Percent")
-    ax.set_title("Supplier lift vs. promotional investment - readable view")
+    ax.axhline(0, color="#59636e", linewidth=1)
+    ax.grid(True, axis="both", alpha=0.25)
+    ax.set_xlabel("Weighted discount %")
+    ax.set_ylabel("Weighted lift %")
+    ax.set_title("Supplier lift vs. promotional investment")
     ax.xaxis.set_major_formatter(lambda x, _pos: f"{x:.0f}%")
-    ax.set_xlim(-115, 165)
-    ax.legend(loc="lower right")
+    ax.yaxis.set_major_formatter(lambda y, _pos: f"{y:.0f}%")
 
-    for idx, row in enumerate(plot_df.itertuples()):
-        lift_label = f"{row.lift_pct:,.0f}%"
-        if row.lift_pct > 150:
-            lift_label += " lift"
-        x_pos = row.display_lift_pct + 3 if row.display_lift_pct >= 0 else row.display_lift_pct - 3
-        ax.text(
-            x_pos,
-            idx,
-            lift_label,
-            ha="left" if row.display_lift_pct >= 0 else "right",
-            va="center",
-            fontsize=8,
+    x_min = max(0, plot_df["discount_pct"].min() - 3)
+    x_max = plot_df["discount_pct"].max() + 4
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(
+        min(-20, plot_df["display_lift_pct"].min() - 20),
+        max(60, plot_df["display_lift_pct"].max() + 30),
+    )
+
+    for row in plot_df.itertuples():
+        facecolor = (
+            "#16a163"
+            if row.incremental_sales > 0
+            else "#c84c4c"
+            if row.incremental_sales < 0
+            else "#9aa6b2"
         )
         ax.text(
             row.discount_pct,
-            idx + 0.24,
-            f"{row.discount_pct:.0f}% disc.",
+            row.display_lift_pct,
+            row.display_name,
             ha="center",
-            va="bottom",
-            fontsize=7,
-            color="#0b1f44",
+            va="center",
+            fontsize=8,
+            color="white",
+            bbox={
+                "boxstyle": "round,pad=0.32",
+                "facecolor": facecolor,
+                "edgecolor": "white",
+                "linewidth": 0.8,
+                "alpha": 0.9,
+            },
         )
-    ax.text(
-        150,
-        -0.72,
-        "Bars capped at 150% so low-baseline outliers remain readable",
-        ha="right",
-        va="center",
-        fontsize=8,
-        color="#59636e",
-    )
+    if (plot_df["lift_pct"] != plot_df["display_lift_pct"]).any():
+        ax.text(
+            0.99,
+            0.02,
+            "Lift labels capped at -110% and 200% for readability",
+            ha="right",
+            va="bottom",
+            transform=ax.transAxes,
+            fontsize=8,
+            color="#59636e",
+        )
     fig.tight_layout()
     fig.savefig(out, dpi=180)
     plt.close(fig)
