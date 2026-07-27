@@ -298,6 +298,14 @@ def save_chart_class_sales(class_summary: pd.DataFrame, out: Path) -> None:
 
 
 def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> None:
+    def abbreviate_supplier(name: str) -> str:
+        clean_name = re.sub(r"[^A-Za-z0-9 &]", "", name).strip()
+        words = [word for word in clean_name.split() if word.lower() not in {"inc", "llc", "ltd", "co"}]
+        if not words:
+            return clean_name[:10]
+        candidate = " ".join(words[:2])
+        return candidate if len(candidate) <= 13 else words[0][:13]
+
     plot_df = supplier_summary[
         (
             (supplier_summary["l10_non_promo_daily_avg"] > 0)
@@ -310,9 +318,20 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
     plot_df["lift_pct"] = plot_df["weighted_lift_pct"] * 100
     plot_df["discount_pct"] = plot_df["weighted_discount_pct"] * 100
     plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=200)
-    plot_df["display_name"] = plot_df["supplier_name"].map(
-        lambda name: name if len(name) <= 20 else name[:17] + "..."
-    )
+    plot_df["display_name"] = plot_df["supplier_name"].map(abbreviate_supplier)
+
+    x_min = max(0, plot_df["discount_pct"].min() - 3)
+    x_max = plot_df["discount_pct"].max() + 4
+    bar_width = max(0.45, (x_max - x_min) / 55)
+    plot_df["x_plot"] = plot_df["discount_pct"]
+    for _key, group in plot_df.groupby(plot_df["discount_pct"].round(1)):
+        if len(group) == 1:
+            continue
+        offsets = [
+            (idx - (len(group) - 1) / 2) * bar_width * 0.85
+            for idx in range(len(group))
+        ]
+        plot_df.loc[group.index, "x_plot"] = group["discount_pct"].to_numpy() + offsets
 
     fig, ax = plt.subplots(figsize=(11, 7))
     ax.axhline(0, color="#59636e", linewidth=1)
@@ -323,43 +342,43 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
     ax.xaxis.set_major_formatter(lambda x, _pos: f"{x:.0f}%")
     ax.yaxis.set_major_formatter(lambda y, _pos: f"{y:.0f}%")
 
-    x_min = max(0, plot_df["discount_pct"].min() - 3)
-    x_max = plot_df["discount_pct"].max() + 4
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(
         min(-20, plot_df["display_lift_pct"].min() - 20),
         max(60, plot_df["display_lift_pct"].max() + 30),
     )
 
+    colors = [
+        "#16a163" if value > 0 else "#c84c4c" if value < 0 else "#9aa6b2"
+        for value in plot_df["incremental_sales"]
+    ]
+    ax.bar(
+        plot_df["x_plot"],
+        plot_df["display_lift_pct"],
+        width=bar_width,
+        color=colors,
+        alpha=0.82,
+        edgecolor="white",
+        linewidth=0.7,
+    )
+
     for row in plot_df.itertuples():
-        facecolor = (
-            "#16a163"
-            if row.incremental_sales > 0
-            else "#c84c4c"
-            if row.incremental_sales < 0
-            else "#9aa6b2"
-        )
+        label = f"{row.display_name}\n{row.lift_pct:,.0f}%"
+        label_offset = 7 if row.display_lift_pct >= 0 else -7
         ax.text(
-            row.discount_pct,
-            row.display_lift_pct,
-            row.display_name,
+            row.x_plot,
+            row.display_lift_pct + label_offset,
+            label,
             ha="center",
-            va="center",
-            fontsize=8,
-            color="white",
-            bbox={
-                "boxstyle": "round,pad=0.32",
-                "facecolor": facecolor,
-                "edgecolor": "white",
-                "linewidth": 0.8,
-                "alpha": 0.9,
-            },
+            va="bottom" if row.display_lift_pct >= 0 else "top",
+            fontsize=7,
+            color="#0b1f44",
         )
     if (plot_df["lift_pct"] != plot_df["display_lift_pct"]).any():
         ax.text(
             0.99,
             0.02,
-            "Lift labels capped at -110% and 200% for readability",
+            "Bars capped at -110% and 200% for readability; labels show actual lift",
             ha="right",
             va="bottom",
             transform=ax.transAxes,
