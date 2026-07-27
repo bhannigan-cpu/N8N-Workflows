@@ -330,21 +330,26 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
     plot_df = plot_df.sort_values("member_monday_sales", ascending=False).head(14)
     plot_df["lift_pct"] = plot_df["weighted_lift_pct"] * 100
     plot_df["discount_pct"] = plot_df["weighted_discount_pct"] * 100
-    plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=200)
+    plot_df["display_lift_pct"] = plot_df["lift_pct"].clip(lower=-110, upper=100)
     plot_df["display_name"] = plot_df["supplier_name"].map(abbreviate_supplier)
 
     x_min = max(0, plot_df["discount_pct"].min() - 3)
     x_max = plot_df["discount_pct"].max() + 4
-    bar_width = max(0.45, (x_max - x_min) / 55)
+    bar_width = max(0.35, (x_max - x_min) / 70)
     plot_df["x_plot"] = plot_df["discount_pct"]
-    for _key, group in plot_df.groupby(plot_df["discount_pct"].round(1)):
+    plot_df["label_offset"] = 7
+    cluster_key = (plot_df["discount_pct"] / 1.0).round()
+    for _key, group in plot_df.groupby(cluster_key):
         if len(group) == 1:
             continue
         offsets = [
-            (idx - (len(group) - 1) / 2) * bar_width * 0.85
+            (idx - (len(group) - 1) / 2) * bar_width * 1.45
             for idx in range(len(group))
         ]
         plot_df.loc[group.index, "x_plot"] = group["discount_pct"].to_numpy() + offsets
+        plot_df.loc[group.index, "label_offset"] = [
+            7 + (idx % 3) * 8 for idx in range(len(group))
+        ]
 
     fig, ax = plt.subplots(figsize=(11, 7))
     ax.axhline(0, color="#59636e", linewidth=1)
@@ -377,7 +382,7 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
 
     for row in plot_df.itertuples():
         label = f"{row.display_name}\n{row.lift_pct:,.0f}%"
-        label_offset = 7 if row.display_lift_pct >= 0 else -7
+        label_offset = row.label_offset if row.display_lift_pct >= 0 else -row.label_offset
         ax.text(
             row.x_plot,
             row.display_lift_pct + label_offset,
@@ -391,7 +396,7 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
         ax.text(
             0.99,
             0.02,
-            "Bars capped at -110% and 200% for readability; labels show actual lift",
+            "Bars capped at -110% and 100% for readability; labels show actual lift",
             ha="right",
             va="bottom",
             transform=ax.transAxes,
