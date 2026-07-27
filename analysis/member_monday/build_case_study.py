@@ -350,6 +350,12 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
         plot_df.loc[group.index, "label_offset"] = [
             7 + (idx % 3) * 8 for idx in range(len(group))
         ]
+    negative_cap_labels = {}
+    negative_cap_group = plot_df[plot_df["display_lift_pct"] <= -100].sort_values(
+        "x_plot"
+    )
+    for idx, row_index in enumerate(negative_cap_group.index):
+        negative_cap_labels[row_index] = -126 - idx * 17
 
     fig, ax = plt.subplots(figsize=(11, 7))
     ax.axhline(0, color="#59636e", linewidth=1)
@@ -362,7 +368,11 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
 
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(
-        min(-20, plot_df["display_lift_pct"].min() - 20),
+        min(
+            -20,
+            plot_df["display_lift_pct"].min() - 20,
+            min(negative_cap_labels.values(), default=-20) - 14,
+        ),
         max(60, plot_df["display_lift_pct"].max() + 30),
     )
 
@@ -382,10 +392,23 @@ def save_chart_supplier_scatter(supplier_summary: pd.DataFrame, out: Path) -> No
 
     for row in plot_df.itertuples():
         label = f"{row.display_name}\n{row.lift_pct:,.0f}%"
-        label_offset = row.label_offset if row.display_lift_pct >= 0 else -row.label_offset
+        if row.Index in negative_cap_labels:
+            y_text = negative_cap_labels[row.Index]
+            ax.plot(
+                [row.x_plot, row.x_plot],
+                [row.display_lift_pct - 2, y_text + 4],
+                color="#8a8f98",
+                linewidth=0.7,
+                alpha=0.8,
+            )
+        else:
+            label_offset = (
+                row.label_offset if row.display_lift_pct >= 0 else -row.label_offset
+            )
+            y_text = row.display_lift_pct + label_offset
         ax.text(
             row.x_plot,
-            row.display_lift_pct + label_offset,
+            y_text,
             label,
             ha="center",
             va="bottom" if row.display_lift_pct >= 0 else "top",
