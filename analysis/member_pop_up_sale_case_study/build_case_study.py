@@ -15,7 +15,7 @@ import pandas as pd
 
 DEFAULT_CSV = Path(
     "/home/ubuntu/.cursor/projects/workspace/uploads/"
-    "Member_Pop_Up_Sale_-_Sheet1_a9b3.csv"
+    "Member_Pop_Up_Sale_-_Sheet1__1__a374.csv"
 )
 OUTPUT_DIR = Path("/workspace/analysis/member_pop_up_sale_case_study/output")
 DISCOUNT_BUCKET_LABELS = ["<10%", "10-14.9%", "15-19.9%", "20-24.9%", "25%+"]
