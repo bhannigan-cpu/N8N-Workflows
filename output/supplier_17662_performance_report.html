@@ -2,532 +2,330 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>SKU Performance Review — Supplier 17662</title>
+  <title>SUPPLIER 17662 | JULY TOP 10 SKU SCORECARD</title>
   <style>
-    :root {
-      --navy: #1f4e79;
-      --light-blue: #eaf2f8;
-      --alert: #fff4e5;
-      --critical: #c0392b;
-      --high: #d35400;
-      --medium: #b7950b;
-      --monitor: #1e8449;
-    }
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      color: #222;
-      line-height: 1.45;
       margin: 0;
-      background: #f5f7fa;
+      padding: 24px;
+      background: #eceff3;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
     }
-    .page {
-      max-width: 1100px;
+    .scorecard {
+      width: 1380px;
       margin: 0 auto;
-      background: white;
-      box-shadow: 0 0 24px rgba(0,0,0,0.08);
+      background: #f4f6f8;
+      border: 1px solid #cfd8e3;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
-    .hero, section {
-      padding: 28px 36px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    h1, h2, h3 {
-      color: var(--navy);
-      margin-top: 0;
-    }
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .meta div {
-      background: var(--light-blue);
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .alert {
-      background: var(--alert);
-      border-left: 4px solid #f39c12;
-      padding: 16px 18px;
-      margin-top: 18px;
-      border-radius: 6px;
-    }
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .stat {
-      background: #f8fafc;
-      border: 1px solid #dbe4ee;
-      border-radius: 10px;
-      padding: 16px;
+    .header-bar {
+      background: #173a63;
+      color: #fff;
       text-align: center;
-    }
-    .stat .value {
       font-size: 28px;
       font-weight: 700;
-      color: var(--navy);
-    }
-    .stat .label {
-      font-size: 12px;
-      text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: #555;
-      margin-top: 6px;
+      padding: 18px 24px;
+      text-transform: uppercase;
     }
-    .priority-grid {
+    .subtitle-bar {
+      background: #5d9fd6;
+      color: #fff;
+      text-align: center;
+      font-size: 18px;
+      font-style: italic;
+      padding: 12px 24px;
+    }
+    .summary-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 0;
+      background: #eef2f6;
+      border-bottom: 1px solid #d7dee8;
     }
-    .priority-card {
-      border-radius: 10px;
-      padding: 18px;
-      color: white;
-      text-align: center;
+    .summary-box {
+      padding: 18px 20px 20px;
+      border-right: 1px solid #d7dee8;
+      min-height: 132px;
     }
-    .priority-card.critical { background: var(--critical); }
-    .priority-card.high { background: var(--high); }
-    .priority-card.medium { background: var(--medium); }
-    .priority-card.monitor { background: var(--monitor); }
-    .priority-card .value { font-size: 32px; font-weight: 700; }
+    .summary-box:last-child { border-right: none; }
+    .summary-box .label {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .summary-box .value {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+    .summary-box .detail {
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.35;
+    }
+    .summary-box.warn .label,
+    .summary-box.warn .value { color: #d35400; }
+    .summary-box.alert .label,
+    .summary-box.alert .value { color: #c0392b; }
+    .summary-box.good .label,
+    .summary-box.good .value { color: #1e7e34; }
+    .matrix-title {
+      padding: 18px 24px 10px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #173a63;
+      letter-spacing: 0.02em;
+    }
     table {
-      width: 100%;
+      width: calc(100% - 48px);
+      margin: 0 24px 24px;
       border-collapse: collapse;
-      font-size: 13px;
-      margin-top: 12px;
-    }
-    th, td {
-      border: 1px solid #d9e2ec;
-      padding: 8px 10px;
-      text-align: left;
-      vertical-align: top;
+      background: #fff;
+      font-size: 15px;
     }
     th {
-      background: var(--light-blue);
-      color: #111;
-    }
-    tr:nth-child(even) td { background: #fafbfc; }
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 11px;
+      background: #173a63;
+      color: #fff;
       font-weight: 700;
-      color: white;
+      text-align: center;
+      padding: 12px 10px;
+      border: 1px solid #173a63;
+      font-size: 14px;
+      line-height: 1.2;
     }
-    .badge.critical { background: var(--critical); }
-    .badge.high { background: var(--high); }
-    .badge.medium { background: var(--medium); }
-    .badge.monitor { background: var(--monitor); }
-    ol li { margin-bottom: 10px; }
-    .footer {
-      font-size: 12px;
-      color: #666;
-      padding: 20px 36px 32px;
+    td {
+      border: 1px solid #d7dee8;
+      padding: 11px 10px;
+      vertical-align: middle;
+      text-align: center;
+      background: #fff;
     }
-    .issue-list li {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #edf2f7;
+    td.sku {
+      text-align: left;
+      font-weight: 800;
+      color: #173a63;
+      white-space: nowrap;
+    }
+    td.focus {
+      text-align: left;
+      font-size: 14px;
+      color: #374151;
+    }
+    td.good {
+      background: #d9f2df;
+      color: #166534;
+      font-weight: 700;
+    }
+    td.warn {
+      background: #fff1d6;
+      color: #b45309;
+      font-weight: 700;
+    }
+    td.bad {
+      background: #fde2e1;
+      color: #b42318;
+      font-weight: 700;
+    }
+    td.neutral {
+      background: #f3f4f6;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    td.priority {
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    td.priority.low { background: #1e7e34; }
+    td.priority.medium { background: #c9a000; }
+    td.priority.high { background: #e67e22; }
+    td.priority.critical { background: #c0392b; }
+    .footer-bar {
+      background: #173a63;
+      color: #fff;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.45;
+      padding: 14px 24px;
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <section class="hero">
-      <h1>SKU Performance Review — Supplier 17662</h1>
-      <div class="meta">
-        <div><strong>Current Period</strong><br>July 2026</div>
-        <div><strong>Month-over-Month Comparison</strong><br>July 2026 vs June 2026</div>
-        <div><strong>Year-over-Year Comparison</strong><br>July 2026 vs July 2025</div>
+  <div class="scorecard">
+    <div class="header-bar">SUPPLIER 17662 | JULY TOP 10 SKU SCORECARD</div>
+    <div class="subtitle-bar">Where performance is breaking down—and the specific levers to prioritize by SKU</div>
+
+    <div class="summary-row">
+      <div class="summary-box warn">
+        <div class="label">Conversion Opportunity</div>
+        <div class="value">0 OF 10 SKUs</div>
+        <div class="detail">Below the 0.8% conversion target</div>
       </div>
-      <div class="alert"><strong>⚠ Performance Alert: Action Required</strong><br>1 SKU are showing significant year-over-year revenue declines (>20%), representing $10,323.57 in current revenue at risk. 4 SKUs are below the 80% availability target. 4 SKUs have seen visits decline more than 20% year-over-year.</div>
-      <div class="stat-grid">
-        <div class="stat"><div class="value">1</div><div class="label">Critical Priority SKUs</div></div>
-        <div class="stat"><div class="value">2</div><div class="label">High Priority SKUs</div></div>
-        <div class="stat"><div class="value">4</div><div class="label">Below Availability Target</div></div>
-        <div class="stat"><div class="value">4</div><div class="label">Declining Visits (YoY)</div></div>
-        <div class="stat"><div class="value">0</div><div class="label">Below Conversion Target</div></div>
+      <div class="summary-box alert">
+        <div class="label">Traffic + Sales Pressure</div>
+        <div class="value">3 OF 9</div>
+        <div class="detail">Established SKUs down in both revenue and visits YoY</div>
       </div>
-      <p style="margin-top:18px;"><strong>Report Date:</strong> August 13, 2026 &nbsp;|&nbsp;
-      <strong>Total SKUs Analyzed:</strong> 10 &nbsp;|&nbsp;
-      <strong>Total Wholesale Revenue:</strong> $245,790.88</p>
-    </section>
-
-    <section>
-      <h2>Priority Breakdown</h2>
-      <p>SKUs categorized by severity of performance issues</p>
-      <div class="priority-grid">
-        <div class="priority-card critical"><div class="value">1</div>Critical</div>
-        <div class="priority-card high"><div class="value">2</div>High</div>
-        <div class="priority-card medium"><div class="value">7</div>Medium</div>
-        <div class="priority-card monitor"><div class="value">0</div>Monitor</div>
+      <div class="summary-box good">
+        <div class="label">WSI Is Generally Healthy</div>
+        <div class="value">3 OF 9 SKUs</div>
+        <div class="detail">Have favorable negative WSI</div>
       </div>
-    </section>
+      <div class="summary-box good">
+        <div class="label">What Is Working</div>
+        <div class="value">AVAILABILITY + IMAGES</div>
+        <div class="detail">6/10 SKUs at target availability; 10/10 at 100% image coverage</div>
+      </div>
+    </div>
 
-    <section>
-      <h2>Top Issues Across Your Catalog</h2>
-      <p>Most common performance gaps driving underperformance</p>
-      <ul class="issue-list">
-        <li><span>Required Tag Coverage</span><strong>10 SKUs</strong></li><li><span>Customer Visits (YoY)</span><strong>4 SKUs</strong></li><li><span>Availability</span><strong>4 SKUs</strong></li><li><span>Revenue (YoY)</span><strong>1 SKUs</strong></li>
-      </ul>
-    </section>
+    <div class="matrix-title">SKU-BY-SKU PRIORITY MATRIX</div>
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Revenue<br>(July 2026)</th>
+          <th>Revenue<br>YoY</th>
+          <th>Visits<br>YoY</th>
+          <th>Conversion</th>
+          <th>WSI<br>(negative = good)</th>
+          <th>Incidence<br>Risk</th>
+          <th>Priority</th>
+          <th>Recommended<br>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+            <tr>
+              <td class="sku">GSTL1191</td>
+              <td class="num">$64,139</td>
+              <td class="num good">+47.4%</td>
+              <td class="num good">+12.4%</td>
+              <td class="num good">4.06%</td>
+              <td class="num bad">0.01</td>
+              <td class="num good">On target</td>
+              <td class="priority low">LOW</td>
+              <td class="focus">Monitor</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1192</td>
+              <td class="num">$47,400</td>
+              <td class="num warn">-3.3%</td>
+              <td class="num bad">-28.4%</td>
+              <td class="num good">2.93%</td>
+              <td class="num good">-0.06</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">LATU1040</td>
+              <td class="num">$47,004</td>
+              <td class="num warn">-14.5%</td>
+              <td class="num good">+9.6%</td>
+              <td class="num good">2.81%</td>
+              <td class="num good">-0.08</td>
+              <td class="num good">On target</td>
+              <td class="priority high">HIGH</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">EBND4138</td>
+              <td class="num">$25,070</td>
+              <td class="num good">+68.9%</td>
+              <td class="num good">+80.0%</td>
+              <td class="num good">7.00%</td>
+              <td class="num neutral">0.00</td>
+              <td class="num good">On target</td>
+              <td class="priority low">LOW</td>
+              <td class="focus">Monitor</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1216</td>
+              <td class="num">$15,774</td>
+              <td class="num neutral">—</td>
+              <td class="num good">+8497.3%</td>
+              <td class="num good">1.67%</td>
+              <td class="num neutral">—</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1063</td>
+              <td class="num">$13,568</td>
+              <td class="num good">+26.1%</td>
+              <td class="num good">+43.7%</td>
+              <td class="num good">5.05%</td>
+              <td class="num good">-0.08</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">MBWI1113</td>
+              <td class="num">$10,324</td>
+              <td class="num bad">-42.4%</td>
+              <td class="num bad">-69.2%</td>
+              <td class="num good">3.79%</td>
+              <td class="num bad">0.65</td>
+              <td class="num good">On target</td>
+              <td class="priority critical">CRITICAL</td>
+              <td class="focus">Restore traffic; Recover revenue</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">MBWI1105</td>
+              <td class="num">$8,604</td>
+              <td class="num warn">-15.5%</td>
+              <td class="num bad">-57.0%</td>
+              <td class="num good">10.55%</td>
+              <td class="num bad">0.17</td>
+              <td class="num good">On target</td>
+              <td class="priority high">HIGH</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">LDER3582</td>
+              <td class="num">$6,985</td>
+              <td class="num good">+0.2%</td>
+              <td class="num good">+5.2%</td>
+              <td class="num good">3.46%</td>
+              <td class="num bad">0.10</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">HAFT1131</td>
+              <td class="num">$6,923</td>
+              <td class="num good">+1.4%</td>
+              <td class="num bad">-23.8%</td>
+              <td class="num good">3.28%</td>
+              <td class="num bad">0.22</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+      </tbody>
+    </table>
 
-    <section>
-      <h2>Recommended Actions</h2>
-      <p>Priority improvements to recover revenue and catalog health</p>
-      <ol>
-        <li>Address Availability Gaps — 4 SKUs are below 80% availability. Review inventory levels and fulfillment to prevent lost sales on in-demand products.</li><li>Recover Top Revenue Decliners — Focus on your highest-revenue SKUs with YoY declines. Investigate traffic drops, competitive pricing, and content quality for these products first.</li><li>Reverse Visit Declines — 4 SKUs have lost more than 20% of visits year-over-year. Review pricing competitiveness, imagery, and product visibility for these items.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Top Revenue Decliners</h2>
-      <p>Highest-revenue SKUs with significant year-over-year declines — address these first</p>
-      <table>
-        <thead>
-          <tr>
-            <th>SKU</th><th>Current Revenue</th><th>Prior Year Revenue</th><th>YoY Change</th><th>Key Issues</th>
-          </tr>
-        </thead>
-        <tbody>
-          
-                    <tr>
-                      <td>MBWI1113</td>
-                      <td>$10,323.57</td>
-                      <td>$17,927.90</td>
-                      <td>-42.4%</td>
-                      <td>Customer Visits (YoY) Revenue (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td>MBWI1105</td>
-                      <td>$8,604.31</td>
-                      <td>$10,181.47</td>
-                      <td>-15.5%</td>
-                      <td>Customer Visits (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td>LATU1040</td>
-                      <td>$47,004.25</td>
-                      <td>$54,985.40</td>
-                      <td>-14.5%</td>
-                      <td>Availability Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td>GSTL1192</td>
-                      <td>$47,400.37</td>
-                      <td>$49,009.49</td>
-                      <td>-3.3%</td>
-                      <td>Customer Visits (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Action Priority List</h2>
-      <p>Top 10 SKUs requiring immediate attention, ranked by issue severity</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Priority</th><th>SKU</th><th>Revenue</th><th>YoY</th><th>Avail.</th><th>Conv.</th><th>Issues</th>
-          </tr>
-        </thead>
-        <tbody>
-                    <tr>
-                      <td><span class="badge critical">CRITICAL</span></td>
-                      <td>MBWI1113</td>
-                      <td>$10,323.57</td>
-                      <td>-42.4%</td>
-                      <td>82.45%</td>
-                      <td>3.79%</td>
-                      <td>Customer Visits (YoY) Revenue (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge high">HIGH</span></td>
-                      <td>MBWI1105</td>
-                      <td>$8,604.31</td>
-                      <td>-15.5%</td>
-                      <td>86.20%</td>
-                      <td>10.55%</td>
-                      <td>Customer Visits (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge high">HIGH</span></td>
-                      <td>LATU1040</td>
-                      <td>$47,004.25</td>
-                      <td>-14.5%</td>
-                      <td>71.41%</td>
-                      <td>2.81%</td>
-                      <td>Availability Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1192</td>
-                      <td>$47,400.37</td>
-                      <td>-3.3%</td>
-                      <td>89.42%</td>
-                      <td>2.93%</td>
-                      <td>Customer Visits (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1216</td>
-                      <td>$15,773.62</td>
-                      <td>—</td>
-                      <td>77.52%</td>
-                      <td>1.67%</td>
-                      <td>Availability Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>LDER3582</td>
-                      <td>$6,984.99</td>
-                      <td>0.2%</td>
-                      <td>63.04%</td>
-                      <td>3.46%</td>
-                      <td>Availability Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>HAFT1131</td>
-                      <td>$6,922.89</td>
-                      <td>1.4%</td>
-                      <td>93.46%</td>
-                      <td>3.28%</td>
-                      <td>Customer Visits (YoY) Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1063</td>
-                      <td>$13,568.49</td>
-                      <td>26.1%</td>
-                      <td>76.01%</td>
-                      <td>5.05%</td>
-                      <td>Availability Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1191</td>
-                      <td>$64,138.58</td>
-                      <td>47.4%</td>
-                      <td>86.61%</td>
-                      <td>4.06%</td>
-                      <td>Required Tag Coverage</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>EBND4138</td>
-                      <td>$25,069.81</td>
-                      <td>68.9%</td>
-                      <td>82.98%</td>
-                      <td>7.00%</td>
-                      <td>Required Tag Coverage</td>
-                    </tr>
-                    </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Complete SKU Breakdown</h2>
-      <p>Full catalog performance for July 2026 — all 10 SKUs sorted by revenue</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Priority</th><th>SKU</th><th>Revenue</th><th>% Sales</th><th>Rev YoY</th><th>Rev MoM</th>
-            <th>Avail.</th><th>Conv.</th><th>Visits</th><th>Visits YoY</th>
-          </tr>
-        </thead>
-        <tbody>
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1191</td>
-                      <td>$64,138.58</td>
-                      <td>4.4%</td>
-                      <td>+47.4%</td>
-                      <td>-7.4%</td>
-                      <td>86.61%</td>
-                      <td>4.06%</td>
-                      <td>29,444</td>
-                      <td>+12.4%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1192</td>
-                      <td>$47,400.37</td>
-                      <td>3.2%</td>
-                      <td>-3.3%</td>
-                      <td>-31.9%</td>
-                      <td>89.42%</td>
-                      <td>2.93%</td>
-                      <td>33,866</td>
-                      <td>-28.4%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge high">HIGH</span></td>
-                      <td>LATU1040</td>
-                      <td>$47,004.25</td>
-                      <td>3.2%</td>
-                      <td>-14.5%</td>
-                      <td>-43.4%</td>
-                      <td>71.41%</td>
-                      <td>2.81%</td>
-                      <td>70,992</td>
-                      <td>+9.6%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>EBND4138</td>
-                      <td>$25,069.81</td>
-                      <td>1.7%</td>
-                      <td>+68.9%</td>
-                      <td>-1.3%</td>
-                      <td>82.98%</td>
-                      <td>7.00%</td>
-                      <td>14,543</td>
-                      <td>+80.0%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1216</td>
-                      <td>$15,773.62</td>
-                      <td>1.1%</td>
-                      <td>—</td>
-                      <td>+178.6%</td>
-                      <td>77.52%</td>
-                      <td>1.67%</td>
-                      <td>12,810</td>
-                      <td>+8497.3%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>GSTL1063</td>
-                      <td>$13,568.49</td>
-                      <td>0.9%</td>
-                      <td>+26.1%</td>
-                      <td>-15.1%</td>
-                      <td>76.01%</td>
-                      <td>5.05%</td>
-                      <td>17,107</td>
-                      <td>+43.7%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge critical">CRITICAL</span></td>
-                      <td>MBWI1113</td>
-                      <td>$10,323.57</td>
-                      <td>0.7%</td>
-                      <td>-42.4%</td>
-                      <td>-42.0%</td>
-                      <td>82.45%</td>
-                      <td>3.79%</td>
-                      <td>5,193</td>
-                      <td>-69.2%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge high">HIGH</span></td>
-                      <td>MBWI1105</td>
-                      <td>$8,604.31</td>
-                      <td>0.6%</td>
-                      <td>-15.5%</td>
-                      <td>-36.4%</td>
-                      <td>86.20%</td>
-                      <td>10.55%</td>
-                      <td>4,378</td>
-                      <td>-57.0%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>LDER3582</td>
-                      <td>$6,984.99</td>
-                      <td>0.5%</td>
-                      <td>+0.2%</td>
-                      <td>-14.3%</td>
-                      <td>63.04%</td>
-                      <td>3.46%</td>
-                      <td>10,488</td>
-                      <td>+5.2%</td>
-                    </tr>
-                    
-
-                    <tr>
-                      <td><span class="badge medium">MEDIUM</span></td>
-                      <td>HAFT1131</td>
-                      <td>$6,922.89</td>
-                      <td>0.5%</td>
-                      <td>+1.4%</td>
-                      <td>-7.9%</td>
-                      <td>93.46%</td>
-                      <td>3.28%</td>
-                      <td>8,680</td>
-                      <td>-23.8%</td>
-                    </tr>
-                    </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Performance Targets Reference</h2>
-      <p>Benchmarks used to evaluate SKU health</p>
-      <table>
-        <thead><tr><th>Metric</th><th>Target</th><th>Why It Matters</th></tr></thead>
-        <tbody>
-          <tr><td>Availability</td><td>≥ 80%</td><td>Ensures customers can purchase when they visit your product page</td></tr>
-          <tr><td>Conversion Rate</td><td>≥ 0.8%</td><td>Measures how effectively visits turn into orders</td></tr>
-          <tr><td>Image Coverage</td><td>100%</td><td>Quality imagery is essential for conversion in home goods</td></tr>
-          <tr><td>Incidence Rate</td><td>≤ 5%</td><td>Lower return/complaint rates protect your brand and ranking</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <div class="footer">
-      Confidential — Supplier Performance Review | Generated August 13, 2026<br>
-      Questions? Contact your Wayfair Category Manager.
+    <div class="footer-bar">
+      Priority reflects severity across revenue trend, traffic trend, conversion vs. 0.8% target, incidence, and zero-sales risk.
+      WSI is shown separately; negative values are favorable.
     </div>
   </div>
 </body>

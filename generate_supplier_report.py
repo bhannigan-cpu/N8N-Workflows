@@ -75,6 +75,84 @@ def format_visits(value: int | float | None) -> str:
     return f"{int(value):,}"
 
 
+def format_money_compact(value: float) -> str:
+    if value < 0:
+        return f"-${abs(value):,.0f}"
+    return f"${value:,.0f}"
+
+
+def parse_float(value: str | None) -> float | None:
+    if not value or value.strip() in {"", "—"}:
+        return None
+    try:
+        return float(value.strip())
+    except ValueError:
+        return None
+
+
+def display_priority(priority: str) -> str:
+    return "LOW" if priority == "MONITOR" else priority
+
+
+def recommended_focus(sku: SkuRow) -> str:
+    actions: list[str] = []
+    if sku.visits_yoy_pct is not None and sku.visits_yoy_pct < -20:
+        actions.append("Restore traffic")
+    if sku.conversion_below_target:
+        actions.append("Improve conversion")
+    if sku.availability_below_target:
+        actions.append("Fix availability")
+    if sku.incidence_above_target:
+        actions.append("Address incidence")
+    if sku.wholesale_revenue <= 0 and sku.py_wholesale_revenue > 0:
+        actions.append("Restore sales")
+    elif sku.revenue_yoy_pct is not None and sku.revenue_yoy_pct < -20:
+        actions.append("Recover revenue")
+    return "; ".join(actions) if actions else "Monitor"
+
+
+def incidence_label(sku: SkuRow) -> tuple[str, str]:
+    if sku.incidence_rate_pct is None:
+        return "No data", "neutral"
+    if sku.incidence_above_target:
+        return "High", "bad"
+    return "On target", "good"
+
+
+def metric_class(metric: str, value: float | None) -> str:
+    if value is None:
+        return "neutral"
+    if metric == "revenue_yoy":
+        if value >= 0:
+            return "good"
+        if value >= -20:
+            return "warn"
+        return "bad"
+    if metric == "visits_yoy":
+        if value >= 0:
+            return "good"
+        if value >= -20:
+            return "warn"
+        return "bad"
+    if metric == "conversion":
+        if value >= 0.8:
+            return "good"
+        return "bad"
+    if metric == "wsi":
+        if value < 0:
+            return "good"
+        if value == 0:
+            return "neutral"
+        return "bad"
+    return "neutral"
+
+
+def format_wsi(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value:.2f}"
+
+
 @dataclass
 class SkuRow:
     supplier_id: str
@@ -96,6 +174,11 @@ class SkuRow:
     image_below_target: bool
     incidence_above_target: bool
     gie_above_target: bool
+    wsi: float | None = None
+    py_wsi: float | None = None
+    wsi_yoy_change: float | None = None
+    wsi_yoy_trend: str = ""
+    incidence_rate_pct: float | None = None
     priority: str = "MONITOR"
     issues: list[str] = field(default_factory=list)
 
@@ -121,6 +204,11 @@ class SkuRow:
             image_below_target=row.get("Image_Coverage_vs_Target_100") == "Below Target",
             incidence_above_target=row.get("Incidence_Rate_vs_Target_5") == "At/Over Target",
             gie_above_target=row.get("GIE_vs_Target_5") == "At/Over Target",
+            wsi=parse_float(row.get("Item_Level_WSI")),
+            py_wsi=parse_float(row.get("PY_Item_Level_WSI")),
+            wsi_yoy_change=parse_float(row.get("WSI_YoY_Change")),
+            wsi_yoy_trend=(row.get("WSI_YoY_Trend") or "").strip(),
+            incidence_rate_pct=parse_pct(row.get("Incidence_Rate_Pct")),
         )
 
 
@@ -151,6 +239,10 @@ def detect_issues(sku: SkuRow) -> list[str]:
         issues.append(ISSUE_LABELS["tag_coverage"])
 
     return issues
+
+
+def scorecard_issues(sku: SkuRow) -> list[str]:
+    return [issue for issue in detect_issues(sku) if issue != ISSUE_LABELS["tag_coverage"]]
 
 
 def assign_priority(sku: SkuRow, issues: list[str]) -> str:
@@ -219,7 +311,7 @@ def load_skus(csv_path: Path) -> list[SkuRow]:
 
     for sku in rows:
         sku.issues = detect_issues(sku)
-        sku.priority = assign_priority(sku, sku.issues)
+        sku.priority = assign_priority(sku, scorecard_issues(sku))
 
     rows.sort(key=lambda item: (-item.wholesale_revenue, item.sku))
     return rows
@@ -643,6 +735,310 @@ def render_report(
 """
 
 
+def build_scorecard_summary(skus: list[SkuRow]) -> dict[str, Any]:
+    total = len(skus)
+    below_conversion = [sku for sku in skus if sku.conversion_below_target]
+    established = [sku for sku in skus if sku.py_wholesale_revenue > 0]
+    traffic_sales_pressure = [
+        sku
+        for sku in established
+        if sku.revenue_yoy_pct is not None
+        and sku.revenue_yoy_pct < 0
+        and sku.visits_yoy_pct is not None
+        and sku.visits_yoy_pct < 0
+    ]
+    wsi_with_data = [sku for sku in skus if sku.wsi is not None]
+    wsi_favorable = [sku for sku in wsi_with_data if sku.wsi is not None and sku.wsi < 0]
+    wsi_improved = [
+        sku
+        for sku in wsi_with_data
+        if sku.wsi_yoy_trend == "Improved"
+        or (sku.wsi_yoy_change is not None and sku.wsi_yoy_change < 0)
+    ]
+    at_avail_target = [sku for sku in skus if not sku.availability_below_target]
+    at_image_target = [sku for sku in skus if not sku.image_below_target]
+
+    working_parts: list[str] = []
+    if at_avail_target:
+        working_parts.append("AVAILABILITY")
+    if at_image_target:
+        working_parts.append("IMAGES")
+    working_label = " + ".join(working_parts) if working_parts else "CORE METRICS"
+    working_detail = f"{len(at_avail_target)}/{total} SKUs at target availability"
+    if at_image_target:
+        working_detail += f"; {len(at_image_target)}/{total} at 100% image coverage"
+
+    wsi_detail = "Have favorable negative WSI"
+    if wsi_with_data and wsi_improved:
+        wsi_detail += f"; {len(wsi_improved)}/{len(wsi_with_data)} improved YoY"
+
+    return {
+        "conversion_count": len(below_conversion),
+        "conversion_total": total,
+        "traffic_sales_count": len(traffic_sales_pressure),
+        "traffic_sales_total": len(established),
+        "wsi_favorable_count": len(wsi_favorable),
+        "wsi_total": len(wsi_with_data),
+        "wsi_detail": wsi_detail,
+        "working_label": working_label,
+        "working_detail": working_detail,
+    }
+
+
+def render_scorecard(
+    skus: list[SkuRow],
+    *,
+    supplier_id: str,
+    supplier_name: str,
+    current_period: str,
+    top_n: int = 10,
+) -> str:
+    supplier_id = supplier_id or (skus[0].supplier_id if skus else "Unknown")
+    supplier_name = supplier_name or f"SUPPLIER {supplier_id}"
+    period_label = current_period.split()[0].upper() if current_period else "CURRENT"
+    visible_skus = skus[:top_n]
+    summary = build_scorecard_summary(visible_skus)
+
+    matrix_rows = []
+    for sku in visible_skus:
+        priority = display_priority(sku.priority).lower()
+        incidence_text, incidence_tone = incidence_label(sku)
+        rev_yoy = sku.revenue_yoy_pct
+        visits_yoy = sku.visits_yoy_pct
+        conversion = sku.conversion_pct
+        wsi = sku.wsi
+
+        matrix_rows.append(
+            f"""
+            <tr>
+              <td class="sku">{sku.sku}</td>
+              <td class="num">{format_money_compact(sku.wholesale_revenue)}</td>
+              <td class="num {metric_class('revenue_yoy', rev_yoy)}">{format_pct(rev_yoy, signed=True) if rev_yoy is not None else "—"}</td>
+              <td class="num {metric_class('visits_yoy', visits_yoy)}">{format_pct(visits_yoy, signed=True) if visits_yoy is not None else "—"}</td>
+              <td class="num {metric_class('conversion', conversion)}">{format_rate(conversion)}</td>
+              <td class="num {metric_class('wsi', wsi)}">{format_wsi(wsi)}</td>
+              <td class="num {incidence_tone}">{incidence_text}</td>
+              <td class="priority {priority}">{display_priority(sku.priority)}</td>
+              <td class="focus">{recommended_focus(sku)}</td>
+            </tr>
+            """
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{supplier_name} | {period_label} TOP {top_n} SKU SCORECARD</title>
+  <style>
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: #eceff3;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+    }}
+    .scorecard {{
+      width: 1380px;
+      margin: 0 auto;
+      background: #f4f6f8;
+      border: 1px solid #cfd8e3;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }}
+    .header-bar {{
+      background: #173a63;
+      color: #fff;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 18px 24px;
+      text-transform: uppercase;
+    }}
+    .subtitle-bar {{
+      background: #5d9fd6;
+      color: #fff;
+      text-align: center;
+      font-size: 18px;
+      font-style: italic;
+      padding: 12px 24px;
+    }}
+    .summary-row {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      background: #eef2f6;
+      border-bottom: 1px solid #d7dee8;
+    }}
+    .summary-box {{
+      padding: 18px 20px 20px;
+      border-right: 1px solid #d7dee8;
+      min-height: 132px;
+    }}
+    .summary-box:last-child {{ border-right: none; }}
+    .summary-box .label {{
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }}
+    .summary-box .value {{
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }}
+    .summary-box .detail {{
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.35;
+    }}
+    .summary-box.warn .label,
+    .summary-box.warn .value {{ color: #d35400; }}
+    .summary-box.alert .label,
+    .summary-box.alert .value {{ color: #c0392b; }}
+    .summary-box.good .label,
+    .summary-box.good .value {{ color: #1e7e34; }}
+    .matrix-title {{
+      padding: 18px 24px 10px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #173a63;
+      letter-spacing: 0.02em;
+    }}
+    table {{
+      width: calc(100% - 48px);
+      margin: 0 24px 24px;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 15px;
+    }}
+    th {{
+      background: #173a63;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      padding: 12px 10px;
+      border: 1px solid #173a63;
+      font-size: 14px;
+      line-height: 1.2;
+    }}
+    td {{
+      border: 1px solid #d7dee8;
+      padding: 11px 10px;
+      vertical-align: middle;
+      text-align: center;
+      background: #fff;
+    }}
+    td.sku {{
+      text-align: left;
+      font-weight: 800;
+      color: #173a63;
+      white-space: nowrap;
+    }}
+    td.focus {{
+      text-align: left;
+      font-size: 14px;
+      color: #374151;
+    }}
+    td.good {{
+      background: #d9f2df;
+      color: #166534;
+      font-weight: 700;
+    }}
+    td.warn {{
+      background: #fff1d6;
+      color: #b45309;
+      font-weight: 700;
+    }}
+    td.bad {{
+      background: #fde2e1;
+      color: #b42318;
+      font-weight: 700;
+    }}
+    td.neutral {{
+      background: #f3f4f6;
+      color: #6b7280;
+      font-weight: 600;
+    }}
+    td.priority {{
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }}
+    td.priority.low {{ background: #1e7e34; }}
+    td.priority.medium {{ background: #c9a000; }}
+    td.priority.high {{ background: #e67e22; }}
+    td.priority.critical {{ background: #c0392b; }}
+    .footer-bar {{
+      background: #173a63;
+      color: #fff;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.45;
+      padding: 14px 24px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="scorecard">
+    <div class="header-bar">{supplier_name} | {period_label} TOP {top_n} SKU SCORECARD</div>
+    <div class="subtitle-bar">Where performance is breaking down—and the specific levers to prioritize by SKU</div>
+
+    <div class="summary-row">
+      <div class="summary-box warn">
+        <div class="label">Conversion Opportunity</div>
+        <div class="value">{summary['conversion_count']} OF {summary['conversion_total']} SKUs</div>
+        <div class="detail">Below the 0.8% conversion target</div>
+      </div>
+      <div class="summary-box alert">
+        <div class="label">Traffic + Sales Pressure</div>
+        <div class="value">{summary['traffic_sales_count']} OF {summary['traffic_sales_total']}</div>
+        <div class="detail">Established SKUs down in both revenue and visits YoY</div>
+      </div>
+      <div class="summary-box good">
+        <div class="label">WSI Is Generally Healthy</div>
+        <div class="value">{summary['wsi_favorable_count']} OF {summary['wsi_total']} SKUs</div>
+        <div class="detail">{summary['wsi_detail']}</div>
+      </div>
+      <div class="summary-box good">
+        <div class="label">What Is Working</div>
+        <div class="value">{summary['working_label']}</div>
+        <div class="detail">{summary['working_detail']}</div>
+      </div>
+    </div>
+
+    <div class="matrix-title">SKU-BY-SKU PRIORITY MATRIX</div>
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Revenue<br>({current_period})</th>
+          <th>Revenue<br>YoY</th>
+          <th>Visits<br>YoY</th>
+          <th>Conversion</th>
+          <th>WSI<br>(negative = good)</th>
+          <th>Incidence<br>Risk</th>
+          <th>Priority</th>
+          <th>Recommended<br>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        {''.join(matrix_rows)}
+      </tbody>
+    </table>
+
+    <div class="footer-bar">
+      Priority reflects severity across revenue trend, traffic trend, conversion vs. 0.8% target, incidence, and zero-sales risk.
+      WSI is shown separately; negative values are favorable.
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
 FEW_SHOT_PROMPT = """You are generating a Supplier SKU Performance Review report.
 
 Use the reference report below as the formatting and classification few-shot example.
@@ -716,6 +1112,9 @@ def main() -> None:
     parser.add_argument("--current-period", default="July 2026")
     parser.add_argument("--prior-period", default="June 2026")
     parser.add_argument("--prior-year-period", default="July 2025")
+    parser.add_argument("--format", choices=["scorecard", "full"], default="scorecard")
+    parser.add_argument("--supplier-name", default="")
+    parser.add_argument("--top-n", type=int, default=10)
     parser.add_argument("--report-date", default=datetime.now().strftime("%B %-d, %Y"))
     args = parser.parse_args()
 
@@ -726,15 +1125,25 @@ def main() -> None:
 
     skus = load_skus(csv_path)
     supplier_id = args.supplier_id or (skus[0].supplier_id if skus else "Unknown")
+    supplier_name = args.supplier_name or f"SUPPLIER {supplier_id}"
 
-    html = render_report(
-        skus,
-        supplier_id=supplier_id,
-        current_period=args.current_period,
-        prior_period=args.prior_period,
-        prior_year_period=args.prior_year_period,
-        report_date=args.report_date,
-    )
+    if args.format == "scorecard":
+        html = render_scorecard(
+            skus,
+            supplier_id=supplier_id,
+            supplier_name=supplier_name,
+            current_period=args.current_period,
+            top_n=args.top_n,
+        )
+    else:
+        html = render_report(
+            skus,
+            supplier_id=supplier_id,
+            current_period=args.current_period,
+            prior_period=args.prior_period,
+            prior_year_period=args.prior_year_period,
+            report_date=args.report_date,
+        )
     output_path.write_text(html, encoding="utf-8")
 
     prompt = FEW_SHOT_PROMPT.format(
