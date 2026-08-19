@@ -223,16 +223,16 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 
 ---
 
-### `Bath Mix-Match Studio (Towels · Rugs · Shower · Hardware)`
+### `Bath Mix-Match Studio (Towels · Rugs · Shower)`
 
-![Bath Mix-Match Studio mockup — coordinated bath system builder](./mockups/mockup-bath-mix-match.png)
+![Bath Mix-Match Studio mockup — left-nav controls only](./mockups/mockup-bath-mix-match.png)
 
 - **Surface / Funnel Stage:** PDP
 - **Primary Category:** Bath
 - **Competitor Inspiration & Benchmark:** Pottery Barn sells coordinated bath collections with strong brand color stories; Parachute/Brooklinen do bedding-centric brand ecosystems. Wayfair’s challenge is coordinating **across suppliers** without a single house look.
-- **Wayfair Merchandising Concept & Differentiator:** From any bath towel PDP: open Mix-Match Studio—lock a color undertone family, then assemble towel set quantities, rug scale (from Small-Bath geometry outputs if available), shower curtain opacity/pattern scale, and metal finish for hooks/rods. Uses finish_match and color_family IDs rather than forcing one brand. Optional “hotel stacked fold” vs “everyday hang” presentation styles.
-- **Customer Problem Solved / Friction Removed:** Styling uncertainty; incomplete bath refresh; mismatched metals/undertones.
-- **Required Catalog Data & Class Tags:** color_family, undertone, finish_family (chrome/brass/matte black), dimensions, opacity for curtains, set composition rules.
+- **Wayfair Merchandising Concept & Differentiator:** From any bath towel PDP: open Mix-Match as a **left-nav control rail** (not a full “Build Your Bathroom” canvas)—lock a color undertone family, then set towel quantities, rug scale (from Small-Bath geometry outputs if available), and shower curtain opacity/pattern scale. Uses color_family IDs rather than forcing one brand. Keeps the interaction compact so shoppers refine the system without leaving the PDP browse context.
+- **Customer Problem Solved / Friction Removed:** Styling uncertainty; incomplete bath refresh; mismatched undertones.
+- **Required Catalog Data & Class Tags:** color_family, undertone, dimensions, opacity for curtains, set composition rules.
 - **Implementation Feasibility & Effort:** Medium–High — cross-class relationship graph; Medium if starting with curated colorways on top sellers.
 - **Expected Commercial Impact:** AOV ↑↑; Attach Rate ↑; Conversion Rate ↑ on bath projects.
 
