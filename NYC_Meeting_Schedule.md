@@ -1,5 +1,5 @@
 # NYC Meeting Schedule
-**Monday 9/14 · 11:15 AM – 12:45 PM** · **Tuesday 9/15 · 8:00 AM – 1:30 PM**  
+**Monday 9/14 · 11:00 AM – 12:45 PM** · **Tuesday 9/15 · 8:00 AM – 1:30 PM**  
 ~30-minute meetings · walking/taxi buffers between showrooms
 
 ---
@@ -24,14 +24,14 @@
 ---
 
 ## Monday, September 14 — Flatiron cluster  
-**Your window: 11:15 AM – 12:45 PM**
+**Your window: 11:00 AM – 12:45 PM** (J. Queen at 11:00)
 
 | Time | Meeting | Location | Travel / notes |
 | --- | --- | --- | --- |
-| **11:15 – 11:45** | **Triangle** | Eichholtz Manhattan, 155 W 18th St | Only Mon slot that fits (must finish by 12:00). Optional summit follow-up. |
-| **11:45 – 11:50** | *Walk* | → 37 W 20th St | ~5 min walk |
-| **11:50 – 12:20** | **J. Queen** | 37 W 20th St, 5th Floor | Closest workable slot to their 11:00 preference; still before 2:00 alternate window |
-| **12:20 – 12:45** | **Wells** *(phone)* | No showroom | Use leftover time in place; no travel |
+| **11:00 – 11:30** | **J. Queen** | 37 W 20th St, 5th Floor | Hits their listed 11:00 slot |
+| **11:30 – 11:35** | *Walk* | → 155 W 18th St | ~5 min walk |
+| **11:35 – 12:05** | **Triangle** | Eichholtz Manhattan, 155 W 18th St | Right after J. Queen; wrap near their noon cutoff (optional summit follow-up) |
+| **12:05 – 12:45** | **Wells** *(phone)* | No showroom | Use leftover time in place; no travel |
 
 ### Monday not scheduled on-site
 | Company | Why deferred |
@@ -68,9 +68,9 @@
 
 ### Monday
 ```
-11:15  Triangle — 155 W 18th St
-11:50  J. Queen — 37 W 20th St, 5th Fl
-12:20  Wells — phone
+11:00  J. Queen — 37 W 20th St, 5th Fl
+11:35  Triangle — 155 W 18th St
+12:05  Wells — phone
 ```
 
 ### Tuesday
@@ -109,12 +109,11 @@ Utopia (call)
 
 ## Risks & confirmations
 
-1. **J. Queen** — Listed as “11:00 AM **or** anytime after 2:00 PM.” 11:50 is the best fit inside your Mon window; confirm they’re OK starting ~50 min after 11:00 (or ask for a 11:15 start and swap with Triangle: Triangle still must end by 12:00).
-2. **Triangle optional** — Spreadsheet notes “just met at summit optional.” If you drop Triangle, use 11:15 for J. Queen exactly and add a Mon phone slot (Wells / Utopia).
-3. **Alok TBD** — Confirm before locking; if unavailable, slide **amrapur** earlier (12:00) and add a second phone slot.
-4. **nuLOOM → Home City** — Tight turn. Leave nuLOOM by **10:50** if walking; budget a taxi if running late.
-5. **amrapur Mon lunch conflict** does not apply Tuesday; still confirm Tuesday availability.
-6. **Wells / Lichtenberg / Utopia / Twopages** — No showroom addresses; keep as calls so they don’t break the walking route.
+1. **Triangle** — Listed Mon window ends at 12:00; 11:35–12:05 runs a few minutes past. Confirm a soft end, or cut to 11:35–12:00. Spreadsheet also notes “just met at summit optional.”
+2. **Alok TBD** — Confirm before locking; if unavailable, slide **amrapur** earlier (12:00) and add a second phone slot.
+3. **nuLOOM → Home City** — Tight turn. Leave nuLOOM by **10:50** if walking; budget a taxi if running late.
+4. **amrapur Mon lunch conflict** does not apply Tuesday; still confirm Tuesday availability.
+5. **Wells / Lichtenberg / Utopia / Twopages** — No showroom addresses; keep as calls so they don’t break the walking route.
 
 ---
 
@@ -122,7 +121,7 @@ Utopia (call)
 
 | If cancelled | Replace with |
 | --- | --- |
-| Triangle (Mon) | Start J. Queen at 11:15; add KKP or amrapur phone Mon 12:15 |
+| Triangle (Mon) | Extend Wells / add KKP or amrapur phone Mon 12:05 |
 | KKP (Tue 9:00) | Move Twopages/Lichtenberg later; arrive nuLOOM early |
 | Home City (Tue 11:00) | Extend nuLOOM through 11:30; Alok at 11:45 unchanged |
 | Alok | amrapur at 11:50; Utopia/Wells call at 12:30 |
