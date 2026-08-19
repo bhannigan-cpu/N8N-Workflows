@@ -15,11 +15,15 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 
 **Internal alignment notes (non-duplicative):** These concepts complement—not replace—existing Soft Home workstreams (STS competitor audits, Amazon filter-parity, schema centralization, option thumbnails, Window 4+ joins, return-verbatim PDP audits, Catalyst environmental imagery, Back-to-College filters). Where relevant, Required Catalog Data calls out attributes already in schema rationalization pipelines.
 
+**Visual mockups:** Concept UI comps live in [`mockups/`](./mockups/) and are embedded below selected initiatives so you can see how each mechanic would read on-site.
+
 ---
 
 ## 1. Upper Funnel (Top Nav · Homepage · Seasonal / Solution Hubs)
 
 ### `Hand-Feel Navigation: Shop Soft Home by Sensation`
+
+![Hand-Feel Navigation mockup — sensory dial on Soft Home homepage](./mockups/mockup-hand-feel-navigation.png)
 
 - **Surface / Funnel Stage:** Upper Funnel
 - **Primary Category:** Cross-Category (Bedding + Bath primary; Window fabric families secondary)
@@ -62,6 +66,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 
 ### `Sheet Friction Spectrum Finder`
 
+![Sheet Friction Spectrum Finder mockup — crisp-to-silky ICP](./mockups/mockup-sheet-friction-finder.png)
+
 - **Surface / Funnel Stage:** ICP
 - **Primary Category:** Bedding
 - **Competitor Inspiration & Benchmark:** Casper’s mattress quiz personalizes comfort via sleep position/body type; Brooklinen/Parachute educate on percale vs sateen via editorial comparison. Missing: an interactive **continuum** that also factors laundry reality, pets, sensitive skin, and mattress depth—then maps to a multi-brand Wayfair shelf.
@@ -75,6 +81,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 
 ### `Towel Tradeoff Matcher: Absorb · Dry · Loft`
 
+![Towel Tradeoff Matcher mockup — Absorb / Dry / Loft triangle](./mockups/mockup-towel-tradeoff-matcher.png)
+
 - **Surface / Funnel Stage:** ICP
 - **Primary Category:** Bath
 - **Competitor Inspiration & Benchmark:** Pottery Barn’s Hydrocotton story sells hollow-yarn absorbency + quicker dry as a brand proprietary narrative; Target Threshold lists vague GSM bands. Neither gives shoppers an explicit **three-way tradeoff tool** (max absorbency vs fastest dry vs plush loft) across many suppliers.
@@ -87,6 +95,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 ---
 
 ### `Window Light Budget Calculator`
+
+![Window Light Budget Calculator mockup — layered opacity system](./mockups/mockup-window-light-budget.png)
 
 - **Surface / Funnel Stage:** ICP
 - **Primary Category:** Window
@@ -115,6 +125,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 ## 3. Superbrowse / PLP (Listview · Facets · Badging · Spec Surfacing)
 
 ### `Tactile Performance Badges with Hover Spec Graphs`
+
+![PLP tactile performance badges with hover radar graph](./mockups/mockup-plp-tactile-badges.png)
 
 - **Surface / Funnel Stage:** Superbrowse / PLP
 - **Primary Category:** Cross-Category
@@ -170,6 +182,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 
 ### `Hemline Studio: Float · Kiss · Break · Puddle`
 
+![Hemline Studio PDP mockup — Float / Kiss / Break / Puddle](./mockups/mockup-hemline-studio-pdp.png)
+
 - **Surface / Funnel Stage:** PDP
 - **Primary Category:** Window
 - **Competitor Inspiration & Benchmark:** RH’s drapery measuring PDFs define tailored float vs puddle degrees (1″ break → 10″+ puddle) and warn against puddling high-traffic panels—but the guidance is PDF/static. Pottery Barn / West Elm sell standard lengths without an interactive hemline preview tied to rod height.
@@ -182,6 +196,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 ---
 
 ### `Header Architecture Configurator + Hardware Auto-Bundle`
+
+![Header Architecture Configurator with hardware auto-bundle](./mockups/mockup-header-architecture.png)
 
 - **Surface / Funnel Stage:** PDP
 - **Primary Category:** Window
@@ -208,6 +224,8 @@ Initiatives are grouped by **funnel surface** (Upper Funnel → ICP → Superbro
 ---
 
 ### `Bath Mix-Match Studio (Towels · Rugs · Shower · Hardware)`
+
+![Bath Mix-Match Studio mockup — coordinated bath system builder](./mockups/mockup-bath-mix-match.png)
 
 - **Surface / Funnel Stage:** PDP
 - **Primary Category:** Bath
