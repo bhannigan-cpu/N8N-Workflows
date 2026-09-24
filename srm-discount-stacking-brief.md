@@ -55,9 +55,9 @@ Use with data-oriented partners: Pro Price filter is #1 on the B2B site; 13% of 
 
 ## Talk tracks
 
-If they already got Growth@, do not re-read the email. Move to the math.
+All spoken language in one place. Open with the matching supplier bucket, run the core call, then use pushback / recap only if you need them. If they already got Growth@, do not re-read the email — move to the math.
 
-### Open → change → example → limits → catalog → close
+### Core call
 
 **Open.**  
 “I wanted this on our next call so you are not first seeing it in Partner Home during Cyber. On Monday, November 9, we are changing how discounts calculate. It is simpler, and you still set the percent. It is not a new ask for extra points.”
@@ -76,15 +76,14 @@ If they already got Growth@, do not re-read the email. Move to the math.
 → “Does [X]% still represent what you want to give, or is [Y]% the more honest number?”
 
 **Close.**  
-“You can change this anytime in Pricing Home and it goes live immediately. I would rather we choose the number in October than discover it on a Cyber PO. I will send a three-line recap today: the November 9 date, the number we landed, and where to edit it. There is a supplier webinar Tuesday, October 13 at 11am if finance wants to hear it from the pricing team.”
+“You can change this anytime in Pricing Home and it goes live immediately. I would rather we choose the number in October than discover it on a Cyber PO. I will send a three-line recap today: the November 9 date, the number we landed, and where to edit it. There is a supplier webinar Tuesday, October 13 at 11am if finance wants to hear it from the pricing team. Happy to walk through any of this again on our next call once they have looked at it.”
 
-### Same-day recap (three lines)
-
+**Same-day recap (three lines).**  
 “As discussed: starting Monday, November 9, Everyday B2B will apply on top of the live promotional cost. We agreed to [keep X% / update Everyday B2B to Y% in Pricing Home before November 9]. Happy to chat through these changes on our next call if finance has questions after they read this.”
 
 They go silent after Growth@: do not assume they read it. Short email, then a calendar hold: “15 min — November 9 discount change.” High-gap or full-event wipe no-show: call.
 
-### Words that keep the room calm
+**Language swaps (do not say the left column in the room).**
 
 | Instead of | Say |
 |---|---|
@@ -96,12 +95,14 @@ They go silent after Growth@: do not assume they read it. Short email, then a ca
 | Margin-neutral | Same overall B2B investment you have been giving, just a cleaner input |
 | Don’t pull B2C (abrupt) | Event depth and Pro depth are different decisions; we change Everyday B2B, not the holiday |
 
-### Bucket openers
+### By supplier bucket
 
-**On-file far from what has been invoicing.**  
+Internal labels only. Do not say “egregious,” “erosion,” or “risk flag” out loud.
+
+**High Everyday vs low effective (stacked result >20%, or +10 points vs effective).**  
 “I flagged this one because the percent on file and the percent that has been invoicing are far apart. If we do nothing, November 9 could invoice a much deeper Pro cost than you have been running. I would rather we set the input together than have a PO conversation in December.”
 
-**Everyday on paper, Pro in line with B2C during events.**  
+**Everyday on paper, ~0% during events.**  
 “You have [X]% Everyday B2B in the tool, and during major events Pro has effectively been in line with B2C. Stacking means [X]% will start to show up in those events. That can be a win for Pro if it is intended. If it is not, we should move the input to [Y]% now.”
 
 **Protects B2B some of the time, not others.**  
@@ -113,7 +114,7 @@ They go silent after Growth@: do not assume they read it. Short email, then a ca
 **No Everyday B2B.**  
 “There is no cost change for you on November 9. If you add Everyday B2B later, you will not have to rebuild it for every event. Happy to look at a 5% line if and when it is useful. Nothing you need to do this week.”
 
-### Difficult conversations
+### If they push back
 
 **“This is a margin grab.”** They heard “stacking” as extra points. Separate the engine from the input.  
 “I understand why it sounds that way. Today [X]% is not what has been invoicing during events. Effective has been about [Y]%. On November 9 the system will honor whatever is in Pricing Home — so if we leave [X]%, yes, Cyber Pro cost goes to [X]% on top of the event. That is only a deepen if [X]% was theater. If your intent was never [X]% through Cyber, we change the input to [Y]% and your investment stays where it has been. What I cannot do is leave [X]% in the tool and also promise it will keep getting wiped.”  
