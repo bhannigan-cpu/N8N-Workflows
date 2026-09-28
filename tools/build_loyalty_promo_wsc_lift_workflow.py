@@ -141,7 +141,7 @@ def build() -> dict:
                 "assignments": {
                     "assignments": [
                         assignment("promo_period_id", 0, "number"),
-                        assignment("marketing_category", "Bedding", "string"),
+                        assignment("product_marketing_category", "Bedding", "string"),
                         assignment("brand_catalog_id", 1, "number"),
                         assignment("brand_catalog_name", "Wayfair US", "string"),
                         assignment("store_brand", "Wayfair", "string"),
@@ -162,13 +162,14 @@ def build() -> dict:
             "notes": (
                 "EDIT THESE TWO FIRST for each loyalty event:\n"
                 "1) promo_period_id — CPH / Partner Home promo period ID\n"
-                "2) marketing_category — e.g. Bedding or Window\n\n"
+                "2) product_marketing_category — product mkcname "
+                "(e.g. Bedding or Window), NOT supplier marketing category\n\n"
                 "Optional:\n"
                 "- l10_non_promo_days (default 10)\n"
                 "- promo_start_override / promo_end_override as YYYY-MM-DD "
                 "(leave blank to use promo period dates)\n\n"
                 "L10 non-promo days auto-shift to the last N non-promo dates "
-                "before the promo start."
+                "before the promo start (extended discounts / super rooms ignored)."
             ),
         },
         {

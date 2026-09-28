@@ -1,5 +1,5 @@
 // Build the loyalty-lift BigQuery SQL from Configure Inputs.
-// Required: promo_period_id, marketing_category
+// Required: promo_period_id, product_marketing_category
 // Optional: brand_catalog_id, l10_non_promo_days, store_*, date overrides
 
 const SQL_TEMPLATE = String.raw`__SQL_TEMPLATE__`;
@@ -28,9 +28,13 @@ function optionalDateSql(value) {
 }
 
 const promoPeriodId = requiredNumber(cfg.promo_period_id, 'promo_period_id');
-const marketingCategory = String(cfg.marketing_category || '').trim();
-if (!marketingCategory) {
-  throw new Error('Configure Inputs: set marketing_category (e.g. Bedding or Window)');
+const productMarketingCategory = String(
+  cfg.product_marketing_category || cfg.marketing_category || '',
+).trim();
+if (!productMarketingCategory) {
+  throw new Error(
+    'Configure Inputs: set product_marketing_category (product mkcname, e.g. Bedding or Window)',
+  );
 }
 
 const storeBrand = String(cfg.store_brand || 'Wayfair').trim() || 'Wayfair';
@@ -48,7 +52,7 @@ if (!Number.isFinite(l10Days) || l10Days <= 0) {
 
 const sqlQuery = SQL_TEMPLATE
   .replaceAll('__PROMO_PERIOD_ID__', String(promoPeriodId))
-  .replaceAll('__MARKETING_CATEGORY__', escapeSqlString(marketingCategory))
+  .replaceAll('__MARKETING_CATEGORY__', escapeSqlString(productMarketingCategory))
   .replaceAll('__STORE_BRAND__', escapeSqlString(storeBrand))
   .replaceAll('__STORE_COUNTRY__', escapeSqlString(storeCountry))
   .replaceAll('__BRAND_CATALOG_NAME__', escapeSqlString(brandCatalogName))
@@ -61,7 +65,8 @@ return [
   {
     json: {
       promo_period_id: promoPeriodId,
-      marketing_category: marketingCategory,
+      product_marketing_category: productMarketingCategory,
+      marketing_category: productMarketingCategory, // alias for older analysis references
       store_brand: storeBrand,
       store_country: storeCountry,
       brand_catalog_name: brandCatalogName,

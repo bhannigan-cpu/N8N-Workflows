@@ -2,11 +2,14 @@
 -- LOYALTY PROMO LIFT (WSC)
 -- =============================================================================
 -- Pulls Cost Performance Hub Single Promo Detail–equivalent participating SKUs
--- for a loyalty promo period + marketing category, joins Wayfair US daily WSC
+-- for a loyalty promo period + product marketing category, joins Wayfair US daily WSC
 -- for:
 --   1) the loyalty promo window (from the promo period dates), and
 --   2) the last N non-promo days before the promo start (default L10),
 -- then computes daily averages and lift at SKU grain.
+--
+-- Product marketing category filter uses retail_dim_sku.mkcname
+-- (not supplier MarketingCategory_SU).
 --
 -- WSC source of truth:
 --   wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost
@@ -21,7 +24,7 @@
 --
 -- Placeholders are filled by the n8n "Build SQL Query" node from Configure Inputs:
 --   __PROMO_PERIOD_ID__
---   __MARKETING_CATEGORY__
+--   __MARKETING_CATEGORY__          -- product marketing category (mkcname)
 --   __STORE_BRAND__
 --   __STORE_COUNTRY__
 --   __BRAND_CATALOG_NAME__
@@ -34,7 +37,7 @@
 WITH inputs AS (
   SELECT
     __PROMO_PERIOD_ID__ AS Promo_Period_Id,
-    '__MARKETING_CATEGORY__' AS Marketing_Category,
+    '__MARKETING_CATEGORY__' AS Product_Marketing_Category,
     '__STORE_BRAND__' AS Store_Brand,
     '__STORE_COUNTRY__' AS Store_Country,
     '__BRAND_CATALOG_NAME__' AS Brand_Catalog_Name,
@@ -48,7 +51,7 @@ WITH inputs AS (
 promo_window AS (
   SELECT
     inputs.Promo_Period_Id,
-    inputs.Marketing_Category,
+    inputs.Product_Marketing_Category,
     inputs.Store_Brand,
     inputs.Store_Country,
     inputs.Brand_Catalog_Name,
@@ -64,7 +67,7 @@ promo_window AS (
    AND eng.BrandCatalog_ID = inputs.Brand_Catalog_Id
   GROUP BY
     inputs.Promo_Period_Id,
-    inputs.Marketing_Category,
+    inputs.Product_Marketing_Category,
     inputs.Store_Brand,
     inputs.Store_Country,
     inputs.Brand_Catalog_Name,
@@ -91,7 +94,7 @@ participating_skus AS (
     ANY_VALUE(eng.SRM) AS srm,
     eng.SKU AS sku,
     ANY_VALUE(dim_sku.clname) AS class_name,
-    ANY_VALUE(COALESCE(eng.MarketingCategory_SU, dim_sku.mkcname)) AS marketing_category,
+    ANY_VALUE(dim_sku.mkcname) AS product_marketing_category,
     MAX(ABS(eng.DiscountPercent)) AS discount_pct,
     MAX(ABS(eng.RecommendedDiscountPercent)) AS rec_discount_pct,
     MAX(ABS(eng.B2B_DiscountPercent)) AS b2b_discount_pct,
@@ -100,13 +103,13 @@ participating_skus AS (
     COUNT(DISTINCT eng.SupplierPart_ID) AS participating_part_count
   FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng
   CROSS JOIN promo_window
-  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS dim_sku
+  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS dim_sku
     ON dim_sku.skuname = eng.SKU
   WHERE eng.PromoPeriodId = promo_window.Promo_Period_Id
     AND eng.BrandCatalog_ID = promo_window.Brand_Catalog_Id
     AND eng.Discount_Status = 'Active'
     AND ABS(COALESCE(eng.DiscountPercent, 0)) > 0
-    AND COALESCE(eng.MarketingCategory_SU, dim_sku.mkcname) = promo_window.Marketing_Category
+    AND dim_sku.mkcname = promo_window.Product_Marketing_Category
   GROUP BY
     promo_window.Promo_Period_Id,
     promo_window.promo_period_name,
@@ -393,7 +396,7 @@ SELECT
   participating_skus.srm,
   participating_skus.sku,
   participating_skus.class_name,
-  participating_skus.marketing_category,
+  participating_skus.product_marketing_category,
   ROUND(participating_skus.discount_pct, 4) AS discount_pct,
   ROUND(participating_skus.rec_discount_pct, 4) AS rec_discount_pct,
   ROUND(participating_skus.b2b_discount_pct, 4) AS b2b_discount_pct,

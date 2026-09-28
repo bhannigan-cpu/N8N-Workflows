@@ -179,7 +179,9 @@ function formatSummaryRows(tableRows) {
   }));
 }
 
-const configuredCategory = String(configureInputs.marketing_category || '').trim();
+const configuredCategory = String(
+  configureInputs.product_marketing_category || configureInputs.marketing_category || '',
+).trim();
 
 if (!rows.length) {
   return [
@@ -187,9 +189,9 @@ if (!rows.length) {
       json: {
         subject: `[Loyalty WSC Lift] No participating SKUs found${configuredCategory ? ` (${configuredCategory})` : ''}`,
         emailHtml:
-          '<html><body style="font-family:Arial,sans-serif;"><h2>Loyalty Promo WSC Lift</h2><!-- SPREADSHEET_LINK --><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for <code>promo_period_id</code> and <code>marketing_category</code> (exact CPH spelling).</p></body></html>',
+          '<html><body style="font-family:Arial,sans-serif;"><h2>Loyalty Promo WSC Lift</h2><!-- SPREADSHEET_LINK --><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for <code>promo_period_id</code> and <code>product_marketing_category</code> (product mkcname spelling, e.g. Bedding).</p></body></html>',
         markdown:
-          '# Loyalty Promo WSC Lift\n\nNo participating SKUs found. Check Configure Inputs for promo_period_id and marketing_category.',
+          '# Loyalty Promo WSC Lift\n\nNo participating SKUs found. Check Configure Inputs for promo_period_id and product_marketing_category.',
         spreadsheetTitle: `Loyalty WSC Lift - empty - ${new Date().toISOString().slice(0, 10)}`,
         sheet_rows: [],
         summary: {
@@ -245,7 +247,10 @@ const skuData = rows.map((row) => {
     srm: row.srm || '',
     sku: row.sku,
     class_name: row.class_name || 'Unknown Class',
-    marketing_category: row.marketing_category || configuredCategory || 'Unknown Category',
+    marketing_category:
+      row.product_marketing_category || row.marketing_category || configuredCategory || 'Unknown Category',
+    product_marketing_category:
+      row.product_marketing_category || row.marketing_category || configuredCategory || 'Unknown Category',
     discount_pct: toNumber(row.discount_pct),
     rec_discount_pct: toNumber(row.rec_discount_pct),
     b2b_discount_pct: toNumber(row.b2b_discount_pct),
@@ -287,7 +292,9 @@ for (const row of skuData) {
   }
 }
 
-const categorySummary = summarize(skuData, (row) => ({ marketing_category: row.marketing_category }));
+const categorySummary = summarize(skuData, (row) => ({
+  product_marketing_category: row.product_marketing_category,
+}));
 const classSummary = summarize(skuData, (row) => ({ class_name: row.class_name }));
 const supplierSummary = summarize(skuData, (row) => ({
   supplier_id: row.supplier_id,
@@ -329,7 +336,7 @@ const bestSupplier = [...supplierSummary]
 const highTier = baselineSummary.find((row) => row.baseline_success_tier === 'High baseline');
 const lowTier = baselineSummary.find((row) => row.baseline_success_tier === 'Low baseline');
 const meta = skuData[0];
-const categoryName = configuredCategory || meta.marketing_category || 'Category';
+const categoryName = configuredCategory || meta.product_marketing_category || meta.marketing_category || 'Category';
 const eventName = meta.promo_period_name || `${categoryName} Loyalty Promo`;
 
 const classTable = formatSummaryRows(classSummary);
@@ -378,7 +385,7 @@ ${markdownTable(tierTable, ['baseline_success_tier', ...summaryColumns])}
 
 ## Category-level insights
 
-${markdownTable(categoryTable, ['marketing_category', ...summaryColumns])}
+${markdownTable(categoryTable, ['product_marketing_category', ...summaryColumns])}
 
 ## Class-level insights
 
@@ -414,7 +421,7 @@ const emailHtml = `
               <li>L10 dates: ${escapeHtml(meta.non_promo_dates_list || 'n/a')}</li>
               <li>Diagnostics: ${escapeHtml(String(meta.participating_sku_count))} participating SKUs · ${escapeHtml(String(meta.sku_key_count))} resolved skuid matches · ${escapeHtml(String(meta.skus_with_any_wsc))} SKUs with any order WSC</li>
               <li>Order WSC totals: loyalty ${escapeHtml(fmtCurrency(meta.loyalty_wsc_total_sum))} · L10 ${escapeHtml(fmtCurrency(meta.non_promo_wsc_total_sum))}</li>
-              <li>Confirm <code>promo_period_id</code> and marketing category spelling match CPH (e.g. <code>Bedding</code>)</li>
+              <li>Confirm <code>promo_period_id</code> and product marketing category spelling match retail_dim_sku.mkcname (e.g. <code>Bedding</code>)</li>
               <li>If the event is very recent, order financials may not be fully landed yet — set date overrides or wait 1–2 days</li>
             </ul>
           </div>`
@@ -456,7 +463,8 @@ pushSheetRows(
     srm: row.srm,
     sku: row.sku,
     class_name: row.class_name,
-    marketing_category: row.marketing_category,
+    marketing_category: row.product_marketing_category || row.marketing_category,
+    product_marketing_category: row.product_marketing_category || row.marketing_category,
     discount_pct: row.discount_pct,
     non_promo_avg: row.non_promo_avg,
     loyalty_avg: row.loyalty_avg,
@@ -490,6 +498,7 @@ return [
       summary: {
         event_name: eventName,
         marketing_category: categoryName,
+        product_marketing_category: categoryName,
         promo_period_id: meta.promo_period_id,
         metric: 'WSC',
         sku_count: skuData.length,
