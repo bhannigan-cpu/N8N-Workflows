@@ -1,10 +1,17 @@
-// Bedding Member Monday / Loyalty lift analysis
+// Loyalty promo lift analysis (WSC)
 // Consumes SKU-level BigQuery rows and builds:
 // - category / class / supplier / discount-bucket / baseline-tier summaries
 // - markdown + HTML case study
 // - Google Sheets payloads
 
 const rows = $input.all().map((item) => item.json);
+const configureInputs = (() => {
+  try {
+    return $('Configure Inputs').first().json || {};
+  } catch (error) {
+    return {};
+  }
+})();
 
 function toNumber(value) {
   if (value === null || value === undefined || value === '') return 0;
@@ -76,7 +83,7 @@ function weightedAvg(values, weights) {
   return valid.reduce((a, b) => a + b, 0) / valid.length;
 }
 
-function summarize(records, groupKeyFn, labelKeys) {
+function summarize(records, groupKeyFn) {
   const groups = new Map();
   for (const row of records) {
     const keyObj = groupKeyFn(row);
@@ -89,67 +96,70 @@ function summarize(records, groupKeyFn, labelKeys) {
   for (const [key, group] of groups.entries()) {
     const keyObj = JSON.parse(key);
     const baseline = group.reduce((sum, row) => sum + row.non_promo_avg, 0);
-    const sales = group.reduce((sum, row) => sum + row.loyalty_avg, 0);
-    const incremental = sales - baseline;
+    const loyalty = group.reduce((sum, row) => sum + row.loyalty_avg, 0);
+    const incremental = loyalty - baseline;
     const weightedLift = baseline ? incremental / baseline : null;
     const skuCount = new Set(group.map((row) => row.sku)).size;
     const activeSkus = new Set(group.filter((row) => row.loyalty_avg > 0).map((row) => row.sku)).size;
-    const positiveSkus = new Set(group.filter((row) => row.incremental_sales > 0).map((row) => row.sku)).size;
+    const positiveSkus = new Set(group.filter((row) => row.incremental_wsc > 0).map((row) => row.sku)).size;
     const weightedDiscount = weightedAvg(
       group.map((row) => row.discount_pct),
       group.map((row) => row.non_promo_avg),
     );
 
-    const out = {
+    summaries.push({
       ...keyObj,
       sku_count: skuCount,
       active_skus: activeSkus,
       positive_lift_skus: positiveSkus,
       positive_lift_sku_rate: skuCount ? positiveSkus / skuCount : null,
       non_promo_avg: round(baseline, 2),
-      loyalty_avg: round(sales, 2),
-      incremental_sales: round(incremental, 2),
+      loyalty_avg: round(loyalty, 2),
+      incremental_wsc: round(incremental, 2),
       weighted_lift_pct: weightedLift === null ? null : round(weightedLift, 4),
       weighted_discount_pct: weightedDiscount === null ? null : round(weightedDiscount, 4),
-    };
-    for (const label of labelKeys) {
-      if (!(label in out)) out[label] = keyObj[label];
-    }
-    summaries.push(out);
+    });
   }
 
-  return summaries.sort((a, b) => b.loyalty_avg - a.loyalty_avg || b.incremental_sales - a.incremental_sales);
+  return summaries.sort((a, b) => b.loyalty_avg - a.loyalty_avg || b.incremental_wsc - a.incremental_wsc);
 }
 
-function markdownTable(rows, columns) {
-  if (!rows.length) return '_No rows_';
-  const headers = columns;
-  const body = rows.map((row) =>
-    headers.map((col) => {
+function markdownTable(tableRows, columns) {
+  if (!tableRows.length) return '_No rows_';
+  const body = tableRows.map((row) =>
+    columns.map((col) => {
       const value = row[col];
       if (value === null || value === undefined) return '';
       return String(value);
     }),
   );
-  const widths = headers.map((header, idx) =>
+  const widths = columns.map((header, idx) =>
     Math.max(header.length, ...body.map((row) => row[idx].length)),
   );
   const render = (values) =>
     `| ${values.map((value, idx) => value.padEnd(widths[idx])).join(' | ')} |`;
   return [
-    render(headers),
+    render(columns),
     `| ${widths.map((width) => '-'.repeat(width)).join(' | ')} |`,
     ...body.map(render),
   ].join('\n');
 }
 
-function htmlTable(rows, columns) {
-  if (!rows.length) return '<p><em>No rows</em></p>';
-  const head = columns.map((col) => `<th style="text-align:left;padding:6px 10px;border-bottom:1px solid #ddd;">${escapeHtml(col)}</th>`).join('');
-  const body = rows
+function htmlTable(tableRows, columns) {
+  if (!tableRows.length) return '<p><em>No rows</em></p>';
+  const head = columns
+    .map(
+      (col) =>
+        `<th style="text-align:left;padding:6px 10px;border-bottom:1px solid #ddd;">${escapeHtml(col)}</th>`,
+    )
+    .join('');
+  const body = tableRows
     .map((row) => {
       const cells = columns
-        .map((col) => `<td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">${escapeHtml(row[col] ?? '')}</td>`)
+        .map(
+          (col) =>
+            `<td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">${escapeHtml(row[col] ?? '')}</td>`,
+        )
         .join('');
       return `<tr>${cells}</tr>`;
     })
@@ -157,34 +167,38 @@ function htmlTable(rows, columns) {
   return `<table style="border-collapse:collapse;width:100%;font-size:13px;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
-function formatSummaryRows(rows) {
-  return rows.map((row) => ({
+function formatSummaryRows(tableRows) {
+  return tableRows.map((row) => ({
     ...row,
     positive_lift_sku_rate: fmtPct(row.positive_lift_sku_rate),
     weighted_discount_pct: fmtPct(row.weighted_discount_pct),
     non_promo_avg: fmtCurrency(row.non_promo_avg),
     loyalty_avg: fmtCurrency(row.loyalty_avg),
-    incremental_sales: fmtCurrency(row.incremental_sales),
+    incremental_wsc: fmtCurrency(row.incremental_wsc),
     weighted_lift_pct: fmtPct(row.weighted_lift_pct),
   }));
 }
+
+const configuredCategory = String(configureInputs.marketing_category || '').trim();
 
 if (!rows.length) {
   return [
     {
       json: {
-        subject: '[Bedding Loyalty Lift] No participating SKUs found',
+        subject: `[Loyalty WSC Lift] No participating SKUs found${configuredCategory ? ` (${configuredCategory})` : ''}`,
         emailHtml:
-          '<html><body style="font-family:Arial,sans-serif;"><h2>Bedding Loyalty Lift</h2><p>No participating Bedding SKUs were returned. Check Promo_Period_Id in the BigQuery inputs CTE.</p></body></html>',
-        markdown: '# Bedding Loyalty Lift\n\nNo participating SKUs found.',
-        spreadsheetTitle: `Bedding Loyalty Lift - empty - ${new Date().toISOString().slice(0, 10)}`,
+          '<html><body style="font-family:Arial,sans-serif;"><h2>Loyalty Promo WSC Lift</h2><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for promo_period_id and marketing_category.</p></body></html>',
+        markdown:
+          '# Loyalty Promo WSC Lift\n\nNo participating SKUs found. Check Configure Inputs for promo_period_id and marketing_category.',
+        spreadsheetTitle: `Loyalty WSC Lift - empty - ${new Date().toISOString().slice(0, 10)}`,
         sheet_rows: [],
         summary: {
           sku_count: 0,
           loyalty_avg: 0,
           non_promo_avg: 0,
-          incremental_sales: 0,
+          incremental_wsc: 0,
           weighted_lift_pct: null,
+          metric: 'WSC',
         },
       },
     },
@@ -194,7 +208,10 @@ if (!rows.length) {
 const skuData = rows.map((row) => {
   const nonPromoAvg = toNumber(row.non_promo_avg);
   const loyaltyAvg = toNumber(row.loyalty_avg);
-  const incremental = loyaltyAvg - nonPromoAvg;
+  const incremental =
+    row.incremental_wsc === null || row.incremental_wsc === undefined || row.incremental_wsc === ''
+      ? loyaltyAvg - nonPromoAvg
+      : toNumber(row.incremental_wsc);
   const lift =
     row.lift_pct === null || row.lift_pct === undefined || row.lift_pct === ''
       ? nonPromoAvg > 0
@@ -217,7 +234,7 @@ const skuData = rows.map((row) => {
     srm: row.srm || '',
     sku: row.sku,
     class_name: row.class_name || 'Unknown Class',
-    marketing_category: row.marketing_category || 'Bedding',
+    marketing_category: row.marketing_category || configuredCategory || 'Unknown Category',
     discount_pct: toNumber(row.discount_pct),
     rec_discount_pct: toNumber(row.rec_discount_pct),
     b2b_discount_pct: toNumber(row.b2b_discount_pct),
@@ -226,11 +243,12 @@ const skuData = rows.map((row) => {
     participating_part_count: toNumber(row.participating_part_count),
     non_promo_avg: nonPromoAvg,
     loyalty_avg: loyaltyAvg,
-    incremental_sales: round(incremental, 2),
+    incremental_wsc: round(incremental, 2),
     lift_pct: lift === null ? null : round(lift, 4),
     discount_bucket: discountBucket(row.discount_pct),
     active_on_event: loyaltyAvg > 0,
     positive_lift: incremental > 0,
+    metric: 'WSC',
   };
 });
 
@@ -256,34 +274,23 @@ for (const row of skuData) {
   }
 }
 
-const categorySummary = summarize(
-  skuData,
-  (row) => ({ marketing_category: row.marketing_category }),
-  ['marketing_category'],
+const categorySummary = summarize(skuData, (row) => ({ marketing_category: row.marketing_category }));
+const classSummary = summarize(skuData, (row) => ({ class_name: row.class_name }));
+const supplierSummary = summarize(skuData, (row) => ({
+  supplier_id: row.supplier_id,
+  supplier_name: row.supplier_name,
+  srm: row.srm,
+}));
+const discountSummary = summarize(skuData, (row) => ({ discount_bucket: row.discount_bucket })).sort(
+  (a, b) => {
+    const order = ['<10%', '10-14.9%', '15-19.9%', '20-24.9%', '25%+'];
+    return order.indexOf(a.discount_bucket) - order.indexOf(b.discount_bucket);
+  },
 );
-const classSummary = summarize(skuData, (row) => ({ class_name: row.class_name }), ['class_name']);
-const supplierSummary = summarize(
-  skuData,
-  (row) => ({
-    supplier_id: row.supplier_id,
-    supplier_name: row.supplier_name,
-    srm: row.srm,
-  }),
-  ['supplier_id', 'supplier_name', 'srm'],
-);
-const discountSummary = summarize(
-  skuData,
-  (row) => ({ discount_bucket: row.discount_bucket }),
-  ['discount_bucket'],
-).sort((a, b) => {
-  const order = ['<10%', '10-14.9%', '15-19.9%', '20-24.9%', '25%+'];
-  return order.indexOf(a.discount_bucket) - order.indexOf(b.discount_bucket);
-});
 const baselineTier = ['Low baseline', 'Mid-low baseline', 'Mid-high baseline', 'High baseline'];
 const baselineSummary = summarize(
   skuData.filter((row) => baselineTier.includes(row.baseline_success_tier)),
   (row) => ({ baseline_success_tier: row.baseline_success_tier }),
-  ['baseline_success_tier'],
 ).sort(
   (a, b) =>
     baselineTier.indexOf(a.baseline_success_tier) - baselineTier.indexOf(b.baseline_success_tier),
@@ -304,145 +311,106 @@ const bestClass = [...classSummary]
   .sort((a, b) => b.weighted_lift_pct - a.weighted_lift_pct)[0];
 const biggestClass = [...classSummary].sort((a, b) => b.loyalty_avg - a.loyalty_avg)[0];
 const bestSupplier = [...supplierSummary]
-  .filter((row) => row.incremental_sales > 0)
-  .sort((a, b) => b.incremental_sales - a.incremental_sales)[0];
+  .filter((row) => row.incremental_wsc > 0)
+  .sort((a, b) => b.incremental_wsc - a.incremental_wsc)[0];
 const highTier = baselineSummary.find((row) => row.baseline_success_tier === 'High baseline');
 const lowTier = baselineSummary.find((row) => row.baseline_success_tier === 'Low baseline');
 const meta = skuData[0];
-const eventName = meta.promo_period_name || 'Bedding Loyalty Promo';
+const categoryName = configuredCategory || meta.marketing_category || 'Category';
+const eventName = meta.promo_period_name || `${categoryName} Loyalty Promo`;
 
 const classTable = formatSummaryRows(classSummary);
 const supplierTable = formatSummaryRows(
-  [...supplierSummary].sort((a, b) => b.incremental_sales - a.incremental_sales).slice(0, 15),
+  [...supplierSummary].sort((a, b) => b.incremental_wsc - a.incremental_wsc).slice(0, 15),
 );
 const discountTable = formatSummaryRows(discountSummary);
 const tierTable = formatSummaryRows(baselineSummary);
 const categoryTable = formatSummaryRows(categorySummary);
 
+const summaryColumns = [
+  'sku_count',
+  'active_skus',
+  'positive_lift_sku_rate',
+  'weighted_discount_pct',
+  'non_promo_avg',
+  'loyalty_avg',
+  'incremental_wsc',
+  'weighted_lift_pct',
+];
+
 const markdown = `# ${eventName} Performance Case Study
 
 ## Executive takeaway
 
-The Bedding loyalty file generated **${fmtCurrency(totalLoyalty)}** in loyalty sales versus a recent non-promo average of **${fmtCurrency(totalNonPromo)}**, creating **${fmtCurrency(totalIncremental)} in incremental sales** and **${fmtPct(totalLift)} weighted lift**.
+The **${categoryName}** loyalty promo generated **${fmtCurrency(totalLoyalty)}** in loyalty-period daily-avg **WSC** versus a recent non-promo average of **${fmtCurrency(totalNonPromo)}**, creating **${fmtCurrency(totalIncremental)} in incremental WSC** and **${fmtPct(totalLift)} weighted lift**.
 
 ## What changed during the event
 
+- **Metric:** WSC (wholesale cost / product cost, USD)
 - **Overall lift:** ${fmtPct(totalLift)}
-- **Incremental sales:** ${fmtCurrency(totalIncremental)}
-- **Participation breadth:** ${activeSkus} of ${skuData.length} participating SKUs recorded loyalty sales; ${positiveSkus} SKUs generated positive incremental dollars.
-- **Weighted supplier investment:** ${fmtPct(weightedDiscount)} average discount, weighted by non-promo average.
+- **Incremental WSC:** ${fmtCurrency(totalIncremental)}
+- **Participation breadth:** ${activeSkus} of ${skuData.length} participating SKUs recorded loyalty WSC; ${positiveSkus} SKUs generated positive incremental WSC.
+- **Weighted supplier investment:** ${fmtPct(weightedDiscount)} average discount, weighted by non-promo WSC average.
 - **Best class by lift:** ${bestClass ? `${bestClass.class_name} at ${fmtPct(bestClass.weighted_lift_pct)}` : 'n/a'}.
-- **Largest class by loyalty sales:** ${biggestClass ? `${biggestClass.class_name} with ${fmtCurrency(biggestClass.loyalty_avg)}` : 'n/a'}.
+- **Largest class by loyalty WSC:** ${biggestClass ? `${biggestClass.class_name} with ${fmtCurrency(biggestClass.loyalty_avg)}` : 'n/a'}.
 - **Promo window:** ${meta.promo_start_date} to ${meta.promo_end_date} (${meta.promo_day_count} day(s)).
-- **L10 non-promo baseline:** ${meta.non_promo_day_count} day(s) from ${meta.non_promo_start_date} to ${meta.non_promo_end_date}.
+- **L10 non-promo baseline:** ${meta.non_promo_day_count} day(s) from ${meta.non_promo_start_date} to ${meta.non_promo_end_date} (auto-selected as the last non-promo days before promo start).
 
 ## Are normally successful SKUs performing better or worse?
 
-Using each SKU's non-promo average as a proxy for normal/historical success, high-baseline SKUs delivered **${fmtPct(highTier?.weighted_lift_pct)} weighted lift**, while low-baseline SKUs delivered **${fmtPct(lowTier?.weighted_lift_pct)} weighted lift**.
+Using each SKU's non-promo WSC average as a proxy for normal/historical success, high-baseline SKUs delivered **${fmtPct(highTier?.weighted_lift_pct)} weighted lift**, while low-baseline SKUs delivered **${fmtPct(lowTier?.weighted_lift_pct)} weighted lift**.
 
-${markdownTable(tierTable, [
-  'baseline_success_tier',
-  'sku_count',
-  'active_skus',
-  'positive_lift_sku_rate',
-  'weighted_discount_pct',
-  'non_promo_avg',
-  'loyalty_avg',
-  'incremental_sales',
-  'weighted_lift_pct',
-])}
+${markdownTable(tierTable, ['baseline_success_tier', ...summaryColumns])}
 
 ## Category-level insights
 
-${markdownTable(categoryTable, [
-  'marketing_category',
-  'sku_count',
-  'active_skus',
-  'positive_lift_sku_rate',
-  'weighted_discount_pct',
-  'non_promo_avg',
-  'loyalty_avg',
-  'incremental_sales',
-  'weighted_lift_pct',
-])}
+${markdownTable(categoryTable, ['marketing_category', ...summaryColumns])}
 
 ## Class-level insights
 
-${markdownTable(classTable, [
-  'class_name',
-  'sku_count',
-  'active_skus',
-  'positive_lift_sku_rate',
-  'weighted_discount_pct',
-  'non_promo_avg',
-  'loyalty_avg',
-  'incremental_sales',
-  'weighted_lift_pct',
-])}
+${markdownTable(classTable, ['class_name', ...summaryColumns])}
 
 ## Promotional investment vs. lift
 
-${markdownTable(discountTable, [
-  'discount_bucket',
-  'sku_count',
-  'weighted_discount_pct',
-  'non_promo_avg',
-  'loyalty_avg',
-  'incremental_sales',
-  'weighted_lift_pct',
-])}
+${markdownTable(discountTable, ['discount_bucket', 'sku_count', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}
 
 ## Supplier-level insights
 
-${markdownTable(supplierTable, [
-  'supplier_name',
-  'sku_count',
-  'active_skus',
-  'positive_lift_sku_rate',
-  'weighted_discount_pct',
-  'non_promo_avg',
-  'loyalty_avg',
-  'incremental_sales',
-  'weighted_lift_pct',
-])}
+${markdownTable(supplierTable, ['supplier_name', ...summaryColumns])}
 
 ## Supplier success stories
 
-The largest incremental supplier win was **${bestSupplier ? bestSupplier.supplier_name : 'n/a'}**, with **${bestSupplier ? fmtCurrency(bestSupplier.incremental_sales) : 'n/a'}** in incremental sales and **${bestSupplier ? fmtPct(bestSupplier.weighted_lift_pct) : 'n/a'}** weighted lift.
+The largest incremental supplier win was **${bestSupplier ? bestSupplier.supplier_name : 'n/a'}**, with **${bestSupplier ? fmtCurrency(bestSupplier.incremental_wsc) : 'n/a'}** in incremental WSC and **${bestSupplier ? fmtPct(bestSupplier.weighted_lift_pct) : 'n/a'}** weighted lift.
 `;
 
 const emailHtml = `
 <html>
   <body style="font-family:Arial,sans-serif;color:#222;line-height:1.45;">
     <h2 style="margin-bottom:4px;">${escapeHtml(eventName)} Performance Case Study</h2>
-    <p style="color:#666;margin-top:0;">Bedding marketing category · Promo ${escapeHtml(meta.promo_period_id)} · ${escapeHtml(meta.promo_start_date)} to ${escapeHtml(meta.promo_end_date)}</p>
-    <p>The Bedding loyalty file generated <strong>${escapeHtml(fmtCurrency(totalLoyalty))}</strong> in loyalty sales versus a recent non-promo average of <strong>${escapeHtml(fmtCurrency(totalNonPromo))}</strong>, creating <strong>${escapeHtml(fmtCurrency(totalIncremental))}</strong> in incremental sales and <strong>${escapeHtml(fmtPct(totalLift))}</strong> weighted lift.</p>
+    <p style="color:#666;margin-top:0;">${escapeHtml(categoryName)} · Promo ${escapeHtml(meta.promo_period_id)} · ${escapeHtml(meta.promo_start_date)} to ${escapeHtml(meta.promo_end_date)} · Metric: WSC</p>
+    <p>The <strong>${escapeHtml(categoryName)}</strong> loyalty promo generated <strong>${escapeHtml(fmtCurrency(totalLoyalty))}</strong> in loyalty-period daily-avg WSC versus a recent non-promo average of <strong>${escapeHtml(fmtCurrency(totalNonPromo))}</strong>, creating <strong>${escapeHtml(fmtCurrency(totalIncremental))}</strong> in incremental WSC and <strong>${escapeHtml(fmtPct(totalLift))}</strong> weighted lift.</p>
     <ul>
-      <li><strong>Participation:</strong> ${activeSkus} of ${skuData.length} SKUs recorded loyalty sales; ${positiveSkus} had positive incremental dollars.</li>
+      <li><strong>Participation:</strong> ${activeSkus} of ${skuData.length} SKUs recorded loyalty WSC; ${positiveSkus} had positive incremental WSC.</li>
       <li><strong>Weighted discount:</strong> ${escapeHtml(fmtPct(weightedDiscount))}</li>
       <li><strong>Best class by lift:</strong> ${escapeHtml(bestClass ? `${bestClass.class_name} (${fmtPct(bestClass.weighted_lift_pct)})` : 'n/a')}</li>
-      <li><strong>Top incremental supplier:</strong> ${escapeHtml(bestSupplier ? `${bestSupplier.supplier_name} (${fmtCurrency(bestSupplier.incremental_sales)})` : 'n/a')}</li>
+      <li><strong>Top incremental supplier:</strong> ${escapeHtml(bestSupplier ? `${bestSupplier.supplier_name} (${fmtCurrency(bestSupplier.incremental_wsc)})` : 'n/a')}</li>
       <li><strong>L10 non-promo baseline:</strong> ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)}</li>
     </ul>
     <h3>Class-level insights</h3>
-    ${htmlTable(classTable, ['class_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_sales', 'weighted_lift_pct'])}
-    <h3>Top suppliers by incremental sales</h3>
-    ${htmlTable(supplierTable, ['supplier_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_sales', 'weighted_lift_pct'])}
+    ${htmlTable(classTable, ['class_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}
+    <h3>Top suppliers by incremental WSC</h3>
+    ${htmlTable(supplierTable, ['supplier_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}
     <h3>Discount investment vs. lift</h3>
-    ${htmlTable(discountTable, ['discount_bucket', 'sku_count', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_sales', 'weighted_lift_pct'])}
-    <p style="color:#666;font-size:12px;margin-top:24px;">Generated by Bedding Member Monday Loyalty Lift n8n workflow.</p>
+    ${htmlTable(discountTable, ['discount_bucket', 'sku_count', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}
+    <p style="color:#666;font-size:12px;margin-top:24px;">Generated by Loyalty Promo WSC Lift n8n workflow. Change Configure Inputs (promo ID + marketing category) to rerun for the next loyalty event.</p>
   </body>
 </html>
 `;
 
 const sheetRows = [];
-
 function pushSheetRows(sheetName, records) {
   for (const record of records) {
-    sheetRows.push({
-      sheet_name: sheetName,
-      ...record,
-    });
+    sheetRows.push({ sheet_name: sheetName, ...record });
   }
 }
 
@@ -461,10 +429,11 @@ pushSheetRows(
     discount_pct: row.discount_pct,
     non_promo_avg: row.non_promo_avg,
     loyalty_avg: row.loyalty_avg,
-    incremental_sales: row.incremental_sales,
+    incremental_wsc: row.incremental_wsc,
     lift_pct: row.lift_pct,
     discount_bucket: row.discount_bucket,
     baseline_success_tier: row.baseline_success_tier,
+    metric: 'WSC',
   })),
 );
 pushSheetRows('Category Summary', categorySummary);
@@ -476,10 +445,10 @@ pushSheetRows('Baseline Tiers', baselineSummary);
 return [
   {
     json: {
-      subject: `[Bedding Loyalty Lift] ${eventName}: ${fmtPct(totalLift)} weighted lift / ${fmtCurrency(totalIncremental)} incremental`,
+      subject: `[Loyalty WSC Lift] ${categoryName} / ${eventName}: ${fmtPct(totalLift)} weighted lift / ${fmtCurrency(totalIncremental)} incremental WSC`,
       emailHtml,
       markdown,
-      spreadsheetTitle: `Bedding Loyalty Lift - ${eventName} - ${meta.promo_start_date || new Date().toISOString().slice(0, 10)}`,
+      spreadsheetTitle: `Loyalty WSC Lift - ${categoryName} - ${eventName} - ${meta.promo_start_date || new Date().toISOString().slice(0, 10)}`,
       sheet_rows: sheetRows,
       sku_data: skuData,
       category_summary: categorySummary,
@@ -489,15 +458,22 @@ return [
       baseline_summary: baselineSummary,
       summary: {
         event_name: eventName,
+        marketing_category: categoryName,
         promo_period_id: meta.promo_period_id,
+        metric: 'WSC',
         sku_count: skuData.length,
         active_skus: activeSkus,
         positive_lift_skus: positiveSkus,
         non_promo_avg: round(totalNonPromo, 2),
         loyalty_avg: round(totalLoyalty, 2),
-        incremental_sales: round(totalIncremental, 2),
+        incremental_wsc: round(totalIncremental, 2),
         weighted_lift_pct: totalLift === null ? null : round(totalLift, 4),
         weighted_discount_pct: weightedDiscount === null ? null : round(weightedDiscount, 4),
+        promo_start_date: meta.promo_start_date,
+        promo_end_date: meta.promo_end_date,
+        non_promo_start_date: meta.non_promo_start_date,
+        non_promo_end_date: meta.non_promo_end_date,
+        non_promo_day_count: meta.non_promo_day_count,
       },
     },
   },

@@ -1,34 +1,36 @@
 -- =============================================================================
--- BEDDING MEMBER MONDAY / LOYALTY LIFT
+-- LOYALTY PROMO LIFT (WSC)
 -- =============================================================================
 -- Pulls Cost Performance Hub Single Promo Detail–equivalent participating SKUs
--- for a loyalty promo period in Bedding, joins Wayfair US daily GRS for:
---   1) the loyalty promo window, and
---   2) the last 10 non-promo days before the promo (L10),
+-- for a loyalty promo period + marketing category, joins Wayfair US daily WSC
+-- for:
+--   1) the loyalty promo window (from the promo period dates), and
+--   2) the last N non-promo days before the promo start (default L10),
 -- then computes daily averages and lift at SKU grain.
 --
--- EDIT THE inputs CTE before each run.
+-- Placeholders are filled by the n8n "Build SQL Query" node from Configure Inputs:
+--   __PROMO_PERIOD_ID__
+--   __MARKETING_CATEGORY__
+--   __STORE_BRAND__
+--   __STORE_COUNTRY__
+--   __BRAND_CATALOG_NAME__
+--   __BRAND_CATALOG_ID__
+--   __L10_NON_PROMO_DAYS__
+--   __PROMO_START_OVERRIDE__   -- DATE 'YYYY-MM-DD' or NULL
+--   __PROMO_END_OVERRIDE__     -- DATE 'YYYY-MM-DD' or NULL
 -- =============================================================================
 
 WITH inputs AS (
-
--------------------------------------------
-------- Enter Loyalty Promo Period --------
--------------------------------------------
-
-SELECT
-  0 AS Promo_Period_Id,              -- REQUIRED: CPH / Partner Home promo period ID
-  'Bedding' AS Marketing_Category,   -- marketing category filter (mkcname)
-  'Wayfair' AS Store_Brand,
-  'United States' AS Store_Country,
-  'Wayfair US' AS Brand_Catalog_Name,
-  1 AS Brand_Catalog_Id,             -- 1 = Wayfair US
-  10 AS L10_Non_Promo_Days,          -- baseline lookback: last N non-promo days
-
-  -- Optional date overrides (leave NULL to use promo period start/end from CPH)
-  CAST(NULL AS DATE) AS Promo_Start_Override,
-  CAST(NULL AS DATE) AS Promo_End_Override
-
+  SELECT
+    __PROMO_PERIOD_ID__ AS Promo_Period_Id,
+    '__MARKETING_CATEGORY__' AS Marketing_Category,
+    '__STORE_BRAND__' AS Store_Brand,
+    '__STORE_COUNTRY__' AS Store_Country,
+    '__BRAND_CATALOG_NAME__' AS Brand_Catalog_Name,
+    __BRAND_CATALOG_ID__ AS Brand_Catalog_Id,
+    __L10_NON_PROMO_DAYS__ AS L10_Non_Promo_Days,
+    __PROMO_START_OVERRIDE__ AS Promo_Start_Override,
+    __PROMO_END_OVERRIDE__ AS Promo_End_Override
 ),
 
 promo_window AS (
@@ -102,7 +104,7 @@ participating_skus AS (
     eng.SKU
 ),
 
--- Last N Wayfair US non-promo days before the loyalty event
+-- Last N Wayfair US non-promo days before the loyalty event start date
 non_promo_dates AS (
   SELECT
     promo_window.Promo_Period_Id AS promo_period_id,
@@ -160,7 +162,7 @@ order_rows AS (
     analysis_dates.period_type,
     retail_sku_store_date.date AS sales_date,
     orders.id AS order_id,
-    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS grs
+    COALESCE(orders.productcostnorebates, 0) * COALESCE(currency.exchange_rate, 1) AS wsc
   FROM participating_skus
   JOIN analysis_dates
     ON analysis_dates.promo_period_id = participating_skus.promo_period_id
@@ -185,16 +187,16 @@ deduped_orders AS (
     period_type,
     sales_date,
     order_id,
-    ANY_VALUE(grs) AS grs
+    ANY_VALUE(wsc) AS wsc
   FROM order_rows
   GROUP BY sku, period_type, sales_date, order_id
 ),
 
-sku_period_sales AS (
+sku_period_wsc AS (
   SELECT
     sku,
-    SUM(IF(period_type = 'loyalty', grs, 0)) AS loyalty_sales_total,
-    SUM(IF(period_type = 'non_promo', grs, 0)) AS non_promo_sales_total
+    SUM(IF(period_type = 'loyalty', wsc, 0)) AS loyalty_wsc_total,
+    SUM(IF(period_type = 'non_promo', wsc, 0)) AS non_promo_wsc_total
   FROM deduped_orders
   GROUP BY sku
 )
@@ -222,32 +224,32 @@ SELECT
   ROUND(participating_skus.grs_l12m, 2) AS grs_l12m,
   participating_skus.participating_part_count,
   ROUND(
-    SAFE_DIVIDE(COALESCE(sku_period_sales.non_promo_sales_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
+    SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
     2
   ) AS non_promo_avg,
   ROUND(
-    SAFE_DIVIDE(COALESCE(sku_period_sales.loyalty_sales_total, 0), NULLIF(date_counts.promo_day_count, 0)),
+    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0)),
     2
   ) AS loyalty_avg,
   ROUND(
-    SAFE_DIVIDE(COALESCE(sku_period_sales.loyalty_sales_total, 0), NULLIF(date_counts.promo_day_count, 0))
-    - SAFE_DIVIDE(COALESCE(sku_period_sales.non_promo_sales_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
+    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))
+    - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
     2
-  ) AS incremental_sales,
+  ) AS incremental_wsc,
   ROUND(
     SAFE_DIVIDE(
-      SAFE_DIVIDE(COALESCE(sku_period_sales.loyalty_sales_total, 0), NULLIF(date_counts.promo_day_count, 0))
-      - SAFE_DIVIDE(COALESCE(sku_period_sales.non_promo_sales_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
+      SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))
+      - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
       NULLIF(
-        SAFE_DIVIDE(COALESCE(sku_period_sales.non_promo_sales_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
+        SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
         0
       )
     ),
     4
   ) AS lift_pct
 FROM participating_skus
-LEFT JOIN sku_period_sales
-  ON sku_period_sales.sku = participating_skus.sku
+LEFT JOIN sku_period_wsc
+  ON sku_period_wsc.sku = participating_skus.sku
 LEFT JOIN date_counts
   ON date_counts.promo_period_id = participating_skus.promo_period_id
 ORDER BY loyalty_avg DESC, non_promo_avg DESC, sku
