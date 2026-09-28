@@ -13,7 +13,8 @@ Reusable loyalty case-study workflow. For each new loyalty promo, edit two input
 Everything else updates from those inputs:
 - participating SKUs come from that promo + category
 - promo start/end come from the promo period (unless overridden)
-- L10 non-promo baseline auto-selects the last 10 Wayfair US non-promo days **before promo start** (`soid = 49`, `PromoFlag_Final = 'N'`)
+- L10 non-promo baseline auto-selects the last 10 days **before promo start** that fall outside real NA promo windows
+- **Extended Discounts, Frequency Product Discounts, Super Rooms, and Source Rooms do not count as promo** (ignored when picking L10)
 
 ## Configure Inputs fields
 
@@ -46,6 +47,8 @@ Everything else updates from those inputs:
 ## Metric
 
 Uses **WSC** (`ProductCostNoRebates` on the order-cost fact, Wayfair US / SoID 49), not GRS.
+
+L10 baseline days come from `tbl_promo_calendar` (GEO = NA), taking dates before promo start that are **not** inside a real promo window. Names matching Extended / Frequency / Super Room / Source Room are ignored so those long-running discounts do not wipe out the baseline. The email/sheet include `non_promo_dates_list` with the exact days used.
 
 - `non_promo_avg` = L10 non-promo WSC / N days
 - `loyalty_avg` = promo-window WSC / promo day count

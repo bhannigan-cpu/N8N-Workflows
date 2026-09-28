@@ -13,8 +13,11 @@
 --   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU
 --
 -- L10 non-promo dates:
---   tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData
---   soid = 49 AND PromoFlag_Final = 'N' (falls back to prior calendar days)
+--   Days before promo start that fall outside real NA promo windows from
+--   tbl_promo_calendar. Extended Discounts / Frequency / Super Rooms /
+--   Source Rooms are ignored (they do not count as promo for this baseline).
+--   Fallback: FullData days with Final='N' or Final='Y' only from those
+--   ignored promo types (and not a concurrent T0/T1 event).
 --
 -- Placeholders are filled by the n8n "Build SQL Query" node from Configure Inputs:
 --   __PROMO_PERIOD_ID__
@@ -129,26 +132,96 @@ sku_keys AS (
     ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)
 ),
 
--- Last N Wayfair US non-promo days before the loyalty event start date.
--- SoT: PromoFlag_Final = 'N' + soid = 49 (Wayfair US).
+-- Real NA promo windows for L10 baseline.
+-- Extended Discounts / Frequency / Super Rooms / Source Rooms do NOT count as
+-- promo (NARTA guidance: ignore those quarterly rows when picking non-promo days).
+real_na_promo_windows AS (
+  SELECT DISTINCT
+    DATE(cal.PromoPeriodStartDate) AS window_start,
+    DATE(cal.PromoPeriodEndDate) AS window_end,
+    cal.PromoPeriodNameText AS promo_name
+  FROM `wf-gcp-us-ae-eunarta-prod.staging.tbl_promo_calendar` AS cal
+  WHERE UPPER(COALESCE(cal.GEO, '')) = 'NA'
+    AND cal.PromoPeriodStartDate IS NOT NULL
+    AND cal.PromoPeriodEndDate IS NOT NULL
+    AND NOT REGEXP_CONTAINS(
+      LOWER(COALESCE(cal.PromoPeriodNameText, '')),
+      r'extended|frequency|super ?room|source ?room'
+    )
+),
+
+-- Candidate days before loyalty promo start (look back far enough to find N days).
+candidate_baseline_days AS (
+  SELECT
+    promo_window.Promo_Period_Id AS promo_period_id,
+    promo_window.L10_Non_Promo_Days,
+    day AS sales_date
+  FROM promo_window
+  CROSS JOIN UNNEST(
+    GENERATE_DATE_ARRAY(
+      DATE_SUB(promo_window.promo_start_date, INTERVAL 400 DAY),
+      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)
+    )
+  ) AS day
+),
+
+-- True non-promo = not inside any real NA promo window (extended/super room ignored).
 calendar_non_promo_dates AS (
+  SELECT
+    candidate_baseline_days.promo_period_id,
+    candidate_baseline_days.sales_date,
+    'non_promo' AS period_type,
+    'promo_calendar_excl_extended' AS non_promo_source
+  FROM candidate_baseline_days
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM real_na_promo_windows AS w
+    WHERE candidate_baseline_days.sales_date BETWEEN w.window_start AND w.window_end
+  )
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY candidate_baseline_days.promo_period_id
+    ORDER BY candidate_baseline_days.sales_date DESC
+  ) <= candidate_baseline_days.L10_Non_Promo_Days
+),
+
+-- Fallback: FullData days where Final='N' OR Final='Y' only due to extended/super room
+-- (and not also a T0/T1 event that day).
+fulldata_non_promo_dates AS (
   SELECT
     promo_window.Promo_Period_Id AS promo_period_id,
     non_promo.Date AS sales_date,
     'non_promo' AS period_type,
-    'calendar' AS non_promo_source
+    'fulldata_excl_extended' AS non_promo_source
   FROM promo_window
   JOIN `wf-gcp-us-ae-eunarta-prod.staging.tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData` AS non_promo
     ON CAST(non_promo.soid AS INT64) = promo_window.Wayfair_US_SoID
-   AND non_promo.PromoFlag_Final = 'N'
    AND non_promo.Date < promo_window.promo_start_date
+   AND (
+      non_promo.PromoFlag_Final = 'N'
+      OR (
+        REGEXP_CONTAINS(
+          LOWER(CONCAT(
+            COALESCE(non_promo.PromoName_Final, ''), ' ',
+            COALESCE(non_promo.PromoName_T0T1, ''), ' ',
+            COALESCE(non_promo.PromoName_NARTA, '')
+          )),
+          r'extended|frequency|super ?room|source ?room'
+        )
+        AND COALESCE(non_promo.PromoFlag_T0T1, 'N') = 'N'
+      )
+    )
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM calendar_non_promo_dates
+    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id
+  )
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY promo_window.Promo_Period_Id
     ORDER BY non_promo.Date DESC
   ) <= promo_window.L10_Non_Promo_Days
 ),
 
--- Fallback if the calendar returns no days: prior calendar days before promo start.
+-- Last-resort fallback: prior calendar days before promo start.
 fallback_non_promo_dates AS (
   SELECT
     promo_window.Promo_Period_Id AS promo_period_id,
@@ -167,10 +240,17 @@ fallback_non_promo_dates AS (
     FROM calendar_non_promo_dates
     WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id
   )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM fulldata_non_promo_dates
+    WHERE fulldata_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id
+  )
 ),
 
 non_promo_dates AS (
   SELECT * FROM calendar_non_promo_dates
+  UNION ALL
+  SELECT * FROM fulldata_non_promo_dates
   UNION ALL
   SELECT * FROM fallback_non_promo_dates
 ),
@@ -202,7 +282,11 @@ date_counts AS (
     MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date,
     MIN(sales_date) AS analysis_start_date,
     MAX(sales_date) AS analysis_end_date,
-    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source
+    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source,
+    STRING_AGG(
+      IF(period_type = 'non_promo', CAST(sales_date AS STRING), NULL)
+      ORDER BY sales_date DESC
+    ) AS non_promo_dates_list
   FROM analysis_dates
   GROUP BY promo_period_id
 ),
@@ -295,6 +379,7 @@ SELECT
   CAST(date_counts.non_promo_end_date AS STRING) AS non_promo_end_date,
   date_counts.non_promo_day_count,
   date_counts.non_promo_source,
+  date_counts.non_promo_dates_list,
   CAST(date_counts.analysis_start_date AS STRING) AS analysis_start_date,
   CAST(date_counts.analysis_end_date AS STRING) AS analysis_end_date,
   run_diagnostics.participating_sku_count,

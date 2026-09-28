@@ -231,6 +231,7 @@ const skuData = rows.map((row) => {
     non_promo_end_date: row.non_promo_end_date,
     non_promo_day_count: toNumber(row.non_promo_day_count),
     non_promo_source: row.non_promo_source || '',
+    non_promo_dates_list: row.non_promo_dates_list || '',
     analysis_start_date: row.analysis_start_date,
     analysis_end_date: row.analysis_end_date,
     participating_sku_count: toNumber(row.participating_sku_count),
@@ -366,7 +367,8 @@ The **${categoryName}** loyalty promo generated **${fmtCurrency(totalLoyalty)}**
 - **Best class by lift:** ${bestClass ? `${bestClass.class_name} at ${fmtPct(bestClass.weighted_lift_pct)}` : 'n/a'}.
 - **Largest class by loyalty WSC:** ${biggestClass ? `${biggestClass.class_name} with ${fmtCurrency(biggestClass.loyalty_avg)}` : 'n/a'}.
 - **Promo window:** ${meta.promo_start_date} to ${meta.promo_end_date} (${meta.promo_day_count} day(s)).
-- **L10 non-promo baseline:** ${meta.non_promo_day_count} day(s) from ${meta.non_promo_start_date} to ${meta.non_promo_end_date} (auto-selected as the last non-promo days before promo start).
+- **L10 non-promo baseline:** ${meta.non_promo_day_count} day(s) from ${meta.non_promo_start_date} to ${meta.non_promo_end_date} (auto-selected as the last non-promo days before promo start; extended discounts / super rooms ignored).
+${meta.non_promo_dates_list ? `- **L10 dates:** ${meta.non_promo_dates_list}` : ''}
 
 ## Are normally successful SKUs performing better or worse?
 
@@ -408,7 +410,8 @@ const emailHtml = `
             <strong>Zero WSC returned for both promo and L10 windows.</strong>
             <ul style="margin:8px 0 0 18px;">
               <li>Promo window: ${escapeHtml(meta.promo_start_date)} → ${escapeHtml(meta.promo_end_date)} (${escapeHtml(String(meta.promo_day_count))} day(s))</li>
-              <li>L10 baseline: ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)} (source: ${escapeHtml(meta.non_promo_source || 'n/a')})</li>
+              <li>L10 baseline: ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)} (source: ${escapeHtml(meta.non_promo_source || 'n/a')}; extended/super rooms ignored)</li>
+              <li>L10 dates: ${escapeHtml(meta.non_promo_dates_list || 'n/a')}</li>
               <li>Diagnostics: ${escapeHtml(String(meta.participating_sku_count))} participating SKUs · ${escapeHtml(String(meta.sku_key_count))} resolved skuid matches · ${escapeHtml(String(meta.skus_with_any_wsc))} SKUs with any order WSC</li>
               <li>Order WSC totals: loyalty ${escapeHtml(fmtCurrency(meta.loyalty_wsc_total_sum))} · L10 ${escapeHtml(fmtCurrency(meta.non_promo_wsc_total_sum))}</li>
               <li>Confirm <code>promo_period_id</code> and marketing category spelling match CPH (e.g. <code>Bedding</code>)</li>
@@ -422,7 +425,7 @@ const emailHtml = `
       <li><strong>Weighted discount:</strong> ${escapeHtml(fmtPct(weightedDiscount))}</li>
       <li><strong>Best class by lift:</strong> ${escapeHtml(bestClass ? `${bestClass.class_name} (${fmtPct(bestClass.weighted_lift_pct)})` : 'n/a')}</li>
       <li><strong>Top incremental supplier:</strong> ${escapeHtml(bestSupplier ? `${bestSupplier.supplier_name} (${fmtCurrency(bestSupplier.incremental_wsc)})` : 'n/a')}</li>
-      <li><strong>L10 non-promo baseline:</strong> ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)}</li>
+      <li><strong>L10 non-promo baseline:</strong> ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)}${meta.non_promo_dates_list ? ` — <code>${escapeHtml(meta.non_promo_dates_list)}</code>` : ''} (extended discounts / super rooms ignored)</li>
     </ul>
     <h3>Class-level insights</h3>
     ${htmlTable(classTable, ['class_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}
@@ -504,6 +507,7 @@ return [
         non_promo_end_date: meta.non_promo_end_date,
         non_promo_day_count: meta.non_promo_day_count,
         non_promo_source: meta.non_promo_source || '',
+        non_promo_dates_list: meta.non_promo_dates_list || '',
         participating_sku_count: meta.participating_sku_count,
         sku_key_count: meta.sku_key_count,
         skus_with_any_wsc: meta.skus_with_any_wsc,
