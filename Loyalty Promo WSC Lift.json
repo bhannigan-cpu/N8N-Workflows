@@ -1,0 +1,715 @@
+{
+  "name": "Loyalty Promo WSC Lift",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "id": "aa30100f-2c9b-4ce5-9c64-d0257f784cdb",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d02c87bf-379b-4f3a-83e0-cea82c56fa95",
+              "name": "promo_period_id",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "690ab462-6aa4-49c5-b61d-225a8dfec43b",
+              "name": "marketing_category",
+              "value": "Bedding",
+              "type": "string"
+            },
+            {
+              "id": "365b14d1-b33c-4449-a77b-b9e178b85c1c",
+              "name": "brand_catalog_id",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "cf75e50f-0118-47fe-b79b-a8e4c7e9dac2",
+              "name": "brand_catalog_name",
+              "value": "Wayfair US",
+              "type": "string"
+            },
+            {
+              "id": "7a6f5cd6-9ae7-4222-aa9d-4e0dc422a8fd",
+              "name": "store_brand",
+              "value": "Wayfair",
+              "type": "string"
+            },
+            {
+              "id": "c4d42920-981f-4516-84f2-de8a30ba0c50",
+              "name": "store_country",
+              "value": "United States",
+              "type": "string"
+            },
+            {
+              "id": "2e804539-64c0-4f51-8468-4e2f1089ff4a",
+              "name": "l10_non_promo_days",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "c23312bf-d971-47cb-be54-12988903cbcf",
+              "name": "promo_start_override",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "4db9aa7b-34c7-4308-8469-e3bb91b66247",
+              "name": "promo_end_override",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        300
+      ],
+      "id": "3daa2a6c-3b6d-4933-9632-5db29ee8a95e",
+      "name": "Configure Inputs",
+      "notesInFlow": true,
+      "notes": "EDIT THESE TWO FIRST for each loyalty event:\n1) promo_period_id \u2014 CPH / Partner Home promo period ID\n2) marketing_category \u2014 PRODUCT marketing category (MarketingCategory_SKU), e.g. Bedding or Window\n\nOptional:\n- l10_non_promo_days (default 10)\n- promo_start_override / promo_end_override as YYYY-MM-DD (leave blank to use promo period dates)\n\nL10 non-promo days = last N days before promo start that fall outside the WFNA Promotional Calendar SoT (Primary Campaigns + Loyalty/Early Access + Doorbusters)."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build the loyalty-lift BigQuery SQL from Configure Inputs.\n// Required: promo_period_id, marketing_category\n// Optional: brand_catalog_id, l10_non_promo_days, store_*, date overrides\n\nconst SQL_TEMPLATE = \"-- =============================================================================\\n-- LOYALTY PROMO LIFT (WSC)\\n-- =============================================================================\\n-- Pulls Cost Performance Hub Single Promo Detail\\u2013equivalent participating SKUs\\n-- for a loyalty promo period + marketing category, joins Wayfair US daily WSC\\n-- for:\\n--   1) the loyalty promo window (from the promo period dates), and\\n--   2) the last N non-promo days before the promo start (default L10),\\n-- then computes daily averages and lift at SKU grain.\\n--\\n-- WSC source of truth:\\n--   wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost\\n--   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU\\n--\\n-- L10 non-promo dates:\\n--   Days before promo start that fall outside WFNA Promotional Calendar SoT\\n--   promo windows (Primary Campaigns + Loyalty/Early Access + Doorbusters).\\n--   Slides: https://docs.google.com/presentation/d/1351s2wvYA2v_jwbZA2k2YEHivmfYJDS_pQtsNyWq1Xk\\n--   Seasonal GTM / sourcing windows are not treated as promo. TBA omitted.\\n--   Fallback: FullData PromoFlag_Final='N', then prior calendar days.\\n--\\n-- Placeholders are filled by the n8n \\\"Build SQL Query\\\" node from Configure Inputs:\\n--   __PROMO_PERIOD_ID__\\n--   __MARKETING_CATEGORY__\\n--   __STORE_BRAND__\\n--   __STORE_COUNTRY__\\n--   __BRAND_CATALOG_NAME__\\n--   __BRAND_CATALOG_ID__\\n--   __L10_NON_PROMO_DAYS__\\n--   __PROMO_START_OVERRIDE__   -- DATE 'YYYY-MM-DD' or NULL\\n--   __PROMO_END_OVERRIDE__     -- DATE 'YYYY-MM-DD' or NULL\\n-- =============================================================================\\n\\nWITH inputs AS (\\n  SELECT\\n    __PROMO_PERIOD_ID__ AS Promo_Period_Id,\\n    '__MARKETING_CATEGORY__' AS Marketing_Category,\\n    '__STORE_BRAND__' AS Store_Brand,\\n    '__STORE_COUNTRY__' AS Store_Country,\\n    '__BRAND_CATALOG_NAME__' AS Brand_Catalog_Name,\\n    __BRAND_CATALOG_ID__ AS Brand_Catalog_Id,\\n    __L10_NON_PROMO_DAYS__ AS L10_Non_Promo_Days,\\n    __PROMO_START_OVERRIDE__ AS Promo_Start_Override,\\n    __PROMO_END_OVERRIDE__ AS Promo_End_Override,\\n    49 AS Wayfair_US_SoID\\n),\\n\\npromo_window AS (\\n  SELECT\\n    inputs.Promo_Period_Id,\\n    inputs.Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    COALESCE(inputs.Promo_Start_Override, MIN(DATE(eng.PromoStartDate))) AS promo_start_date,\\n    COALESCE(inputs.Promo_End_Override, MAX(DATE(eng.PromoEndDate))) AS promo_end_date,\\n    ANY_VALUE(eng.PromoPeriodName) AS promo_period_name\\n  FROM inputs\\n  LEFT JOIN `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n    ON eng.PromoPeriodId = inputs.Promo_Period_Id\\n   AND eng.BrandCatalog_ID = inputs.Brand_Catalog_Id\\n  GROUP BY\\n    inputs.Promo_Period_Id,\\n    inputs.Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    inputs.Promo_Start_Override,\\n    inputs.Promo_End_Override\\n),\\n\\n-- Participating loyalty SKUs (CPH Single Promo Detail equivalent, rolled to SKU)\\n-- Uses product marketing category (MarketingCategory_SKU), not supplier marketing category.\\nparticipating_skus AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name AS brand_catalog,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID AS supplier_id,\\n    ANY_VALUE(eng.Supplier_Name) AS supplier_name,\\n    ANY_VALUE(eng.SRM) AS srm,\\n    eng.SKU AS sku,\\n    ANY_VALUE(dim_sku.clname) AS class_name,\\n    ANY_VALUE(COALESCE(eng.MarketingCategory_SKU, dim_sku.mkcname)) AS marketing_category,\\n    MAX(ABS(eng.DiscountPercent)) AS discount_pct,\\n    MAX(ABS(eng.RecommendedDiscountPercent)) AS rec_discount_pct,\\n    MAX(ABS(eng.B2B_DiscountPercent)) AS b2b_discount_pct,\\n    SUM(COALESCE(eng.WSC_L12M, 0)) AS wsc_rev_l12m,\\n    SUM(COALESCE(eng.GRS_L12M, 0)) AS grs_l12m,\\n    COUNT(DISTINCT eng.SupplierPart_ID) AS participating_part_count\\n  FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n  CROSS JOIN promo_window\\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS dim_sku\\n    ON dim_sku.skuname = eng.SKU\\n  WHERE eng.PromoPeriodId = promo_window.Promo_Period_Id\\n    AND eng.BrandCatalog_ID = promo_window.Brand_Catalog_Id\\n    AND eng.Discount_Status = 'Active'\\n    AND ABS(COALESCE(eng.DiscountPercent, 0)) > 0\\n    AND COALESCE(eng.MarketingCategory_SKU, dim_sku.mkcname) = promo_window.Marketing_Category\\n  GROUP BY\\n    promo_window.Promo_Period_Id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID,\\n    eng.SKU\\n),\\n\\n-- Resolve SKU names \\u2192 skuid (needed for the order-cost fact join)\\nsku_keys AS (\\n  SELECT\\n    participating_skus.promo_period_id,\\n    participating_skus.sku,\\n    participating_skus.Wayfair_US_SoID,\\n    retail_dim_sku.skuid\\n  FROM participating_skus\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\\n    ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)\\n),\\n\\n-- Real NA promo windows for L10 baseline.\\n-- Source of truth: WFNA Promotional Calendar (Google Slides)\\n-- https://docs.google.com/presentation/d/1351s2wvYA2v_jwbZA2k2YEHivmfYJDS_pQtsNyWq1Xk\\n-- Includes Primary Campaigns, Early Access / Loyalty Member Events, and Doorbusters.\\n-- Excludes Seasonal GTM campaign dates and sourcing windows. TBA events omitted.\\n-- A day is promo if it falls inside any of these inclusive ranges.\\nreal_na_promo_windows AS (\\n  SELECT DATE '2026-01-02' AS window_start, DATE '2026-01-08' AS window_end, 'New Year Super Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-01-09' AS window_start, DATE '2026-01-12' AS window_end, 'Four Day Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-01-17' AS window_start, DATE '2026-01-19' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-01-24' AS window_start, DATE '2026-01-25' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-01-29' AS window_start, DATE '2026-02-02' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-02-07' AS window_start, DATE '2026-02-17' AS window_end, 'Presidents Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-02-18' AS window_start, DATE '2026-02-23' AS window_end, 'Warehouse Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-02-24' AS window_start, DATE '2026-03-02' AS window_end, 'Tax Refund Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-03' AS window_start, DATE '2026-03-06' AS window_end, 'Spring Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-07' AS window_start, DATE '2026-03-09' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-14' AS window_start, DATE '2026-03-15' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-19' AS window_start, DATE '2026-03-23' AS window_end, 'Spring Cyber Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-24' AS window_start, DATE '2026-04-15' AS window_end, 'Big Outdoor Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-28' AS window_start, DATE '2026-03-30' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-04-02' AS window_start, DATE '2026-04-06' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-04-07' AS window_start, DATE '2026-04-15' AS window_end, 'Tax Refund Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-04-28' AS window_start, DATE '2026-05-01' AS window_end, 'Big Outdoor Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-02' AS window_start, DATE '2026-05-03' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-04' AS window_start, DATE '2026-05-08' AS window_end, 'Spend and Save' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-06' AS window_start, DATE '2026-05-08' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-11' AS window_start, DATE '2026-05-26' AS window_end, 'Memorial Day / Victoria Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-27' AS window_start, DATE '2026-06-03' AS window_end, 'Memorial Day Warehouse Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-06' AS window_start, DATE '2026-06-07' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-11' AS window_start, DATE '2026-06-15' AS window_end, 'Hot Summer Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-16' AS window_start, DATE '2026-06-22' AS window_end, 'Back to School' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-20' AS window_start, DATE '2026-06-22' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-23' AS window_start, DATE '2026-06-26' AS window_end, 'Four Day Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-27' AS window_start, DATE '2026-07-06' AS window_end, 'July 4th / Canada Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-07' AS window_start, DATE '2026-07-10' AS window_end, 'Summer Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-12' AS window_start, DATE '2026-07-13' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-13' AS window_start, DATE '2026-07-19' AS window_end, 'Financing Promo' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-17' AS window_start, DATE '2026-07-19' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-23' AS window_start, DATE '2026-07-27' AS window_end, 'Black Friday in July' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-23' AS window_start, DATE '2026-07-27' AS window_end, 'X-Mas in July' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-28' AS window_start, DATE '2026-08-01' AS window_end, 'Outdoor Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-02' AS window_start, DATE '2026-08-03' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-08' AS window_start, DATE '2026-08-10' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-11' AS window_start, DATE '2026-08-16' AS window_end, 'Summer Markdowns' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-17' AS window_start, DATE '2026-08-18' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-22' AS window_start, DATE '2026-09-07' AS window_end, 'Labor Day / Labour Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-08' AS window_start, DATE '2026-09-12' AS window_end, 'Labor Day Warehouse Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-13' AS window_start, DATE '2026-09-14' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-15' AS window_start, DATE '2026-09-21' AS window_end, 'Fall Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-26' AS window_start, DATE '2026-09-28' AS window_end, '72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-29' AS window_start, DATE '2026-10-04' AS window_end, 'Big Furniture Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-10-03' AS window_start, DATE '2026-10-04' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-10-05' AS window_start, DATE '2026-10-09' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-10-10' AS window_start, DATE '2026-10-12' AS window_end, '72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-10-13' AS window_start, DATE '2026-10-18' AS window_end, 'Holiday Deal Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-10-27' AS window_start, DATE '2026-10-31' AS window_end, 'Fall Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-01' AS window_start, DATE '2026-11-02' AS window_end, 'Black Friday 48 HR' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-03' AS window_start, DATE '2026-11-06' AS window_end, 'Holiday Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-07' AS window_start, DATE '2026-11-08' AS window_end, '48 HR Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-09' AS window_start, DATE '2026-11-11' AS window_end, '72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-13' AS window_start, DATE '2026-11-18' AS window_end, 'Early Access Black Friday' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-19' AS window_start, DATE '2026-12-01' AS window_end, 'C13' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-12-02' AS window_start, DATE '2026-12-06' AS window_end, 'Cyber Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-12-07' AS window_start, DATE '2026-12-11' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-12-12' AS window_start, DATE '2026-12-13' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-12-14' AS window_start, DATE '2027-01-01' AS window_end, 'EOY Clearance / Boxing Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-01-21' AS window_start, DATE '2026-01-23' AS window_end, '[WFUS] Loyalty: Member Pop Up Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-02-05' AS window_start, DATE '2026-02-06' AS window_end, 'Members Only - Presidents Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-03-11' AS window_start, DATE '2026-03-13' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-04-23' AS window_start, DATE '2026-04-23' AS window_end, 'Loyalty: Way Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-09' AS window_start, DATE '2026-05-10' AS window_end, 'Members Only - Memorial Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-06-29' AS window_start, DATE '2026-06-29' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-21' AS window_start, DATE '2026-07-21' AS window_end, 'Members Only - Black Friday Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-05' AS window_start, DATE '2026-08-07' AS window_end, 'Loyalty: Member Pop Up Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-20' AS window_start, DATE '2026-08-21' AS window_end, 'Members Only - Labor Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-31' AS window_start, DATE '2026-08-31' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-09-23' AS window_start, DATE '2026-09-25' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-11-12' AS window_start, DATE '2026-11-12' AS window_end, 'Loyalty: Early Black Friday' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-02-07' AS window_start, DATE '2026-02-17' AS window_end, 'Doorbusters: Presidents Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-04-25' AS window_start, DATE '2026-04-27' AS window_end, 'Doorbusters: Way Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-05-15' AS window_start, DATE '2026-05-26' AS window_end, 'Doorbusters: Memorial Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-07-23' AS window_start, DATE '2026-07-27' AS window_end, 'Doorbusters: Black Friday in July' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2026-08-28' AS window_start, DATE '2026-09-07' AS window_end, 'Doorbusters: Labor Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-02' AS window_start, DATE '2025-01-06' AS window_end, 'Last Call Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-09' AS window_start, DATE '2025-01-16' AS window_end, 'Bedding & Bath Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-11' AS window_start, DATE '2025-01-13' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-17' AS window_start, DATE '2025-01-21' AS window_end, 'Weekend Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-27' AS window_start, DATE '2025-01-28' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-29' AS window_start, DATE '2025-02-03' AS window_end, 'Living Room Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-02-08' AS window_start, DATE '2025-02-18' AS window_end, '72HR Clearout + Presidents Day / Winter Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-02-22' AS window_start, DATE '2025-03-03' AS window_end, 'Spring Savings' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-08' AS window_start, DATE '2025-03-10' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-14' AS window_start, DATE '2025-03-16' AS window_end, '[WFCA] 72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-20' AS window_start, DATE '2025-03-24' AS window_end, 'Spring Cyber Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-26' AS window_start, DATE '2025-04-01' AS window_end, 'Dining Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-29' AS window_start, DATE '2025-03-31' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-04-04' AS window_start, DATE '2025-04-08' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-04-09' AS window_start, DATE '2025-04-20' AS window_end, 'Big Outdoor Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-04-26' AS window_start, DATE '2025-04-30' AS window_end, 'Way Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-05' AS window_start, DATE '2025-05-06' AS window_end, '48 Hour Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-07' AS window_start, DATE '2025-05-13' AS window_end, 'Bedroom Furniture Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-14' AS window_start, DATE '2025-05-27' AS window_end, 'Victoria Day Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-16' AS window_start, DATE '2025-05-27' AS window_end, 'Memorial Day Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-31' AS window_start, DATE '2025-06-03' AS window_end, 'Long Weekend Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-06-09' AS window_start, DATE '2025-06-23' AS window_end, 'Big Outdoor Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-06-12' AS window_start, DATE '2025-06-16' AS window_end, 'Epic Summer Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-06-21' AS window_start, DATE '2025-06-23' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-06-27' AS window_start, DATE '2025-07-06' AS window_end, 'July 4th / Canada Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-07-08' AS window_start, DATE '2025-07-11' AS window_end, 'Four Day Flash Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-07-12' AS window_start, DATE '2025-07-17' AS window_end, 'Rugs Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-07-14' AS window_start, DATE '2025-07-20' AS window_end, 'Back to School Deal Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-07-24' AS window_start, DATE '2025-07-28' AS window_end, 'Black Friday in July' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-07-31' AS window_start, DATE '2025-08-04' AS window_end, 'Verified Promos' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-05' AS window_start, DATE '2025-08-08' AS window_end, 'App Exclusive Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-09' AS window_start, DATE '2025-08-11' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-14' AS window_start, DATE '2025-08-20' AS window_end, 'Back to School Deal Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-15' AS window_start, DATE '2025-08-18' AS window_end, 'Four Day Flash Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-21' AS window_start, DATE '2025-09-02' AS window_end, '[WFCA] Labour Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-23' AS window_start, DATE '2025-09-02' AS window_end, '[WFUS] Labor Day' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-03' AS window_start, DATE '2025-09-07' AS window_end, 'Warehouse Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-08' AS window_start, DATE '2025-09-09' AS window_end, '48HR Surprise Clearance' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-10' AS window_start, DATE '2025-09-14' AS window_end, 'App Exclusive Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-15' AS window_start, DATE '2025-09-22' AS window_end, 'Epic Fall Sale' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-15' AS window_start, DATE '2025-09-22' AS window_end, 'Halloween Promo Code' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-23' AS window_start, DATE '2025-09-25' AS window_end, '[WFUS] 72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-29' AS window_start, DATE '2025-10-06' AS window_end, 'Holiday Deal Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-10-07' AS window_start, DATE '2025-10-09' AS window_end, '72 HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-10-10' AS window_start, DATE '2025-10-14' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-10-15' AS window_start, DATE '2025-10-19' AS window_end, 'Verified Promo' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-10-30' AS window_start, DATE '2025-12-07' AS window_end, 'Cyber Month' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-11-20' AS window_start, DATE '2025-12-02' AS window_end, 'C13' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-12-08' AS window_start, DATE '2025-12-12' AS window_end, '5 Days of Deals' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-12-13' AS window_start, DATE '2025-12-15' AS window_end, '72HR Clearout' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-12-16' AS window_start, DATE '2026-01-01' AS window_end, 'EOY Clearance / Boxing Week' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-01-06' AS window_start, DATE '2025-01-07' AS window_end, 'Members Only - Presidents Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-03-14' AS window_start, DATE '2025-03-16' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-05-14' AS window_start, DATE '2025-05-15' AS window_end, 'Members Only - Memorial Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-08-21' AS window_start, DATE '2025-08-22' AS window_end, 'Members Only - Labor Day Early Access' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-09-26' AS window_start, DATE '2025-09-28' AS window_end, 'Members Only - Member Event' AS promo_name\\n  UNION ALL\\n  SELECT DATE '2025-10-25' AS window_start, DATE '2025-10-25' AS window_end, 'Loyalty: Way Day Early Access' AS promo_name\\n),\\n\\n-- Candidate days before loyalty promo start (look back far enough to find N days).\\ncandidate_baseline_days AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.L10_Non_Promo_Days,\\n    day AS sales_date\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 400 DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS day\\n),\\n\\n-- True non-promo = not inside any WFNA Promotional Calendar SoT promo window.\\ncalendar_non_promo_dates AS (\\n  SELECT\\n    candidate_baseline_days.promo_period_id,\\n    candidate_baseline_days.sales_date,\\n    'non_promo' AS period_type,\\n    'wfna_promo_calendar_sot' AS non_promo_source\\n  FROM candidate_baseline_days\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM real_na_promo_windows AS w\\n    WHERE candidate_baseline_days.sales_date BETWEEN w.window_start AND w.window_end\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY candidate_baseline_days.promo_period_id\\n    ORDER BY candidate_baseline_days.sales_date DESC\\n  ) <= candidate_baseline_days.L10_Non_Promo_Days\\n),\\n\\n-- Fallback: FullData days where Final='N' OR Final='Y' only due to extended/super room\\n-- (and not also a T0/T1 event that day).\\nfulldata_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    non_promo.Date AS sales_date,\\n    'non_promo' AS period_type,\\n    'fulldata_excl_extended' AS non_promo_source\\n  FROM promo_window\\n  JOIN `wf-gcp-us-ae-eunarta-prod.staging.tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData` AS non_promo\\n    ON CAST(non_promo.soid AS INT64) = promo_window.Wayfair_US_SoID\\n   AND non_promo.Date < promo_window.promo_start_date\\n   AND (\\n      non_promo.PromoFlag_Final = 'N'\\n      OR (\\n        REGEXP_CONTAINS(\\n          LOWER(CONCAT(\\n            COALESCE(non_promo.PromoName_Final, ''), ' ',\\n            COALESCE(non_promo.PromoName_T0T1, ''), ' ',\\n            COALESCE(non_promo.PromoName_NARTA, '')\\n          )),\\n          r'extended|frequency|super ?room|source ?room'\\n        )\\n        AND COALESCE(non_promo.PromoFlag_T0T1, 'N') = 'N'\\n      )\\n    )\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY promo_window.Promo_Period_Id\\n    ORDER BY non_promo.Date DESC\\n  ) <= promo_window.L10_Non_Promo_Days\\n),\\n\\n-- Last-resort fallback: prior calendar days before promo start.\\nfallback_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'non_promo' AS period_type,\\n    'calendar_fallback' AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL promo_window.L10_Non_Promo_Days DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS calendar_date\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  AND NOT EXISTS (\\n    SELECT 1\\n    FROM fulldata_non_promo_dates\\n    WHERE fulldata_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n),\\n\\nnon_promo_dates AS (\\n  SELECT * FROM calendar_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fulldata_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fallback_non_promo_dates\\n),\\n\\npromo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'loyalty' AS period_type,\\n    CAST(NULL AS STRING) AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(promo_window.promo_start_date, promo_window.promo_end_date)\\n  ) AS calendar_date\\n),\\n\\nanalysis_dates AS (\\n  SELECT * FROM promo_dates\\n  UNION ALL\\n  SELECT * FROM non_promo_dates\\n),\\n\\ndate_counts AS (\\n  SELECT\\n    promo_period_id,\\n    COUNTIF(period_type = 'loyalty') AS promo_day_count,\\n    COUNTIF(period_type = 'non_promo') AS non_promo_day_count,\\n    MIN(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_start_date,\\n    MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date,\\n    MIN(sales_date) AS analysis_start_date,\\n    MAX(sales_date) AS analysis_end_date,\\n    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source,\\n    STRING_AGG(\\n      IF(period_type = 'non_promo', CAST(sales_date AS STRING), NULL)\\n      ORDER BY sales_date DESC\\n    ) AS non_promo_dates_list\\n  FROM analysis_dates\\n  GROUP BY promo_period_id\\n),\\n\\n-- Daily WSC from retail order financials (SoT for wholesale cost / ProductCostNoRebates).\\n-- Pattern matches Cathay/Sunham scorecard + WBR category scripts: SoID 49 by OrderDate + skuid.\\norder_wsc_by_day AS (\\n  SELECT\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate) AS sales_date,\\n    SUM(COALESCE(orders.ProductCostNoRebates, orders.productcost, 0)) AS daily_wsc\\n  FROM sku_keys\\n  JOIN date_counts\\n    ON date_counts.promo_period_id = sku_keys.promo_period_id\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost` AS orders\\n    ON orders.skuid = sku_keys.skuid\\n   AND orders.SoID = sku_keys.Wayfair_US_SoID\\n   AND DATE(orders.OrderDate) BETWEEN date_counts.analysis_start_date AND date_counts.analysis_end_date\\n  GROUP BY\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate)\\n),\\n\\nsku_daily_wsc AS (\\n  SELECT\\n    order_wsc_by_day.sku,\\n    analysis_dates.period_type,\\n    order_wsc_by_day.sales_date,\\n    order_wsc_by_day.daily_wsc\\n  FROM order_wsc_by_day\\n  JOIN analysis_dates\\n    ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n   AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n),\\n\\nsku_period_wsc AS (\\n  SELECT\\n    sku,\\n    SUM(IF(period_type = 'loyalty', daily_wsc, 0)) AS loyalty_wsc_total,\\n    SUM(IF(period_type = 'non_promo', daily_wsc, 0)) AS non_promo_wsc_total,\\n    COUNTIF(period_type = 'loyalty' AND daily_wsc > 0) AS loyalty_days_with_wsc,\\n    COUNTIF(period_type = 'non_promo' AND daily_wsc > 0) AS non_promo_days_with_wsc\\n  FROM sku_daily_wsc\\n  GROUP BY sku\\n),\\n\\nrun_diagnostics AS (\\n  SELECT\\n    participating.promo_period_id,\\n    participating.participating_sku_count,\\n    COALESCE(keys.sku_key_count, 0) AS sku_key_count,\\n    COALESCE(wsc.skus_with_any_wsc, 0) AS skus_with_any_wsc,\\n    COALESCE(wsc.loyalty_wsc_total_sum, 0) AS loyalty_wsc_total_sum,\\n    COALESCE(wsc.non_promo_wsc_total_sum, 0) AS non_promo_wsc_total_sum\\n  FROM (\\n    SELECT promo_period_id, COUNT(*) AS participating_sku_count\\n    FROM participating_skus\\n    GROUP BY promo_period_id\\n  ) AS participating\\n  LEFT JOIN (\\n    SELECT promo_period_id, COUNT(DISTINCT sku) AS sku_key_count\\n    FROM sku_keys\\n    GROUP BY promo_period_id\\n  ) AS keys\\n    ON keys.promo_period_id = participating.promo_period_id\\n  LEFT JOIN (\\n    SELECT\\n      order_wsc_by_day.promo_period_id,\\n      COUNT(DISTINCT order_wsc_by_day.sku) AS skus_with_any_wsc,\\n      SUM(IF(analysis_dates.period_type = 'loyalty', order_wsc_by_day.daily_wsc, 0)) AS loyalty_wsc_total_sum,\\n      SUM(IF(analysis_dates.period_type = 'non_promo', order_wsc_by_day.daily_wsc, 0)) AS non_promo_wsc_total_sum\\n    FROM order_wsc_by_day\\n    JOIN analysis_dates\\n      ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n     AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n    GROUP BY order_wsc_by_day.promo_period_id\\n  ) AS wsc\\n    ON wsc.promo_period_id = participating.promo_period_id\\n)\\n\\nSELECT\\n  participating_skus.promo_period_id,\\n  participating_skus.promo_period_name,\\n  CAST(participating_skus.promo_start_date AS STRING) AS promo_start_date,\\n  CAST(participating_skus.promo_end_date AS STRING) AS promo_end_date,\\n  date_counts.promo_day_count,\\n  CAST(date_counts.non_promo_start_date AS STRING) AS non_promo_start_date,\\n  CAST(date_counts.non_promo_end_date AS STRING) AS non_promo_end_date,\\n  date_counts.non_promo_day_count,\\n  date_counts.non_promo_source,\\n  date_counts.non_promo_dates_list,\\n  CAST(date_counts.analysis_start_date AS STRING) AS analysis_start_date,\\n  CAST(date_counts.analysis_end_date AS STRING) AS analysis_end_date,\\n  run_diagnostics.participating_sku_count,\\n  run_diagnostics.sku_key_count,\\n  run_diagnostics.skus_with_any_wsc,\\n  ROUND(run_diagnostics.loyalty_wsc_total_sum, 2) AS loyalty_wsc_total_sum,\\n  ROUND(run_diagnostics.non_promo_wsc_total_sum, 2) AS non_promo_wsc_total_sum,\\n  participating_skus.brand_catalog,\\n  participating_skus.supplier_id,\\n  participating_skus.supplier_name,\\n  participating_skus.srm,\\n  participating_skus.sku,\\n  participating_skus.class_name,\\n  participating_skus.marketing_category,\\n  ROUND(participating_skus.discount_pct, 4) AS discount_pct,\\n  ROUND(participating_skus.rec_discount_pct, 4) AS rec_discount_pct,\\n  ROUND(participating_skus.b2b_discount_pct, 4) AS b2b_discount_pct,\\n  ROUND(participating_skus.wsc_rev_l12m, 2) AS wsc_rev_l12m,\\n  ROUND(participating_skus.grs_l12m, 2) AS grs_l12m,\\n  participating_skus.participating_part_count,\\n  COALESCE(sku_period_wsc.loyalty_days_with_wsc, 0) AS loyalty_days_with_wsc,\\n  COALESCE(sku_period_wsc.non_promo_days_with_wsc, 0) AS non_promo_days_with_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS non_promo_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0)),\\n    2\\n  ) AS loyalty_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n    - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS incremental_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(\\n      SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n      - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n      NULLIF(\\n        SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n        0\\n      )\\n    ),\\n    4\\n  ) AS lift_pct\\nFROM participating_skus\\nLEFT JOIN sku_period_wsc\\n  ON sku_period_wsc.sku = participating_skus.sku\\nLEFT JOIN date_counts\\n  ON date_counts.promo_period_id = participating_skus.promo_period_id\\nLEFT JOIN run_diagnostics\\n  ON run_diagnostics.promo_period_id = participating_skus.promo_period_id\\nORDER BY loyalty_avg DESC, non_promo_avg DESC, sku\\n;\\n\";\n\nconst cfg = $input.first().json;\n\nfunction requiredNumber(value, fieldName) {\n  const num = Number(value);\n  if (!Number.isFinite(num) || num <= 0) {\n    throw new Error(`Configure Inputs: set a valid ${fieldName} (got: ${JSON.stringify(value)})`);\n  }\n  return Math.trunc(num);\n}\n\nfunction escapeSqlString(value) {\n  return String(value ?? '').replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n}\n\nfunction optionalDateSql(value) {\n  if (value === null || value === undefined || value === '') return 'CAST(NULL AS DATE)';\n  const text = String(value).trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {\n    throw new Error(`Configure Inputs: date overrides must be YYYY-MM-DD (got: ${value})`);\n  }\n  return `DATE '${text}'`;\n}\n\nconst promoPeriodId = requiredNumber(cfg.promo_period_id, 'promo_period_id');\nconst marketingCategory = String(cfg.marketing_category || '').trim();\nif (!marketingCategory) {\n  throw new Error('Configure Inputs: set marketing_category to the PRODUCT marketing category (MarketingCategory_SKU), e.g. Bedding or Window');\n}\n\nconst storeBrand = String(cfg.store_brand || 'Wayfair').trim() || 'Wayfair';\nconst storeCountry = String(cfg.store_country || 'United States').trim() || 'United States';\nconst brandCatalogName = String(cfg.brand_catalog_name || 'Wayfair US').trim() || 'Wayfair US';\nconst brandCatalogId = Number(cfg.brand_catalog_id || 1);\nconst l10Days = Number(cfg.l10_non_promo_days || 10);\n\nif (!Number.isFinite(brandCatalogId) || brandCatalogId <= 0) {\n  throw new Error('Configure Inputs: brand_catalog_id must be a positive number');\n}\nif (!Number.isFinite(l10Days) || l10Days <= 0) {\n  throw new Error('Configure Inputs: l10_non_promo_days must be a positive number');\n}\n\nconst sqlQuery = SQL_TEMPLATE\n  .replaceAll('__PROMO_PERIOD_ID__', String(promoPeriodId))\n  .replaceAll('__MARKETING_CATEGORY__', escapeSqlString(marketingCategory))\n  .replaceAll('__STORE_BRAND__', escapeSqlString(storeBrand))\n  .replaceAll('__STORE_COUNTRY__', escapeSqlString(storeCountry))\n  .replaceAll('__BRAND_CATALOG_NAME__', escapeSqlString(brandCatalogName))\n  .replaceAll('__BRAND_CATALOG_ID__', String(Math.trunc(brandCatalogId)))\n  .replaceAll('__L10_NON_PROMO_DAYS__', String(Math.trunc(l10Days)))\n  .replaceAll('__PROMO_START_OVERRIDE__', optionalDateSql(cfg.promo_start_override))\n  .replaceAll('__PROMO_END_OVERRIDE__', optionalDateSql(cfg.promo_end_override));\n\nreturn [\n  {\n    json: {\n      promo_period_id: promoPeriodId,\n      marketing_category: marketingCategory,\n      store_brand: storeBrand,\n      store_country: storeCountry,\n      brand_catalog_name: brandCatalogName,\n      brand_catalog_id: Math.trunc(brandCatalogId),\n      l10_non_promo_days: Math.trunc(l10Days),\n      promo_start_override: cfg.promo_start_override || null,\n      promo_end_override: cfg.promo_end_override || null,\n      metric: 'WSC',\n      sqlQuery,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "e8b39df9-1307-49eb-b1b9-f3f87229bfb5",
+      "name": "Build SQL Query"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-retail-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-retail-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-retail-prod"
+        },
+        "sqlQuery": "={{ $json.sqlQuery }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        300
+      ],
+      "id": "58885234-0a2b-4db6-b637-1ba09d12bc2b",
+      "name": "Pull Loyalty WSC Lift SKUs",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Loyalty promo lift analysis (WSC)\n// Consumes SKU-level BigQuery rows and builds:\n// - category / class / supplier / discount-bucket / baseline-tier summaries\n// - markdown + HTML case study\n// - Google Sheets payloads\n\nconst rows = $input.all().map((item) => item.json);\nconst configureInputs = (() => {\n  try {\n    return $('Configure Inputs').first().json || {};\n  } catch (error) {\n    return {};\n  }\n})();\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return 0;\n  if (typeof value === 'number') return value;\n  const cleaned = String(value).replace(/[$,%]/g, '').trim();\n  const num = Number(cleaned);\n  return Number.isFinite(num) ? num : 0;\n}\n\nfunction round(value, digits = 2) {\n  const factor = 10 ** digits;\n  return Math.round((Number(value) + Number.EPSILON) * factor) / factor;\n}\n\nfunction fmtCurrency(value) {\n  return new Intl.NumberFormat('en-US', {\n    style: 'currency',\n    currency: 'USD',\n    minimumFractionDigits: 2,\n    maximumFractionDigits: 2,\n  }).format(toNumber(value));\n}\n\nfunction fmtPct(value, digits = 1) {\n  if (value === null || value === undefined || Number.isNaN(Number(value))) return 'n/a';\n  return `${(toNumber(value) * 100).toFixed(digits)}%`;\n}\n\nfunction escapeHtml(value) {\n  return String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;');\n}\n\nfunction discountBucket(discountPct) {\n  const d = toNumber(discountPct);\n  if (d < 0.1) return '<10%';\n  if (d < 0.15) return '10-14.9%';\n  if (d < 0.2) return '15-19.9%';\n  if (d < 0.25) return '20-24.9%';\n  return '25%+';\n}\n\nfunction quantile(sortedValues, q) {\n  if (!sortedValues.length) return 0;\n  const pos = (sortedValues.length - 1) * q;\n  const base = Math.floor(pos);\n  const rest = pos - base;\n  if (sortedValues[base + 1] === undefined) return sortedValues[base];\n  return sortedValues[base] + rest * (sortedValues[base + 1] - sortedValues[base]);\n}\n\nfunction weightedAvg(values, weights) {\n  let num = 0;\n  let den = 0;\n  for (let i = 0; i < values.length; i += 1) {\n    const value = values[i];\n    const weight = weights[i];\n    if (value === null || value === undefined || Number.isNaN(value)) continue;\n    if (!weight || weight <= 0) continue;\n    num += value * weight;\n    den += weight;\n  }\n  if (den > 0) return num / den;\n  const valid = values.filter((v) => v !== null && v !== undefined && !Number.isNaN(v));\n  if (!valid.length) return null;\n  return valid.reduce((a, b) => a + b, 0) / valid.length;\n}\n\nfunction summarize(records, groupKeyFn) {\n  const groups = new Map();\n  for (const row of records) {\n    const keyObj = groupKeyFn(row);\n    const key = JSON.stringify(keyObj);\n    if (!groups.has(key)) groups.set(key, []);\n    groups.get(key).push(row);\n  }\n\n  const summaries = [];\n  for (const [key, group] of groups.entries()) {\n    const keyObj = JSON.parse(key);\n    const baseline = group.reduce((sum, row) => sum + row.non_promo_avg, 0);\n    const loyalty = group.reduce((sum, row) => sum + row.loyalty_avg, 0);\n    const incremental = loyalty - baseline;\n    const weightedLift = baseline ? incremental / baseline : null;\n    const skuCount = new Set(group.map((row) => row.sku)).size;\n    const activeSkus = new Set(group.filter((row) => row.loyalty_avg > 0).map((row) => row.sku)).size;\n    const positiveSkus = new Set(group.filter((row) => row.incremental_wsc > 0).map((row) => row.sku)).size;\n    const weightedDiscount = weightedAvg(\n      group.map((row) => row.discount_pct),\n      group.map((row) => row.non_promo_avg),\n    );\n\n    summaries.push({\n      ...keyObj,\n      sku_count: skuCount,\n      active_skus: activeSkus,\n      positive_lift_skus: positiveSkus,\n      positive_lift_sku_rate: skuCount ? positiveSkus / skuCount : null,\n      non_promo_avg: round(baseline, 2),\n      loyalty_avg: round(loyalty, 2),\n      incremental_wsc: round(incremental, 2),\n      weighted_lift_pct: weightedLift === null ? null : round(weightedLift, 4),\n      weighted_discount_pct: weightedDiscount === null ? null : round(weightedDiscount, 4),\n    });\n  }\n\n  return summaries.sort((a, b) => b.loyalty_avg - a.loyalty_avg || b.incremental_wsc - a.incremental_wsc);\n}\n\nfunction markdownTable(tableRows, columns) {\n  if (!tableRows.length) return '_No rows_';\n  const body = tableRows.map((row) =>\n    columns.map((col) => {\n      const value = row[col];\n      if (value === null || value === undefined) return '';\n      return String(value);\n    }),\n  );\n  const widths = columns.map((header, idx) =>\n    Math.max(header.length, ...body.map((row) => row[idx].length)),\n  );\n  const render = (values) =>\n    `| ${values.map((value, idx) => value.padEnd(widths[idx])).join(' | ')} |`;\n  return [\n    render(columns),\n    `| ${widths.map((width) => '-'.repeat(width)).join(' | ')} |`,\n    ...body.map(render),\n  ].join('\\n');\n}\n\nfunction htmlTable(tableRows, columns) {\n  if (!tableRows.length) return '<p><em>No rows</em></p>';\n  const head = columns\n    .map(\n      (col) =>\n        `<th style=\"text-align:left;padding:6px 10px;border-bottom:1px solid #ddd;\">${escapeHtml(col)}</th>`,\n    )\n    .join('');\n  const body = tableRows\n    .map((row) => {\n      const cells = columns\n        .map(\n          (col) =>\n            `<td style=\"padding:6px 10px;border-bottom:1px solid #f0f0f0;\">${escapeHtml(row[col] ?? '')}</td>`,\n        )\n        .join('');\n      return `<tr>${cells}</tr>`;\n    })\n    .join('');\n  return `<table style=\"border-collapse:collapse;width:100%;font-size:13px;\"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;\n}\n\nfunction formatSummaryRows(tableRows) {\n  return tableRows.map((row) => ({\n    ...row,\n    positive_lift_sku_rate: fmtPct(row.positive_lift_sku_rate),\n    weighted_discount_pct: fmtPct(row.weighted_discount_pct),\n    non_promo_avg: fmtCurrency(row.non_promo_avg),\n    loyalty_avg: fmtCurrency(row.loyalty_avg),\n    incremental_wsc: fmtCurrency(row.incremental_wsc),\n    weighted_lift_pct: fmtPct(row.weighted_lift_pct),\n  }));\n}\n\nconst configuredCategory = String(configureInputs.marketing_category || '').trim();\n\nif (!rows.length) {\n  return [\n    {\n      json: {\n        subject: `[Loyalty WSC Lift] No participating SKUs found${configuredCategory ? ` (${configuredCategory})` : ''}`,\n        emailHtml:\n          '<html><body style=\"font-family:Arial,sans-serif;\"><h2>Loyalty Promo WSC Lift</h2><!-- SPREADSHEET_LINK --><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for <code>promo_period_id</code> and <code>marketing_category</code> (exact CPH spelling).</p></body></html>',\n        markdown:\n          '# Loyalty Promo WSC Lift\\n\\nNo participating SKUs found. Check Configure Inputs for promo_period_id and marketing_category.',\n        spreadsheetTitle: `Loyalty WSC Lift - empty - ${new Date().toISOString().slice(0, 10)}`,\n        sheet_rows: [],\n        summary: {\n          sku_count: 0,\n          loyalty_avg: 0,\n          non_promo_avg: 0,\n          incremental_wsc: 0,\n          weighted_lift_pct: null,\n          metric: 'WSC',\n          zero_wsc_warning: true,\n        },\n        spreadsheetUrlPlaceholder: '<!-- SPREADSHEET_LINK -->',\n      },\n    },\n  ];\n}\n\nconst skuData = rows.map((row) => {\n  const nonPromoAvg = toNumber(row.non_promo_avg);\n  const loyaltyAvg = toNumber(row.loyalty_avg);\n  const incremental =\n    row.incremental_wsc === null || row.incremental_wsc === undefined || row.incremental_wsc === ''\n      ? loyaltyAvg - nonPromoAvg\n      : toNumber(row.incremental_wsc);\n  const lift =\n    row.lift_pct === null || row.lift_pct === undefined || row.lift_pct === ''\n      ? nonPromoAvg > 0\n        ? incremental / nonPromoAvg\n        : null\n      : toNumber(row.lift_pct);\n\n  return {\n    promo_period_id: row.promo_period_id,\n    promo_period_name: row.promo_period_name || 'Loyalty Promo',\n    promo_start_date: row.promo_start_date,\n    promo_end_date: row.promo_end_date,\n    promo_day_count: toNumber(row.promo_day_count),\n    non_promo_start_date: row.non_promo_start_date,\n    non_promo_end_date: row.non_promo_end_date,\n    non_promo_day_count: toNumber(row.non_promo_day_count),\n    non_promo_source: row.non_promo_source || '',\n    non_promo_dates_list: row.non_promo_dates_list || '',\n    analysis_start_date: row.analysis_start_date,\n    analysis_end_date: row.analysis_end_date,\n    participating_sku_count: toNumber(row.participating_sku_count),\n    sku_key_count: toNumber(row.sku_key_count),\n    skus_with_any_wsc: toNumber(row.skus_with_any_wsc),\n    loyalty_wsc_total_sum: toNumber(row.loyalty_wsc_total_sum),\n    non_promo_wsc_total_sum: toNumber(row.non_promo_wsc_total_sum),\n    brand_catalog: row.brand_catalog || 'Wayfair US',\n    supplier_id: row.supplier_id,\n    supplier_name: row.supplier_name || 'Unknown Supplier',\n    srm: row.srm || '',\n    sku: row.sku,\n    class_name: row.class_name || 'Unknown Class',\n    marketing_category: row.marketing_category || configuredCategory || 'Unknown Category',\n    discount_pct: toNumber(row.discount_pct),\n    rec_discount_pct: toNumber(row.rec_discount_pct),\n    b2b_discount_pct: toNumber(row.b2b_discount_pct),\n    wsc_rev_l12m: toNumber(row.wsc_rev_l12m),\n    grs_l12m: toNumber(row.grs_l12m),\n    participating_part_count: toNumber(row.participating_part_count),\n    loyalty_days_with_wsc: toNumber(row.loyalty_days_with_wsc),\n    non_promo_days_with_wsc: toNumber(row.non_promo_days_with_wsc),\n    non_promo_avg: nonPromoAvg,\n    loyalty_avg: loyaltyAvg,\n    incremental_wsc: round(incremental, 2),\n    lift_pct: lift === null ? null : round(lift, 4),\n    discount_bucket: discountBucket(row.discount_pct),\n    active_on_event: loyaltyAvg > 0,\n    positive_lift: incremental > 0,\n    metric: 'WSC',\n  };\n});\n\nconst baselines = skuData\n  .map((row) => row.non_promo_avg)\n  .filter((value) => value > 0)\n  .sort((a, b) => a - b);\nconst q1 = quantile(baselines, 0.25);\nconst q2 = quantile(baselines, 0.5);\nconst q3 = quantile(baselines, 0.75);\n\nfor (const row of skuData) {\n  if (row.non_promo_avg <= 0) {\n    row.baseline_success_tier = 'No baseline';\n  } else if (row.non_promo_avg <= q1) {\n    row.baseline_success_tier = 'Low baseline';\n  } else if (row.non_promo_avg <= q2) {\n    row.baseline_success_tier = 'Mid-low baseline';\n  } else if (row.non_promo_avg <= q3) {\n    row.baseline_success_tier = 'Mid-high baseline';\n  } else {\n    row.baseline_success_tier = 'High baseline';\n  }\n}\n\nconst categorySummary = summarize(skuData, (row) => ({ marketing_category: row.marketing_category }));\nconst classSummary = summarize(skuData, (row) => ({ class_name: row.class_name }));\nconst supplierSummary = summarize(skuData, (row) => ({\n  supplier_id: row.supplier_id,\n  supplier_name: row.supplier_name,\n  srm: row.srm,\n}));\nconst discountSummary = summarize(skuData, (row) => ({ discount_bucket: row.discount_bucket })).sort(\n  (a, b) => {\n    const order = ['<10%', '10-14.9%', '15-19.9%', '20-24.9%', '25%+'];\n    return order.indexOf(a.discount_bucket) - order.indexOf(b.discount_bucket);\n  },\n);\nconst baselineTier = ['Low baseline', 'Mid-low baseline', 'Mid-high baseline', 'High baseline'];\nconst baselineSummary = summarize(\n  skuData.filter((row) => baselineTier.includes(row.baseline_success_tier)),\n  (row) => ({ baseline_success_tier: row.baseline_success_tier }),\n).sort(\n  (a, b) =>\n    baselineTier.indexOf(a.baseline_success_tier) - baselineTier.indexOf(b.baseline_success_tier),\n);\n\nconst totalNonPromo = skuData.reduce((sum, row) => sum + row.non_promo_avg, 0);\nconst totalLoyalty = skuData.reduce((sum, row) => sum + row.loyalty_avg, 0);\nconst totalIncremental = totalLoyalty - totalNonPromo;\nconst totalLift = totalNonPromo ? totalIncremental / totalNonPromo : null;\nconst activeSkus = skuData.filter((row) => row.active_on_event).length;\nconst positiveSkus = skuData.filter((row) => row.positive_lift).length;\nconst weightedDiscount = weightedAvg(\n  skuData.map((row) => row.discount_pct),\n  skuData.map((row) => row.non_promo_avg),\n);\nconst bestClass = [...classSummary]\n  .filter((row) => row.weighted_lift_pct !== null)\n  .sort((a, b) => b.weighted_lift_pct - a.weighted_lift_pct)[0];\nconst biggestClass = [...classSummary].sort((a, b) => b.loyalty_avg - a.loyalty_avg)[0];\nconst bestSupplier = [...supplierSummary]\n  .filter((row) => row.incremental_wsc > 0)\n  .sort((a, b) => b.incremental_wsc - a.incremental_wsc)[0];\nconst highTier = baselineSummary.find((row) => row.baseline_success_tier === 'High baseline');\nconst lowTier = baselineSummary.find((row) => row.baseline_success_tier === 'Low baseline');\nconst meta = skuData[0];\nconst categoryName = configuredCategory || meta.marketing_category || 'Category';\nconst eventName = meta.promo_period_name || `${categoryName} Loyalty Promo`;\n\nconst classTable = formatSummaryRows(classSummary);\nconst supplierTable = formatSummaryRows(\n  [...supplierSummary].sort((a, b) => b.incremental_wsc - a.incremental_wsc).slice(0, 15),\n);\nconst discountTable = formatSummaryRows(discountSummary);\nconst tierTable = formatSummaryRows(baselineSummary);\nconst categoryTable = formatSummaryRows(categorySummary);\n\nconst summaryColumns = [\n  'sku_count',\n  'active_skus',\n  'positive_lift_sku_rate',\n  'weighted_discount_pct',\n  'non_promo_avg',\n  'loyalty_avg',\n  'incremental_wsc',\n  'weighted_lift_pct',\n];\n\nconst markdown = `# ${eventName} Performance Case Study\n\n## Executive takeaway\n\nThe **${categoryName}** loyalty promo generated **${fmtCurrency(totalLoyalty)}** in loyalty-period daily-avg **WSC** versus a recent non-promo average of **${fmtCurrency(totalNonPromo)}**, creating **${fmtCurrency(totalIncremental)} in incremental WSC** and **${fmtPct(totalLift)} weighted lift**.\n\n## What changed during the event\n\n- **Metric:** WSC (wholesale cost / product cost, USD)\n- **Overall lift:** ${fmtPct(totalLift)}\n- **Incremental WSC:** ${fmtCurrency(totalIncremental)}\n- **Participation breadth:** ${activeSkus} of ${skuData.length} participating SKUs recorded loyalty WSC; ${positiveSkus} SKUs generated positive incremental WSC.\n- **Weighted supplier investment:** ${fmtPct(weightedDiscount)} average discount, weighted by non-promo WSC average.\n- **Best class by lift:** ${bestClass ? `${bestClass.class_name} at ${fmtPct(bestClass.weighted_lift_pct)}` : 'n/a'}.\n- **Largest class by loyalty WSC:** ${biggestClass ? `${biggestClass.class_name} with ${fmtCurrency(biggestClass.loyalty_avg)}` : 'n/a'}.\n- **Promo window:** ${meta.promo_start_date} to ${meta.promo_end_date} (${meta.promo_day_count} day(s)).\n- **L10 non-promo baseline:** ${meta.non_promo_day_count} day(s) from ${meta.non_promo_start_date} to ${meta.non_promo_end_date} (auto-selected as the last non-promo days before promo start using WFNA Promotional Calendar SoT).\n${meta.non_promo_dates_list ? `- **L10 dates:** ${meta.non_promo_dates_list}` : ''}\n\n## Are normally successful SKUs performing better or worse?\n\nUsing each SKU's non-promo WSC average as a proxy for normal/historical success, high-baseline SKUs delivered **${fmtPct(highTier?.weighted_lift_pct)} weighted lift**, while low-baseline SKUs delivered **${fmtPct(lowTier?.weighted_lift_pct)} weighted lift**.\n\n${markdownTable(tierTable, ['baseline_success_tier', ...summaryColumns])}\n\n## Category-level insights\n\n${markdownTable(categoryTable, ['marketing_category', ...summaryColumns])}\n\n## Class-level insights\n\n${markdownTable(classTable, ['class_name', ...summaryColumns])}\n\n## Promotional investment vs. lift\n\n${markdownTable(discountTable, ['discount_bucket', 'sku_count', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}\n\n## Supplier-level insights\n\n${markdownTable(supplierTable, ['supplier_name', ...summaryColumns])}\n\n## Supplier success stories\n\nThe largest incremental supplier win was **${bestSupplier ? bestSupplier.supplier_name : 'n/a'}**, with **${bestSupplier ? fmtCurrency(bestSupplier.incremental_wsc) : 'n/a'}** in incremental WSC and **${bestSupplier ? fmtPct(bestSupplier.weighted_lift_pct) : 'n/a'}** weighted lift.\n`;\n\nconst emailHtml = `\n<html>\n  <body style=\"font-family:Arial,sans-serif;color:#222;line-height:1.45;\">\n    <h2 style=\"margin-bottom:4px;\">${escapeHtml(eventName)} Performance Case Study</h2>\n    <p style=\"color:#666;margin-top:0;\">${escapeHtml(categoryName)} \u00b7 Promo ${escapeHtml(meta.promo_period_id)} \u00b7 ${escapeHtml(meta.promo_start_date)} to ${escapeHtml(meta.promo_end_date)} \u00b7 Metric: WSC</p>\n    <!-- SPREADSHEET_LINK -->\n    <p>The <strong>${escapeHtml(categoryName)}</strong> loyalty promo generated <strong>${escapeHtml(fmtCurrency(totalLoyalty))}</strong> in loyalty-period daily-avg WSC versus a recent non-promo average of <strong>${escapeHtml(fmtCurrency(totalNonPromo))}</strong>, creating <strong>${escapeHtml(fmtCurrency(totalIncremental))}</strong> in incremental WSC and <strong>${escapeHtml(fmtPct(totalLift))}</strong> weighted lift.</p>\n    ${\n      totalLoyalty === 0 && totalNonPromo === 0\n        ? `<div style=\"background:#fff4e5;border:1px solid #f5c26b;padding:12px;margin:12px 0;\">\n            <strong>Zero WSC returned for both promo and L10 windows.</strong>\n            <ul style=\"margin:8px 0 0 18px;\">\n              <li>Promo window: ${escapeHtml(meta.promo_start_date)} \u2192 ${escapeHtml(meta.promo_end_date)} (${escapeHtml(String(meta.promo_day_count))} day(s))</li>\n              <li>L10 baseline: ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)} (source: ${escapeHtml(meta.non_promo_source || 'n/a')}; WFNA promo calendar SoT)</li>\n              <li>L10 dates: ${escapeHtml(meta.non_promo_dates_list || 'n/a')}</li>\n              <li>Diagnostics: ${escapeHtml(String(meta.participating_sku_count))} participating SKUs \u00b7 ${escapeHtml(String(meta.sku_key_count))} resolved skuid matches \u00b7 ${escapeHtml(String(meta.skus_with_any_wsc))} SKUs with any order WSC</li>\n              <li>Order WSC totals: loyalty ${escapeHtml(fmtCurrency(meta.loyalty_wsc_total_sum))} \u00b7 L10 ${escapeHtml(fmtCurrency(meta.non_promo_wsc_total_sum))}</li>\n              <li>Confirm <code>promo_period_id</code> and PRODUCT marketing category spelling match CPH MarketingCategory_SKU (e.g. <code>Bedding</code>)</li>\n              <li>If the event is very recent, order financials may not be fully landed yet \u2014 set date overrides or wait 1\u20132 days</li>\n            </ul>\n          </div>`\n        : ''\n    }\n    <ul>\n      <li><strong>Participation:</strong> ${activeSkus} of ${skuData.length} SKUs recorded loyalty WSC; ${positiveSkus} had positive incremental WSC.</li>\n      <li><strong>Weighted discount:</strong> ${escapeHtml(fmtPct(weightedDiscount))}</li>\n      <li><strong>Best class by lift:</strong> ${escapeHtml(bestClass ? `${bestClass.class_name} (${fmtPct(bestClass.weighted_lift_pct)})` : 'n/a')}</li>\n      <li><strong>Top incremental supplier:</strong> ${escapeHtml(bestSupplier ? `${bestSupplier.supplier_name} (${fmtCurrency(bestSupplier.incremental_wsc)})` : 'n/a')}</li>\n      <li><strong>L10 non-promo baseline:</strong> ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)}${meta.non_promo_dates_list ? ` \u2014 <code>${escapeHtml(meta.non_promo_dates_list)}</code>` : ''} (WFNA Promotional Calendar SoT)</li>\n    </ul>\n    <h3>Class-level insights</h3>\n    ${htmlTable(classTable, ['class_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}\n    <h3>Top suppliers by incremental WSC</h3>\n    ${htmlTable(supplierTable, ['supplier_name', 'sku_count', 'active_skus', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}\n    <h3>Discount investment vs. lift</h3>\n    ${htmlTable(discountTable, ['discount_bucket', 'sku_count', 'weighted_discount_pct', 'non_promo_avg', 'loyalty_avg', 'incremental_wsc', 'weighted_lift_pct'])}\n    <p style=\"color:#666;font-size:12px;margin-top:24px;\">Generated by Loyalty Promo WSC Lift n8n workflow. Change Configure Inputs (promo ID + marketing category) to rerun for the next loyalty event.</p>\n  </body>\n</html>\n`;\n\nconst sheetRows = [];\nfunction pushSheetRows(sheetName, records) {\n  for (const record of records) {\n    sheetRows.push({ sheet_name: sheetName, ...record });\n  }\n}\n\npushSheetRows(\n  'SKU Data',\n  skuData.map((row) => ({\n    promo_period_id: row.promo_period_id,\n    promo_period_name: row.promo_period_name,\n    brand_catalog: row.brand_catalog,\n    supplier_id: row.supplier_id,\n    supplier_name: row.supplier_name,\n    srm: row.srm,\n    sku: row.sku,\n    class_name: row.class_name,\n    marketing_category: row.marketing_category,\n    discount_pct: row.discount_pct,\n    non_promo_avg: row.non_promo_avg,\n    loyalty_avg: row.loyalty_avg,\n    incremental_wsc: row.incremental_wsc,\n    lift_pct: row.lift_pct,\n    discount_bucket: row.discount_bucket,\n    baseline_success_tier: row.baseline_success_tier,\n    metric: 'WSC',\n  })),\n);\npushSheetRows('Category Summary', categorySummary);\npushSheetRows('Class Summary', classSummary);\npushSheetRows('Supplier Summary', supplierSummary);\npushSheetRows('Discount Buckets', discountSummary);\npushSheetRows('Baseline Tiers', baselineSummary);\n\nreturn [\n  {\n    json: {\n      subject: `[Loyalty WSC Lift] ${categoryName} / ${eventName}: ${fmtPct(totalLift)} weighted lift / ${fmtCurrency(totalIncremental)} incremental WSC`,\n      emailHtml,\n      markdown,\n      spreadsheetTitle: `Loyalty WSC Lift - ${categoryName} - ${eventName} - ${meta.promo_start_date || new Date().toISOString().slice(0, 10)}`,\n      sheet_rows: sheetRows,\n      sku_data: skuData,\n      category_summary: categorySummary,\n      class_summary: classSummary,\n      supplier_summary: supplierSummary,\n      discount_summary: discountSummary,\n      baseline_summary: baselineSummary,\n      summary: {\n        event_name: eventName,\n        marketing_category: categoryName,\n        promo_period_id: meta.promo_period_id,\n        metric: 'WSC',\n        sku_count: skuData.length,\n        active_skus: activeSkus,\n        positive_lift_skus: positiveSkus,\n        non_promo_avg: round(totalNonPromo, 2),\n        loyalty_avg: round(totalLoyalty, 2),\n        incremental_wsc: round(totalIncremental, 2),\n        weighted_lift_pct: totalLift === null ? null : round(totalLift, 4),\n        weighted_discount_pct: weightedDiscount === null ? null : round(weightedDiscount, 4),\n        promo_start_date: meta.promo_start_date,\n        promo_end_date: meta.promo_end_date,\n        promo_day_count: meta.promo_day_count,\n        non_promo_start_date: meta.non_promo_start_date,\n        non_promo_end_date: meta.non_promo_end_date,\n        non_promo_day_count: meta.non_promo_day_count,\n        non_promo_source: meta.non_promo_source || '',\n        non_promo_dates_list: meta.non_promo_dates_list || '',\n        participating_sku_count: meta.participating_sku_count,\n        sku_key_count: meta.sku_key_count,\n        skus_with_any_wsc: meta.skus_with_any_wsc,\n        loyalty_wsc_total_sum: meta.loyalty_wsc_total_sum,\n        non_promo_wsc_total_sum: meta.non_promo_wsc_total_sum,\n        zero_wsc_warning: totalLoyalty === 0 && totalNonPromo === 0,\n      },\n      spreadsheetUrlPlaceholder: '<!-- SPREADSHEET_LINK -->',\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        300
+      ],
+      "id": "b5a62ce0-c29c-40a8-acaf-dfbc5f0aa294",
+      "name": "Build Analysis"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "={{ $json.spreadsheetTitle }}",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "SKU Data"
+            },
+            {
+              "title": "Category Summary"
+            },
+            {
+              "title": "Class Summary"
+            },
+            {
+              "title": "Supplier Summary"
+            },
+            {
+              "title": "Discount Buckets"
+            },
+            {
+              "title": "Baseline Tiers"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        300
+      ],
+      "id": "e02b02fb-21c2-43b2-a4b7-78e9f71f1299",
+      "name": "Create Spreadsheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Attach the created Google Sheet URL into the case-study email body/subject.\nconst analysis = $('Build Analysis').first().json;\nconst sheet = $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from Create Spreadsheet output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        820
+      ],
+      "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
+      "name": "Prepare Email With Sheet Link"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.sku_data || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -60
+      ],
+      "id": "ab9a9f29-64f0-4e31-afa0-36cfb272b11c",
+      "name": "Prepare SKU Rows"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.category_summary || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        80
+      ],
+      "id": "32506f2b-7bf9-464d-849c-36d08a6f9503",
+      "name": "Prepare Category Rows"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.class_summary || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        220
+      ],
+      "id": "b609748e-f2e7-4013-a0d3-4b097edb64f0",
+      "name": "Prepare Class Rows"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.supplier_summary || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        360
+      ],
+      "id": "0a6005d4-a319-4267-989f-49b6ab69cb6c",
+      "name": "Prepare Supplier Rows"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.discount_summary || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        500
+      ],
+      "id": "bfbfcd71-05ac-4296-b78d-c6593f246ffb",
+      "name": "Prepare Discount Rows"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.baseline_summary || [];\nif (!rows.length) {\n  // Returning no items skips the downstream Append node for this tab.\n  return [];\n}\nreturn rows.map((row) => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        640
+      ],
+      "id": "77b173b0-275d-4990-ad90-43c17517d869",
+      "name": "Prepare Baseline Rows"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "SKU Data",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        -60
+      ],
+      "id": "b7532285-4034-44d2-9275-38459fa0f546",
+      "name": "Append SKU Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Category Summary",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        80
+      ],
+      "id": "25c4eb1e-146c-49d3-b3b0-12e0f3e4db71",
+      "name": "Append Category Summary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Class Summary",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        220
+      ],
+      "id": "dd4b1a21-e2f8-4a40-997c-d2bfae7ea207",
+      "name": "Append Class Summary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Supplier Summary",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        360
+      ],
+      "id": "f3164c99-58c3-4e1a-bf14-9e50e0025a38",
+      "name": "Append Supplier Summary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Discount Buckets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        500
+      ],
+      "id": "470eca12-8f05-4926-8887-875c38ed2c47",
+      "name": "Append Discount Buckets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create Spreadsheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Baseline Tiers",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        640
+      ],
+      "id": "c4e9ed89-add7-4fc6-a0ab-13428796982a",
+      "name": "Append Baseline Tiers",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "bhannigan@wayfair.com",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        820
+      ],
+      "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
+      "name": "Send Case Study Email",
+      "webhookId": "5e5a53c8-0901-4d79-a921-090019609ee2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZmmontG7EgaANggr",
+          "name": "Gmail account 287"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configure Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configure Inputs": {
+      "main": [
+        [
+          {
+            "node": "Build SQL Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SQL Query": {
+      "main": [
+        [
+          {
+            "node": "Pull Loyalty WSC Lift SKUs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull Loyalty WSC Lift SKUs": {
+      "main": [
+        [
+          {
+            "node": "Build Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Analysis": {
+      "main": [
+        [
+          {
+            "node": "Create Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare SKU Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Category Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Class Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Supplier Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Discount Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Baseline Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email With Sheet Link": {
+      "main": [
+        [
+          {
+            "node": "Send Case Study Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare SKU Rows": {
+      "main": [
+        [
+          {
+            "node": "Append SKU Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Category Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Category Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Class Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Class Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Supplier Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Supplier Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Discount Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Discount Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Baseline Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Baseline Tiers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fff06eba-c4f1-4d37-86f6-b43187fde327",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"
+  },
+  "tags": [],
+  "pinData": {}
+}
