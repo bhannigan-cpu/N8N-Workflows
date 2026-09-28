@@ -145,12 +145,12 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Attach the created Google Sheet URL into the case-study email body/subject.\nconst analysis = $('Build Analysis').first().json;\nconst sheet = $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from Create Spreadsheet output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst sheet = $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from template copy output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1940,
         820
       ],
       "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
@@ -164,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1940,
         -60
       ],
       "id": "ab9a9f29-64f0-4e31-afa0-36cfb272b11c",
@@ -192,7 +192,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1940,
         220
       ],
       "id": "b609748e-f2e7-4013-a0d3-4b097edb64f0",
@@ -206,7 +206,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1940,
         360
       ],
       "id": "0a6005d4-a319-4267-989f-49b6ab69cb6c",
@@ -220,7 +220,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1940,
         500
       ],
       "id": "bfbfcd71-05ac-4296-b78d-c6593f246ffb",
@@ -264,7 +264,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2160,
         -60
       ],
       "id": "b7532285-4034-44d2-9275-38459fa0f546",
@@ -336,7 +336,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2160,
         220
       ],
       "id": "dd4b1a21-e2f8-4a40-997c-d2bfae7ea207",
@@ -372,7 +372,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2160,
         360
       ],
       "id": "f3164c99-58c3-4e1a-bf14-9e50e0025a38",
@@ -408,7 +408,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2160,
         500
       ],
       "id": "470eca12-8f05-4926-8887-875c38ed2c47",
@@ -467,7 +467,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1840,
+        2160,
         820
       ],
       "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
@@ -482,41 +482,70 @@
     },
     {
       "parameters": {
-        "resource": "spreadsheet",
-        "title": "={{ $json.spreadsheetTitle }}",
-        "sheetsUi": {
-          "sheetValues": [
-            {
-              "title": "Discount vs Lift"
-            },
-            {
-              "title": "Class Summary"
-            },
-            {
-              "title": "Supplier Summary"
-            },
-            {
-              "title": "Discount Buckets"
-            }
-          ]
-        },
-        "options": {}
+        "mode": "runOnceForAllItems",
+        "jsCode": "const copied = $input.first().json || {};\nconst spreadsheetId = copied.id || copied.spreadsheetId || null;\nconst spreadsheetUrl =\n  copied.webViewLink ||\n  copied.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nif (!spreadsheetId) {\n  throw new Error(\n    'Template copy returned no file id. On Copy Template Spreadsheet, connect Google Drive OAuth as bhannigan@wayfair.com (template owner), then re-run.',\n  );\n}\n\nreturn [\n  {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl,\n      name: copied.name,\n    },\n  },\n];\n"
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1280,
+        1500,
         300
       ],
       "id": "438bfa3e-0b98-4918-95c3-c1d018644bb1",
       "name": "Create Spreadsheet",
+      "notes": "Normalizes Google Drive copy output to spreadsheetId/spreadsheetUrl for append + email nodes.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM",
+          "mode": "id"
+        },
+        "name": "={{ $json.spreadsheetTitle }}",
+        "sameFolder": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1280,
+        300
+      ],
+      "id": "f3fe8585-3361-4d35-9532-1fc7d2c6df43",
+      "name": "Copy Template Spreadsheet",
+      "notes": "Connect this node with Google Drive OAuth as bhannigan@wayfair.com (the account that owns the Member Monday Loyalty Lift template). Sheets-only OAuth cannot copy this file because of drive.file scope.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}/values:batchClear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  ranges: [\n    \"'Discount vs Lift'!A2:Z\",\n    \"'Class Summary'!A2:Z\",\n    \"'Supplier Summary'!A2:Z\",\n    \"'Discount Buckets'!A2:Z\"\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        300
+      ],
+      "id": "0476435e-472b-4c2f-8bc4-6bc601a5aa11",
+      "name": "Clear Template Sample Rows",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "eI9KdqVYqhKdz25D",
           "name": "Google Sheets account 610"
         }
       },
-      "notes": "Creates a new workbook with the Member Monday template tab names/columns. A literal Google Drive file copy of the template requires a Google Drive credential with access to 1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM (Sheets OAuth drive.file scope cannot copy that file).",
+      "continueOnFail": true,
+      "notes": "Clears sample data rows while keeping header formatting from the copied template. Uses existing Sheets credential.",
       "notesInFlow": true
     }
   ],
@@ -569,6 +598,17 @@
       "main": [
         [
           {
+            "node": "Copy Template Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template Spreadsheet": {
+      "main": [
+        [
+          {
             "node": "Create Spreadsheet",
             "type": "main",
             "index": 0
@@ -577,6 +617,22 @@
       ]
     },
     "Create Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "Clear Template Sample Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Template Sample Rows": {
       "main": [
         [
           {
@@ -596,11 +652,6 @@
           },
           {
             "node": "Prepare Discount Rows",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Email With Sheet Link",
             "type": "main",
             "index": 0
           }
