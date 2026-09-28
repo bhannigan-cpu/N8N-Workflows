@@ -187,7 +187,7 @@ if (!rows.length) {
       json: {
         subject: `[Loyalty WSC Lift] No participating SKUs found${configuredCategory ? ` (${configuredCategory})` : ''}`,
         emailHtml:
-          '<html><body style="font-family:Arial,sans-serif;"><h2>Loyalty Promo WSC Lift</h2><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for promo_period_id and marketing_category.</p></body></html>',
+          '<html><body style="font-family:Arial,sans-serif;"><h2>Loyalty Promo WSC Lift</h2><!-- SPREADSHEET_LINK --><p>No participating SKUs were returned. Check <strong>Configure Inputs</strong> for <code>promo_period_id</code> and <code>marketing_category</code> (exact CPH spelling).</p></body></html>',
         markdown:
           '# Loyalty Promo WSC Lift\n\nNo participating SKUs found. Check Configure Inputs for promo_period_id and marketing_category.',
         spreadsheetTitle: `Loyalty WSC Lift - empty - ${new Date().toISOString().slice(0, 10)}`,
@@ -199,7 +199,9 @@ if (!rows.length) {
           incremental_wsc: 0,
           weighted_lift_pct: null,
           metric: 'WSC',
+          zero_wsc_warning: true,
         },
+        spreadsheetUrlPlaceholder: '<!-- SPREADSHEET_LINK -->',
       },
     },
   ];
@@ -228,6 +230,14 @@ const skuData = rows.map((row) => {
     non_promo_start_date: row.non_promo_start_date,
     non_promo_end_date: row.non_promo_end_date,
     non_promo_day_count: toNumber(row.non_promo_day_count),
+    non_promo_source: row.non_promo_source || '',
+    analysis_start_date: row.analysis_start_date,
+    analysis_end_date: row.analysis_end_date,
+    participating_sku_count: toNumber(row.participating_sku_count),
+    sku_key_count: toNumber(row.sku_key_count),
+    skus_with_any_wsc: toNumber(row.skus_with_any_wsc),
+    loyalty_wsc_total_sum: toNumber(row.loyalty_wsc_total_sum),
+    non_promo_wsc_total_sum: toNumber(row.non_promo_wsc_total_sum),
     brand_catalog: row.brand_catalog || 'Wayfair US',
     supplier_id: row.supplier_id,
     supplier_name: row.supplier_name || 'Unknown Supplier',
@@ -241,6 +251,8 @@ const skuData = rows.map((row) => {
     wsc_rev_l12m: toNumber(row.wsc_rev_l12m),
     grs_l12m: toNumber(row.grs_l12m),
     participating_part_count: toNumber(row.participating_part_count),
+    loyalty_days_with_wsc: toNumber(row.loyalty_days_with_wsc),
+    non_promo_days_with_wsc: toNumber(row.non_promo_days_with_wsc),
     non_promo_avg: nonPromoAvg,
     loyalty_avg: loyaltyAvg,
     incremental_wsc: round(incremental, 2),
@@ -388,7 +400,23 @@ const emailHtml = `
   <body style="font-family:Arial,sans-serif;color:#222;line-height:1.45;">
     <h2 style="margin-bottom:4px;">${escapeHtml(eventName)} Performance Case Study</h2>
     <p style="color:#666;margin-top:0;">${escapeHtml(categoryName)} · Promo ${escapeHtml(meta.promo_period_id)} · ${escapeHtml(meta.promo_start_date)} to ${escapeHtml(meta.promo_end_date)} · Metric: WSC</p>
+    <!-- SPREADSHEET_LINK -->
     <p>The <strong>${escapeHtml(categoryName)}</strong> loyalty promo generated <strong>${escapeHtml(fmtCurrency(totalLoyalty))}</strong> in loyalty-period daily-avg WSC versus a recent non-promo average of <strong>${escapeHtml(fmtCurrency(totalNonPromo))}</strong>, creating <strong>${escapeHtml(fmtCurrency(totalIncremental))}</strong> in incremental WSC and <strong>${escapeHtml(fmtPct(totalLift))}</strong> weighted lift.</p>
+    ${
+      totalLoyalty === 0 && totalNonPromo === 0
+        ? `<div style="background:#fff4e5;border:1px solid #f5c26b;padding:12px;margin:12px 0;">
+            <strong>Zero WSC returned for both promo and L10 windows.</strong>
+            <ul style="margin:8px 0 0 18px;">
+              <li>Promo window: ${escapeHtml(meta.promo_start_date)} → ${escapeHtml(meta.promo_end_date)} (${escapeHtml(String(meta.promo_day_count))} day(s))</li>
+              <li>L10 baseline: ${escapeHtml(String(meta.non_promo_day_count))} day(s) from ${escapeHtml(meta.non_promo_start_date)} to ${escapeHtml(meta.non_promo_end_date)} (source: ${escapeHtml(meta.non_promo_source || 'n/a')})</li>
+              <li>Diagnostics: ${escapeHtml(String(meta.participating_sku_count))} participating SKUs · ${escapeHtml(String(meta.sku_key_count))} resolved skuid matches · ${escapeHtml(String(meta.skus_with_any_wsc))} SKUs with any order WSC</li>
+              <li>Order WSC totals: loyalty ${escapeHtml(fmtCurrency(meta.loyalty_wsc_total_sum))} · L10 ${escapeHtml(fmtCurrency(meta.non_promo_wsc_total_sum))}</li>
+              <li>Confirm <code>promo_period_id</code> and marketing category spelling match CPH (e.g. <code>Bedding</code>)</li>
+              <li>If the event is very recent, order financials may not be fully landed yet — set date overrides or wait 1–2 days</li>
+            </ul>
+          </div>`
+        : ''
+    }
     <ul>
       <li><strong>Participation:</strong> ${activeSkus} of ${skuData.length} SKUs recorded loyalty WSC; ${positiveSkus} had positive incremental WSC.</li>
       <li><strong>Weighted discount:</strong> ${escapeHtml(fmtPct(weightedDiscount))}</li>
@@ -471,10 +499,19 @@ return [
         weighted_discount_pct: weightedDiscount === null ? null : round(weightedDiscount, 4),
         promo_start_date: meta.promo_start_date,
         promo_end_date: meta.promo_end_date,
+        promo_day_count: meta.promo_day_count,
         non_promo_start_date: meta.non_promo_start_date,
         non_promo_end_date: meta.non_promo_end_date,
         non_promo_day_count: meta.non_promo_day_count,
+        non_promo_source: meta.non_promo_source || '',
+        participating_sku_count: meta.participating_sku_count,
+        sku_key_count: meta.sku_key_count,
+        skus_with_any_wsc: meta.skus_with_any_wsc,
+        loyalty_wsc_total_sum: meta.loyalty_wsc_total_sum,
+        non_promo_wsc_total_sum: meta.non_promo_wsc_total_sum,
+        zero_wsc_warning: totalLoyalty === 0 && totalNonPromo === 0,
       },
+      spreadsheetUrlPlaceholder: '<!-- SPREADSHEET_LINK -->',
     },
   },
 ];

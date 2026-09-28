@@ -8,6 +8,14 @@
 --   2) the last N non-promo days before the promo start (default L10),
 -- then computes daily averages and lift at SKU grain.
 --
+-- WSC source of truth:
+--   wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost
+--   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU
+--
+-- L10 non-promo dates:
+--   tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData
+--   soid = 49 AND PromoFlag_Final = 'N' (falls back to prior calendar days)
+--
 -- Placeholders are filled by the n8n "Build SQL Query" node from Configure Inputs:
 --   __PROMO_PERIOD_ID__
 --   __MARKETING_CATEGORY__
@@ -30,7 +38,8 @@ WITH inputs AS (
     __BRAND_CATALOG_ID__ AS Brand_Catalog_Id,
     __L10_NON_PROMO_DAYS__ AS L10_Non_Promo_Days,
     __PROMO_START_OVERRIDE__ AS Promo_Start_Override,
-    __PROMO_END_OVERRIDE__ AS Promo_End_Override
+    __PROMO_END_OVERRIDE__ AS Promo_End_Override,
+    49 AS Wayfair_US_SoID
 ),
 
 promo_window AS (
@@ -42,6 +51,7 @@ promo_window AS (
     inputs.Brand_Catalog_Name,
     inputs.Brand_Catalog_Id,
     inputs.L10_Non_Promo_Days,
+    inputs.Wayfair_US_SoID,
     COALESCE(inputs.Promo_Start_Override, MIN(DATE(eng.PromoStartDate))) AS promo_start_date,
     COALESCE(inputs.Promo_End_Override, MAX(DATE(eng.PromoEndDate))) AS promo_end_date,
     ANY_VALUE(eng.PromoPeriodName) AS promo_period_name
@@ -57,6 +67,7 @@ promo_window AS (
     inputs.Brand_Catalog_Name,
     inputs.Brand_Catalog_Id,
     inputs.L10_Non_Promo_Days,
+    inputs.Wayfair_US_SoID,
     inputs.Promo_Start_Override,
     inputs.Promo_End_Override
 ),
@@ -71,6 +82,7 @@ participating_skus AS (
     promo_window.Brand_Catalog_Name AS brand_catalog,
     promo_window.Store_Brand,
     promo_window.Store_Country,
+    promo_window.Wayfair_US_SoID,
     eng.Supplier_ID AS supplier_id,
     ANY_VALUE(eng.Supplier_Name) AS supplier_name,
     ANY_VALUE(eng.SRM) AS srm,
@@ -100,21 +112,35 @@ participating_skus AS (
     promo_window.Brand_Catalog_Name,
     promo_window.Store_Brand,
     promo_window.Store_Country,
+    promo_window.Wayfair_US_SoID,
     eng.Supplier_ID,
     eng.SKU
 ),
 
--- Last N Wayfair US non-promo days before the loyalty event start date
-non_promo_dates AS (
+-- Resolve SKU names → skuid (needed for the order-cost fact join)
+sku_keys AS (
+  SELECT
+    participating_skus.promo_period_id,
+    participating_skus.sku,
+    participating_skus.Wayfair_US_SoID,
+    retail_dim_sku.skuid
+  FROM participating_skus
+  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku
+    ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)
+),
+
+-- Last N Wayfair US non-promo days before the loyalty event start date.
+-- SoT: PromoFlag_Final = 'N' + soid = 49 (Wayfair US).
+calendar_non_promo_dates AS (
   SELECT
     promo_window.Promo_Period_Id AS promo_period_id,
     non_promo.Date AS sales_date,
-    'non_promo' AS period_type
+    'non_promo' AS period_type,
+    'calendar' AS non_promo_source
   FROM promo_window
   JOIN `wf-gcp-us-ae-eunarta-prod.staging.tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData` AS non_promo
-    ON non_promo.store = 'Wayfair US'
-   AND non_promo.region = 'North America'
-   AND non_promo.PromoFlag_T0T1 = 'N'
+    ON CAST(non_promo.soid AS INT64) = promo_window.Wayfair_US_SoID
+   AND non_promo.PromoFlag_Final = 'N'
    AND non_promo.Date < promo_window.promo_start_date
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY promo_window.Promo_Period_Id
@@ -122,11 +148,39 @@ non_promo_dates AS (
   ) <= promo_window.L10_Non_Promo_Days
 ),
 
+-- Fallback if the calendar returns no days: prior calendar days before promo start.
+fallback_non_promo_dates AS (
+  SELECT
+    promo_window.Promo_Period_Id AS promo_period_id,
+    calendar_date AS sales_date,
+    'non_promo' AS period_type,
+    'calendar_fallback' AS non_promo_source
+  FROM promo_window
+  CROSS JOIN UNNEST(
+    GENERATE_DATE_ARRAY(
+      DATE_SUB(promo_window.promo_start_date, INTERVAL promo_window.L10_Non_Promo_Days DAY),
+      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)
+    )
+  ) AS calendar_date
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM calendar_non_promo_dates
+    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id
+  )
+),
+
+non_promo_dates AS (
+  SELECT * FROM calendar_non_promo_dates
+  UNION ALL
+  SELECT * FROM fallback_non_promo_dates
+),
+
 promo_dates AS (
   SELECT
     promo_window.Promo_Period_Id AS promo_period_id,
     calendar_date AS sales_date,
-    'loyalty' AS period_type
+    'loyalty' AS period_type,
+    CAST(NULL AS STRING) AS non_promo_source
   FROM promo_window
   CROSS JOIN UNNEST(
     GENERATE_DATE_ARRAY(promo_window.promo_start_date, promo_window.promo_end_date)
@@ -145,60 +199,90 @@ date_counts AS (
     COUNTIF(period_type = 'loyalty') AS promo_day_count,
     COUNTIF(period_type = 'non_promo') AS non_promo_day_count,
     MIN(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_start_date,
-    MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date
+    MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date,
+    MIN(sales_date) AS analysis_start_date,
+    MAX(sales_date) AS analysis_end_date,
+    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source
   FROM analysis_dates
   GROUP BY promo_period_id
 ),
 
-currency AS (
-  SELECT ANY_VALUE(ExchangeRate) AS exchange_rate
-  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion`
-  WHERE CuyShortName = 'USD'
+-- Daily WSC from retail order financials (SoT for wholesale cost / ProductCostNoRebates).
+-- Pattern matches Cathay/Sunham scorecard + WBR category scripts: SoID 49 by OrderDate + skuid.
+order_wsc_by_day AS (
+  SELECT
+    sku_keys.promo_period_id,
+    sku_keys.sku,
+    DATE(orders.OrderDate) AS sales_date,
+    SUM(COALESCE(orders.ProductCostNoRebates, orders.productcost, 0)) AS daily_wsc
+  FROM sku_keys
+  JOIN date_counts
+    ON date_counts.promo_period_id = sku_keys.promo_period_id
+  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost` AS orders
+    ON orders.skuid = sku_keys.skuid
+   AND orders.SoID = sku_keys.Wayfair_US_SoID
+   AND DATE(orders.OrderDate) BETWEEN date_counts.analysis_start_date AND date_counts.analysis_end_date
+  GROUP BY
+    sku_keys.promo_period_id,
+    sku_keys.sku,
+    DATE(orders.OrderDate)
 ),
 
-order_rows AS (
+sku_daily_wsc AS (
   SELECT
-    participating_skus.sku,
+    order_wsc_by_day.sku,
     analysis_dates.period_type,
-    retail_sku_store_date.date AS sales_date,
-    orders.id AS order_id,
-    COALESCE(orders.productcostnorebates, 0) * COALESCE(currency.exchange_rate, 1) AS wsc
-  FROM participating_skus
+    order_wsc_by_day.sales_date,
+    order_wsc_by_day.daily_wsc
+  FROM order_wsc_by_day
   JOIN analysis_dates
-    ON analysis_dates.promo_period_id = participating_skus.promo_period_id
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date
-    ON retail_sku_store_date.brandname = participating_skus.Store_Brand
-   AND retail_sku_store_date.styname = participating_skus.Store_Country
-   AND retail_sku_store_date.agg_level = 'DAILY'
-   AND retail_sku_store_date.date = analysis_dates.sales_date
-  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku
-    ON retail_dim_sku.skuid = retail_sku_store_date.skuid
-   AND retail_dim_sku.skuname = participating_skus.sku
-  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct
-  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct
-  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders
-  CROSS JOIN currency
-  WHERE orders.id IS NOT NULL
-),
-
-deduped_orders AS (
-  SELECT
-    sku,
-    period_type,
-    sales_date,
-    order_id,
-    ANY_VALUE(wsc) AS wsc
-  FROM order_rows
-  GROUP BY sku, period_type, sales_date, order_id
+    ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id
+   AND analysis_dates.sales_date = order_wsc_by_day.sales_date
 ),
 
 sku_period_wsc AS (
   SELECT
     sku,
-    SUM(IF(period_type = 'loyalty', wsc, 0)) AS loyalty_wsc_total,
-    SUM(IF(period_type = 'non_promo', wsc, 0)) AS non_promo_wsc_total
-  FROM deduped_orders
+    SUM(IF(period_type = 'loyalty', daily_wsc, 0)) AS loyalty_wsc_total,
+    SUM(IF(period_type = 'non_promo', daily_wsc, 0)) AS non_promo_wsc_total,
+    COUNTIF(period_type = 'loyalty' AND daily_wsc > 0) AS loyalty_days_with_wsc,
+    COUNTIF(period_type = 'non_promo' AND daily_wsc > 0) AS non_promo_days_with_wsc
+  FROM sku_daily_wsc
   GROUP BY sku
+),
+
+run_diagnostics AS (
+  SELECT
+    participating.promo_period_id,
+    participating.participating_sku_count,
+    COALESCE(keys.sku_key_count, 0) AS sku_key_count,
+    COALESCE(wsc.skus_with_any_wsc, 0) AS skus_with_any_wsc,
+    COALESCE(wsc.loyalty_wsc_total_sum, 0) AS loyalty_wsc_total_sum,
+    COALESCE(wsc.non_promo_wsc_total_sum, 0) AS non_promo_wsc_total_sum
+  FROM (
+    SELECT promo_period_id, COUNT(*) AS participating_sku_count
+    FROM participating_skus
+    GROUP BY promo_period_id
+  ) AS participating
+  LEFT JOIN (
+    SELECT promo_period_id, COUNT(DISTINCT sku) AS sku_key_count
+    FROM sku_keys
+    GROUP BY promo_period_id
+  ) AS keys
+    ON keys.promo_period_id = participating.promo_period_id
+  LEFT JOIN (
+    SELECT
+      order_wsc_by_day.promo_period_id,
+      COUNT(DISTINCT order_wsc_by_day.sku) AS skus_with_any_wsc,
+      SUM(IF(analysis_dates.period_type = 'loyalty', order_wsc_by_day.daily_wsc, 0)) AS loyalty_wsc_total_sum,
+      SUM(IF(analysis_dates.period_type = 'non_promo', order_wsc_by_day.daily_wsc, 0)) AS non_promo_wsc_total_sum
+    FROM order_wsc_by_day
+    JOIN analysis_dates
+      ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id
+     AND analysis_dates.sales_date = order_wsc_by_day.sales_date
+    GROUP BY order_wsc_by_day.promo_period_id
+  ) AS wsc
+    ON wsc.promo_period_id = participating.promo_period_id
 )
 
 SELECT
@@ -210,6 +294,14 @@ SELECT
   CAST(date_counts.non_promo_start_date AS STRING) AS non_promo_start_date,
   CAST(date_counts.non_promo_end_date AS STRING) AS non_promo_end_date,
   date_counts.non_promo_day_count,
+  date_counts.non_promo_source,
+  CAST(date_counts.analysis_start_date AS STRING) AS analysis_start_date,
+  CAST(date_counts.analysis_end_date AS STRING) AS analysis_end_date,
+  run_diagnostics.participating_sku_count,
+  run_diagnostics.sku_key_count,
+  run_diagnostics.skus_with_any_wsc,
+  ROUND(run_diagnostics.loyalty_wsc_total_sum, 2) AS loyalty_wsc_total_sum,
+  ROUND(run_diagnostics.non_promo_wsc_total_sum, 2) AS non_promo_wsc_total_sum,
   participating_skus.brand_catalog,
   participating_skus.supplier_id,
   participating_skus.supplier_name,
@@ -223,6 +315,8 @@ SELECT
   ROUND(participating_skus.wsc_rev_l12m, 2) AS wsc_rev_l12m,
   ROUND(participating_skus.grs_l12m, 2) AS grs_l12m,
   participating_skus.participating_part_count,
+  COALESCE(sku_period_wsc.loyalty_days_with_wsc, 0) AS loyalty_days_with_wsc,
+  COALESCE(sku_period_wsc.non_promo_days_with_wsc, 0) AS non_promo_days_with_wsc,
   ROUND(
     SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),
     2
@@ -252,5 +346,7 @@ LEFT JOIN sku_period_wsc
   ON sku_period_wsc.sku = participating_skus.sku
 LEFT JOIN date_counts
   ON date_counts.promo_period_id = participating_skus.promo_period_id
+LEFT JOIN run_diagnostics
+  ON run_diagnostics.promo_period_id = participating_skus.promo_period_id
 ORDER BY loyalty_avg DESC, non_promo_avg DESC, sku
 ;

@@ -4,16 +4,16 @@ Reusable loyalty case-study workflow. For each new loyalty promo, edit two input
 
 ## Quick start for a new loyalty event
 
-1. Import `Loyalty Promo WSC Lift.json` into n8n (or re-import to refresh).
+1. **Re-import** `Loyalty Promo WSC Lift.json` into n8n (required after SQL/email fixes).
 2. Open the **Configure Inputs** node and set:
-   - `promo_period_id` — CPH / Partner Home promo period ID
-   - `marketing_category` — supplier marketing category (e.g. `Bedding`, `Window`)
+   - `promo_period_id` — CPH / Partner Home promo period ID (must be > 0)
+   - `marketing_category` — exact CPH spelling (e.g. `Bedding`, `Window`)
 3. Click **Manual Trigger**.
 
 Everything else updates from those inputs:
 - participating SKUs come from that promo + category
 - promo start/end come from the promo period (unless overridden)
-- L10 non-promo baseline auto-selects the last 10 non-promo Wayfair US days **before promo start**
+- L10 non-promo baseline auto-selects the last 10 Wayfair US non-promo days **before promo start** (`soid = 49`, `PromoFlag_Final = 'N'`)
 
 ## Configure Inputs fields
 
@@ -21,10 +21,10 @@ Everything else updates from those inputs:
 | --- | --- | --- | --- |
 | `promo_period_id` | yes | `0` (must change) | Loyalty promo period ID |
 | `marketing_category` | yes | `Bedding` | Marketing category filter |
-| `brand_catalog_id` | no | `1` | Wayfair US |
+| `brand_catalog_id` | no | `1` | Wayfair US brand catalog |
 | `brand_catalog_name` | no | `Wayfair US` | Label only |
-| `store_brand` | no | `Wayfair` | Retail store brand |
-| `store_country` | no | `United States` | Retail country |
+| `store_brand` | no | `Wayfair` | Label only |
+| `store_country` | no | `United States` | Label only |
 | `l10_non_promo_days` | no | `10` | Baseline lookback length |
 | `promo_start_override` | no | blank | `YYYY-MM-DD` if promo dates need override |
 | `promo_end_override` | no | blank | `YYYY-MM-DD` if promo dates need override |
@@ -35,21 +35,37 @@ Everything else updates from those inputs:
 2. **Build SQL Query** — injects those inputs into the lift SQL
 3. **Pull Loyalty WSC Lift SKUs** — BigQuery:
    - CPH participating SKUs (`tbl_promo_parts_engagement`)
-   - loyalty-window **WSC**
-   - L10 non-promo **WSC**
-   - daily averages + lift
+   - loyalty-window **WSC** from `retail_fact_order_product_revenue_cost` (SoID 49)
+   - L10 non-promo **WSC** for the same SKUs
+   - daily averages + lift + run diagnostics
 4. **Build Analysis** — category / class / supplier / discount / baseline / SKU summaries
 5. **Create Spreadsheet** + append tabs
-6. **Send Case Study Email**
+6. **Prepare Email With Sheet Link** — injects the Google Sheet URL into the email
+7. **Send Case Study Email** — HTML case study including the workbook link
 
 ## Metric
 
-Uses **WSC** (`orders.productcostnorebates`, USD), not GRS.
+Uses **WSC** (`ProductCostNoRebates` on the order-cost fact, Wayfair US / SoID 49), not GRS.
 
 - `non_promo_avg` = L10 non-promo WSC / N days
 - `loyalty_avg` = promo-window WSC / promo day count
 - `incremental_wsc` = loyalty_avg − non_promo_avg
 - `lift_pct` = incremental_wsc / non_promo_avg
+
+## If sales come back as $0
+
+The email includes a yellow diagnostics box when both promo and L10 WSC are zero. Check:
+
+1. **Re-import the latest workflow JSON** — older copies still used `retail_sku_store_date_agg` with `agg_level = 'DAILY'`, which returns no rows.
+2. **`promo_period_id`** is the real CPH ID (not left at `0`).
+3. **`marketing_category`** matches CPH exactly (case/spelling).
+4. **Promo dates** in the email look right; if not, set `promo_start_override` / `promo_end_override`.
+5. **Diagnostics row fields** on the SKU sheet / email:
+   - `participating_sku_count` > 0 — CPH filter worked
+   - `sku_key_count` ≈ participating count — SKU→skuid resolution worked
+   - `skus_with_any_wsc` > 0 — order financials matched those dates
+6. If the event just ended, wait for order financials to land (often next day) and rerun.
+7. Optional smoke check in BigQuery: pick one participating SKU + SoID 49 + the promo date range against `retail_fact_order_product_revenue_cost`.
 
 ## Files
 
@@ -60,6 +76,7 @@ Uses **WSC** (`orders.productcostnorebates`, USD), not GRS.
 | `workflow_assets/loyalty_promo_lift.sql` | BigQuery template |
 | `workflow_assets/loyalty_promo_lift_build_sql.js` | Input → SQL builder |
 | `workflow_assets/loyalty_promo_lift_analysis.js` | Analysis / report Code node |
+| `workflow_assets/loyalty_promo_lift_prepare_email.js` | Injects spreadsheet URL into email |
 | `tools/build_loyalty_promo_wsc_lift_workflow.py` | Regenerates workflow JSON |
 
 `Bedding Member Monday Loyalty Lift.json` is kept as an alias of the same reusable workflow.

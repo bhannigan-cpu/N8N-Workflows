@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SQL_PATH = ROOT / "workflow_assets" / "loyalty_promo_lift.sql"
 BUILD_SQL_PATH = ROOT / "workflow_assets" / "loyalty_promo_lift_build_sql.js"
 ANALYSIS_PATH = ROOT / "workflow_assets" / "loyalty_promo_lift_analysis.js"
+PREPARE_EMAIL_PATH = ROOT / "workflow_assets" / "loyalty_promo_lift_prepare_email.js"
 OUT = ROOT / "workflow_exports" / "loyalty-promo-wsc-lift.json"
 ROOT_OUT = ROOT / "Loyalty Promo WSC Lift.json"
 # Keep prior filename as a convenience alias for the same workflow.
@@ -103,6 +104,7 @@ def build() -> dict:
         "bq": nid(),
         "analysis": nid(),
         "create": nid(),
+        "prepare_email": nid(),
         "sku_rows": nid(),
         "class_rows": nid(),
         "supplier_rows": nid(),
@@ -121,6 +123,7 @@ def build() -> dict:
     sql_template = load_text(SQL_PATH)
     build_sql_js = build_sql_code(sql_template)
     analysis_js = load_text(ANALYSIS_PATH)
+    prepare_email_js = load_text(PREPARE_EMAIL_PATH)
 
     nodes = [
         {
@@ -235,6 +238,17 @@ def build() -> dict:
         {
             "parameters": {
                 "mode": "runOnceForAllItems",
+                "jsCode": prepare_email_js,
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [1560, 820],
+            "id": ids["prepare_email"],
+            "name": "Prepare Email With Sheet Link",
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForAllItems",
                 "jsCode": expand_rows_code("sku_data"),
             },
             "type": "n8n-nodes-base.code",
@@ -337,14 +351,14 @@ def build() -> dict:
         {
             "parameters": {
                 "sendTo": "bhannigan@wayfair.com",
-                "subject": "={{ $('Build Analysis').item.json.subject }}",
+                "subject": "={{ $json.subject }}",
                 "emailType": "html",
-                "message": "={{ $('Build Analysis').item.json.emailHtml }}",
+                "message": "={{ $json.emailHtml }}",
                 "options": {},
             },
             "type": "n8n-nodes-base.gmail",
             "typeVersion": 2.2,
-            "position": [1560, 820],
+            "position": [1840, 820],
             "id": ids["gmail"],
             "name": "Send Case Study Email",
             "webhookId": nid(),
@@ -377,9 +391,12 @@ def build() -> dict:
                     {"node": "Prepare Supplier Rows", "type": "main", "index": 0},
                     {"node": "Prepare Discount Rows", "type": "main", "index": 0},
                     {"node": "Prepare Baseline Rows", "type": "main", "index": 0},
-                    {"node": "Send Case Study Email", "type": "main", "index": 0},
+                    {"node": "Prepare Email With Sheet Link", "type": "main", "index": 0},
                 ]
             ]
+        },
+        "Prepare Email With Sheet Link": {
+            "main": [[{"node": "Send Case Study Email", "type": "main", "index": 0}]]
         },
         "Prepare SKU Rows": {
             "main": [[{"node": "Append SKU Data", "type": "main", "index": 0}]]
