@@ -9,7 +9,7 @@
         0,
         300
       ],
-      "id": "e39d2250-176f-45e3-9386-35b889d16419",
+      "id": "3aba33d8-1f54-440f-8c03-0a8940044e1a",
       "name": "Manual Trigger"
     },
     {
@@ -19,55 +19,55 @@
         "assignments": {
           "assignments": [
             {
-              "id": "ae29c68a-de6b-4a6c-9a9f-70975728fd2e",
+              "id": "dba3297d-69b1-4b11-882b-cb2467fecf63",
               "name": "promo_period_id",
               "value": 0,
               "type": "number"
             },
             {
-              "id": "e43381d2-ad13-4fd8-9a6a-33aaca25276f",
+              "id": "6d81808b-6e35-4878-a040-e0f6a7177f22",
               "name": "product_marketing_category",
               "value": "Bedding",
               "type": "string"
             },
             {
-              "id": "e9cfd1af-86f2-4361-a6b8-22049161fbe0",
+              "id": "3257a3ea-3098-4a97-abeb-1f6484a2e0e3",
               "name": "brand_catalog_id",
               "value": 1,
               "type": "number"
             },
             {
-              "id": "7b4fce90-0a6b-4cb0-8a29-df4171b4fe6e",
+              "id": "65ead81a-ecc1-41c0-9022-ecf9c7446270",
               "name": "brand_catalog_name",
               "value": "Wayfair US",
               "type": "string"
             },
             {
-              "id": "a390027f-f113-49c1-a9cc-6f448a9d32c0",
+              "id": "6cc41bd9-7ea6-4e94-a6f0-4bfe1f3b4fdd",
               "name": "store_brand",
               "value": "Wayfair",
               "type": "string"
             },
             {
-              "id": "6f79a6e8-8923-4f4b-a294-165dba484d2a",
+              "id": "0c7b6e42-2c82-4ef8-9570-405a3149b456",
               "name": "store_country",
               "value": "United States",
               "type": "string"
             },
             {
-              "id": "a0b2486d-4918-4901-a0cb-059297897c06",
+              "id": "d121b078-fde1-441e-ac2b-a8ce49607fba",
               "name": "l10_non_promo_days",
               "value": 10,
               "type": "number"
             },
             {
-              "id": "84130b9e-2ebf-4061-b631-2a009769ce53",
+              "id": "2fd7b563-6562-42ba-8743-9ff60f9a6375",
               "name": "promo_start_override",
               "value": "",
               "type": "string"
             },
             {
-              "id": "b05d79fe-6a3b-4756-bfa8-da224c6b04d8",
+              "id": "65112453-c2dd-4612-b469-33ac7a973257",
               "name": "promo_end_override",
               "value": "",
               "type": "string"
@@ -82,7 +82,7 @@
         240,
         300
       ],
-      "id": "945b82f6-65c2-4a3d-a026-8c09a5f6964e",
+      "id": "9704b980-7935-4b0f-b9c0-89f8ff46a584",
       "name": "Configure Inputs",
       "notesInFlow": true,
       "notes": "EDIT THESE TWO FIRST for each loyalty event:\n1) promo_period_id \u2014 CPH / Partner Home promo period ID\n2) product_marketing_category \u2014 product mkcname (e.g. Bedding or Window), NOT supplier marketing category\n\nOptional:\n- l10_non_promo_days (default 10)\n- promo_start_override / promo_end_override as YYYY-MM-DD (leave blank to use promo period dates)\n\nL10 non-promo days auto-shift to the last N non-promo dates before the promo start (extended discounts / super rooms ignored)."
@@ -90,7 +90,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Build the loyalty-lift BigQuery SQL from Configure Inputs.\n// Required: promo_period_id, product_marketing_category\n// Optional: brand_catalog_id, l10_non_promo_days, store_*, date overrides\n\nconst SQL_TEMPLATE = \"-- =============================================================================\\n-- LOYALTY PROMO LIFT (WSC)\\n-- =============================================================================\\n-- Pulls Cost Performance Hub Single Promo Detail\\u2013equivalent participating SKUs\\n-- for a loyalty promo period + product marketing category, joins Wayfair US daily WSC\\n-- for:\\n--   1) the loyalty promo window (from the promo period dates), and\\n--   2) the last N non-promo days before the promo start (default L10),\\n-- then computes daily averages and lift at SKU grain.\\n--\\n-- Product marketing category filter uses retail_dim_sku.mkcname\\n-- (not supplier MarketingCategory_SU).\\n--\\n-- WSC source of truth:\\n--   wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost\\n--   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU\\n--\\n-- L10 non-promo dates:\\n--   Days before promo start that fall outside real NA promo windows from\\n--   tbl_promo_calendar. Extended Discounts / Frequency / Super Rooms /\\n--   Source Rooms are ignored (they do not count as promo for this baseline).\\n--   Fallback: FullData days with Final='N' or Final='Y' only from those\\n--   ignored promo types (and not a concurrent T0/T1 event).\\n--\\n-- Placeholders are filled by the n8n \\\"Build SQL Query\\\" node from Configure Inputs:\\n--   __PROMO_PERIOD_ID__\\n--   __MARKETING_CATEGORY__          -- product marketing category (mkcname)\\n--   __STORE_BRAND__\\n--   __STORE_COUNTRY__\\n--   __BRAND_CATALOG_NAME__\\n--   __BRAND_CATALOG_ID__\\n--   __L10_NON_PROMO_DAYS__\\n--   __PROMO_START_OVERRIDE__   -- DATE 'YYYY-MM-DD' or NULL\\n--   __PROMO_END_OVERRIDE__     -- DATE 'YYYY-MM-DD' or NULL\\n-- =============================================================================\\n\\nWITH inputs AS (\\n  SELECT\\n    __PROMO_PERIOD_ID__ AS Promo_Period_Id,\\n    '__MARKETING_CATEGORY__' AS Product_Marketing_Category,\\n    '__STORE_BRAND__' AS Store_Brand,\\n    '__STORE_COUNTRY__' AS Store_Country,\\n    '__BRAND_CATALOG_NAME__' AS Brand_Catalog_Name,\\n    __BRAND_CATALOG_ID__ AS Brand_Catalog_Id,\\n    __L10_NON_PROMO_DAYS__ AS L10_Non_Promo_Days,\\n    __PROMO_START_OVERRIDE__ AS Promo_Start_Override,\\n    __PROMO_END_OVERRIDE__ AS Promo_End_Override,\\n    49 AS Wayfair_US_SoID\\n),\\n\\npromo_window AS (\\n  SELECT\\n    inputs.Promo_Period_Id,\\n    inputs.Product_Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    COALESCE(inputs.Promo_Start_Override, MIN(DATE(eng.PromoStartDate))) AS promo_start_date,\\n    COALESCE(inputs.Promo_End_Override, MAX(DATE(eng.PromoEndDate))) AS promo_end_date,\\n    ANY_VALUE(eng.PromoPeriodName) AS promo_period_name\\n  FROM inputs\\n  LEFT JOIN `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n    ON eng.PromoPeriodId = inputs.Promo_Period_Id\\n   AND eng.BrandCatalog_ID = inputs.Brand_Catalog_Id\\n  GROUP BY\\n    inputs.Promo_Period_Id,\\n    inputs.Product_Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    inputs.Promo_Start_Override,\\n    inputs.Promo_End_Override\\n),\\n\\n-- Participating loyalty SKUs (CPH Single Promo Detail equivalent, rolled to SKU)\\nparticipating_skus AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name AS brand_catalog,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID AS supplier_id,\\n    ANY_VALUE(eng.Supplier_Name) AS supplier_name,\\n    ANY_VALUE(eng.SRM) AS srm,\\n    eng.SKU AS sku,\\n    ANY_VALUE(dim_sku.clname) AS class_name,\\n    ANY_VALUE(dim_sku.mkcname) AS product_marketing_category,\\n    MAX(ABS(eng.DiscountPercent)) AS discount_pct,\\n    MAX(ABS(eng.RecommendedDiscountPercent)) AS rec_discount_pct,\\n    MAX(ABS(eng.B2B_DiscountPercent)) AS b2b_discount_pct,\\n    SUM(COALESCE(eng.WSC_L12M, 0)) AS wsc_rev_l12m,\\n    SUM(COALESCE(eng.GRS_L12M, 0)) AS grs_l12m,\\n    COUNT(DISTINCT eng.SupplierPart_ID) AS participating_part_count\\n  FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n  CROSS JOIN promo_window\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS dim_sku\\n    ON dim_sku.skuname = eng.SKU\\n  WHERE eng.PromoPeriodId = promo_window.Promo_Period_Id\\n    AND eng.BrandCatalog_ID = promo_window.Brand_Catalog_Id\\n    AND eng.Discount_Status = 'Active'\\n    AND ABS(COALESCE(eng.DiscountPercent, 0)) > 0\\n    AND dim_sku.mkcname = promo_window.Product_Marketing_Category\\n  GROUP BY\\n    promo_window.Promo_Period_Id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID,\\n    eng.SKU\\n),\\n\\n-- Resolve SKU names \\u2192 skuid (needed for the order-cost fact join)\\nsku_keys AS (\\n  SELECT\\n    participating_skus.promo_period_id,\\n    participating_skus.sku,\\n    participating_skus.Wayfair_US_SoID,\\n    retail_dim_sku.skuid\\n  FROM participating_skus\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\\n    ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)\\n),\\n\\n-- Real NA promo windows for L10 baseline (native BigQuery \\u2014 no Drive).\\n-- Do NOT use staging.tbl_promo_calendar: that object is Sheet-backed and\\n-- fails with \\\"Permission denied while getting Drive credentials\\\" under n8n.\\n-- Extended / Frequency / Super Room / Source Room names are ignored.\\nreal_na_promo_windows AS (\\n  SELECT DISTINCT\\n    DATE(pp.promo_period_start_date, 'America/New_York') AS window_start,\\n    CASE\\n      WHEN EXTRACT(HOUR FROM pp.promo_period_end_date) <= 15\\n       AND EXTRACT(HOUR FROM pp.promo_period_end_date) > 5\\n      THEN DATE(pp.promo_period_end_date, 'America/New_York') - 1\\n      ELSE DATE(pp.promo_period_end_date, 'America/New_York')\\n    END AS window_end,\\n    pp.promo_period_name_text AS promo_name\\n  FROM `wf-gcp-us-gst-acc-promo-prod.promotions_dataset_7_public.tbl_promo_periods` AS pp\\n  WHERE pp.promo_period_start_date IS NOT NULL\\n    AND pp.promo_period_end_date IS NOT NULL\\n    AND pp.promo_period_name_text NOT LIKE '%Test%'\\n    AND NOT REGEXP_CONTAINS(\\n      LOWER(COALESCE(pp.promo_period_name_text, '')),\\n      r'^(eu|uk|perigold|pg)\\\\\\\\b'\\n    )\\n    AND NOT REGEXP_CONTAINS(\\n      LOWER(COALESCE(pp.promo_period_name_text, '')),\\n      r'extended|frequency|super ?room|source ?room'\\n    )\\n),\\n\\n-- Candidate days before loyalty promo start (look back far enough to find N days).\\ncandidate_baseline_days AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.L10_Non_Promo_Days,\\n    day AS sales_date\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 400 DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS day\\n),\\n\\n-- True non-promo = not inside any real NA promo window (extended/super room ignored).\\ncalendar_non_promo_dates AS (\\n  SELECT\\n    candidate_baseline_days.promo_period_id,\\n    candidate_baseline_days.sales_date,\\n    'non_promo' AS period_type,\\n    'promo_periods_excl_extended' AS non_promo_source\\n  FROM candidate_baseline_days\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM real_na_promo_windows AS w\\n    WHERE candidate_baseline_days.sales_date BETWEEN w.window_start AND w.window_end\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY candidate_baseline_days.promo_period_id\\n    ORDER BY candidate_baseline_days.sales_date DESC\\n  ) <= candidate_baseline_days.L10_Non_Promo_Days\\n),\\n\\n-- Fallback: FullData days where Final='N' OR Final='Y' only due to extended/super room\\n-- (and not also a T0/T1 event that day).\\nfulldata_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    non_promo.Date AS sales_date,\\n    'non_promo' AS period_type,\\n    'fulldata_excl_extended' AS non_promo_source\\n  FROM promo_window\\n  JOIN `wf-gcp-us-ae-eunarta-prod.staging.tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData` AS non_promo\\n    ON CAST(non_promo.soid AS INT64) = promo_window.Wayfair_US_SoID\\n   AND non_promo.Date < promo_window.promo_start_date\\n   AND (\\n      non_promo.PromoFlag_Final = 'N'\\n      OR (\\n        REGEXP_CONTAINS(\\n          LOWER(CONCAT(\\n            COALESCE(non_promo.PromoName_Final, ''), ' ',\\n            COALESCE(non_promo.PromoName_T0T1, ''), ' ',\\n            COALESCE(non_promo.PromoName_NARTA, '')\\n          )),\\n          r'extended|frequency|super ?room|source ?room'\\n        )\\n        AND COALESCE(non_promo.PromoFlag_T0T1, 'N') = 'N'\\n      )\\n    )\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY promo_window.Promo_Period_Id\\n    ORDER BY non_promo.Date DESC\\n  ) <= promo_window.L10_Non_Promo_Days\\n),\\n\\n-- Last-resort fallback: prior calendar days before promo start.\\nfallback_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'non_promo' AS period_type,\\n    'calendar_fallback' AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL promo_window.L10_Non_Promo_Days DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS calendar_date\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  AND NOT EXISTS (\\n    SELECT 1\\n    FROM fulldata_non_promo_dates\\n    WHERE fulldata_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n),\\n\\nnon_promo_dates AS (\\n  SELECT * FROM calendar_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fulldata_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fallback_non_promo_dates\\n),\\n\\npromo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'loyalty' AS period_type,\\n    CAST(NULL AS STRING) AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(promo_window.promo_start_date, promo_window.promo_end_date)\\n  ) AS calendar_date\\n),\\n\\nanalysis_dates AS (\\n  SELECT * FROM promo_dates\\n  UNION ALL\\n  SELECT * FROM non_promo_dates\\n),\\n\\ndate_counts AS (\\n  SELECT\\n    promo_period_id,\\n    COUNTIF(period_type = 'loyalty') AS promo_day_count,\\n    COUNTIF(period_type = 'non_promo') AS non_promo_day_count,\\n    MIN(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_start_date,\\n    MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date,\\n    MIN(sales_date) AS analysis_start_date,\\n    MAX(sales_date) AS analysis_end_date,\\n    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source,\\n    STRING_AGG(\\n      IF(period_type = 'non_promo', CAST(sales_date AS STRING), NULL)\\n      ORDER BY sales_date DESC\\n    ) AS non_promo_dates_list\\n  FROM analysis_dates\\n  GROUP BY promo_period_id\\n),\\n\\n-- Daily WSC from retail order financials (SoT for wholesale cost / ProductCostNoRebates).\\n-- Pattern matches Cathay/Sunham scorecard + WBR category scripts: SoID 49 by OrderDate + skuid.\\norder_wsc_by_day AS (\\n  SELECT\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate) AS sales_date,\\n    SUM(COALESCE(orders.ProductCostNoRebates, orders.productcost, 0)) AS daily_wsc\\n  FROM sku_keys\\n  JOIN date_counts\\n    ON date_counts.promo_period_id = sku_keys.promo_period_id\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost` AS orders\\n    ON orders.skuid = sku_keys.skuid\\n   AND orders.SoID = sku_keys.Wayfair_US_SoID\\n   AND DATE(orders.OrderDate) BETWEEN date_counts.analysis_start_date AND date_counts.analysis_end_date\\n  GROUP BY\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate)\\n),\\n\\nsku_daily_wsc AS (\\n  SELECT\\n    order_wsc_by_day.sku,\\n    analysis_dates.period_type,\\n    order_wsc_by_day.sales_date,\\n    order_wsc_by_day.daily_wsc\\n  FROM order_wsc_by_day\\n  JOIN analysis_dates\\n    ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n   AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n),\\n\\nsku_period_wsc AS (\\n  SELECT\\n    sku,\\n    SUM(IF(period_type = 'loyalty', daily_wsc, 0)) AS loyalty_wsc_total,\\n    SUM(IF(period_type = 'non_promo', daily_wsc, 0)) AS non_promo_wsc_total,\\n    COUNTIF(period_type = 'loyalty' AND daily_wsc > 0) AS loyalty_days_with_wsc,\\n    COUNTIF(period_type = 'non_promo' AND daily_wsc > 0) AS non_promo_days_with_wsc\\n  FROM sku_daily_wsc\\n  GROUP BY sku\\n),\\n\\nrun_diagnostics AS (\\n  SELECT\\n    participating.promo_period_id,\\n    participating.participating_sku_count,\\n    COALESCE(keys.sku_key_count, 0) AS sku_key_count,\\n    COALESCE(wsc.skus_with_any_wsc, 0) AS skus_with_any_wsc,\\n    COALESCE(wsc.loyalty_wsc_total_sum, 0) AS loyalty_wsc_total_sum,\\n    COALESCE(wsc.non_promo_wsc_total_sum, 0) AS non_promo_wsc_total_sum\\n  FROM (\\n    SELECT promo_period_id, COUNT(*) AS participating_sku_count\\n    FROM participating_skus\\n    GROUP BY promo_period_id\\n  ) AS participating\\n  LEFT JOIN (\\n    SELECT promo_period_id, COUNT(DISTINCT sku) AS sku_key_count\\n    FROM sku_keys\\n    GROUP BY promo_period_id\\n  ) AS keys\\n    ON keys.promo_period_id = participating.promo_period_id\\n  LEFT JOIN (\\n    SELECT\\n      order_wsc_by_day.promo_period_id,\\n      COUNT(DISTINCT order_wsc_by_day.sku) AS skus_with_any_wsc,\\n      SUM(IF(analysis_dates.period_type = 'loyalty', order_wsc_by_day.daily_wsc, 0)) AS loyalty_wsc_total_sum,\\n      SUM(IF(analysis_dates.period_type = 'non_promo', order_wsc_by_day.daily_wsc, 0)) AS non_promo_wsc_total_sum\\n    FROM order_wsc_by_day\\n    JOIN analysis_dates\\n      ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n     AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n    GROUP BY order_wsc_by_day.promo_period_id\\n  ) AS wsc\\n    ON wsc.promo_period_id = participating.promo_period_id\\n)\\n\\nSELECT\\n  participating_skus.promo_period_id,\\n  participating_skus.promo_period_name,\\n  CAST(participating_skus.promo_start_date AS STRING) AS promo_start_date,\\n  CAST(participating_skus.promo_end_date AS STRING) AS promo_end_date,\\n  date_counts.promo_day_count,\\n  CAST(date_counts.non_promo_start_date AS STRING) AS non_promo_start_date,\\n  CAST(date_counts.non_promo_end_date AS STRING) AS non_promo_end_date,\\n  date_counts.non_promo_day_count,\\n  date_counts.non_promo_source,\\n  date_counts.non_promo_dates_list,\\n  CAST(date_counts.analysis_start_date AS STRING) AS analysis_start_date,\\n  CAST(date_counts.analysis_end_date AS STRING) AS analysis_end_date,\\n  run_diagnostics.participating_sku_count,\\n  run_diagnostics.sku_key_count,\\n  run_diagnostics.skus_with_any_wsc,\\n  ROUND(run_diagnostics.loyalty_wsc_total_sum, 2) AS loyalty_wsc_total_sum,\\n  ROUND(run_diagnostics.non_promo_wsc_total_sum, 2) AS non_promo_wsc_total_sum,\\n  participating_skus.brand_catalog,\\n  participating_skus.supplier_id,\\n  participating_skus.supplier_name,\\n  participating_skus.srm,\\n  participating_skus.sku,\\n  participating_skus.class_name,\\n  participating_skus.product_marketing_category,\\n  ROUND(participating_skus.discount_pct, 4) AS discount_pct,\\n  ROUND(participating_skus.rec_discount_pct, 4) AS rec_discount_pct,\\n  ROUND(participating_skus.b2b_discount_pct, 4) AS b2b_discount_pct,\\n  ROUND(participating_skus.wsc_rev_l12m, 2) AS wsc_rev_l12m,\\n  ROUND(participating_skus.grs_l12m, 2) AS grs_l12m,\\n  participating_skus.participating_part_count,\\n  COALESCE(sku_period_wsc.loyalty_days_with_wsc, 0) AS loyalty_days_with_wsc,\\n  COALESCE(sku_period_wsc.non_promo_days_with_wsc, 0) AS non_promo_days_with_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS non_promo_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0)),\\n    2\\n  ) AS loyalty_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n    - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS incremental_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(\\n      SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n      - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n      NULLIF(\\n        SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n        0\\n      )\\n    ),\\n    4\\n  ) AS lift_pct\\nFROM participating_skus\\nLEFT JOIN sku_period_wsc\\n  ON sku_period_wsc.sku = participating_skus.sku\\nLEFT JOIN date_counts\\n  ON date_counts.promo_period_id = participating_skus.promo_period_id\\nLEFT JOIN run_diagnostics\\n  ON run_diagnostics.promo_period_id = participating_skus.promo_period_id\\nORDER BY loyalty_avg DESC, non_promo_avg DESC, sku\\n;\\n\";\n\nconst cfg = $input.first().json;\n\nfunction requiredNumber(value, fieldName) {\n  const num = Number(value);\n  if (!Number.isFinite(num) || num <= 0) {\n    throw new Error(`Configure Inputs: set a valid ${fieldName} (got: ${JSON.stringify(value)})`);\n  }\n  return Math.trunc(num);\n}\n\nfunction escapeSqlString(value) {\n  return String(value ?? '').replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n}\n\nfunction optionalDateSql(value) {\n  if (value === null || value === undefined || value === '') return 'CAST(NULL AS DATE)';\n  const text = String(value).trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {\n    throw new Error(`Configure Inputs: date overrides must be YYYY-MM-DD (got: ${value})`);\n  }\n  return `DATE '${text}'`;\n}\n\nconst promoPeriodId = requiredNumber(cfg.promo_period_id, 'promo_period_id');\nconst productMarketingCategory = String(\n  cfg.product_marketing_category || cfg.marketing_category || '',\n).trim();\nif (!productMarketingCategory) {\n  throw new Error(\n    'Configure Inputs: set product_marketing_category (product mkcname, e.g. Bedding or Window)',\n  );\n}\n\nconst storeBrand = String(cfg.store_brand || 'Wayfair').trim() || 'Wayfair';\nconst storeCountry = String(cfg.store_country || 'United States').trim() || 'United States';\nconst brandCatalogName = String(cfg.brand_catalog_name || 'Wayfair US').trim() || 'Wayfair US';\nconst brandCatalogId = Number(cfg.brand_catalog_id || 1);\nconst l10Days = Number(cfg.l10_non_promo_days || 10);\n\nif (!Number.isFinite(brandCatalogId) || brandCatalogId <= 0) {\n  throw new Error('Configure Inputs: brand_catalog_id must be a positive number');\n}\nif (!Number.isFinite(l10Days) || l10Days <= 0) {\n  throw new Error('Configure Inputs: l10_non_promo_days must be a positive number');\n}\n\nconst sqlQuery = SQL_TEMPLATE\n  .replaceAll('__PROMO_PERIOD_ID__', String(promoPeriodId))\n  .replaceAll('__MARKETING_CATEGORY__', escapeSqlString(productMarketingCategory))\n  .replaceAll('__STORE_BRAND__', escapeSqlString(storeBrand))\n  .replaceAll('__STORE_COUNTRY__', escapeSqlString(storeCountry))\n  .replaceAll('__BRAND_CATALOG_NAME__', escapeSqlString(brandCatalogName))\n  .replaceAll('__BRAND_CATALOG_ID__', String(Math.trunc(brandCatalogId)))\n  .replaceAll('__L10_NON_PROMO_DAYS__', String(Math.trunc(l10Days)))\n  .replaceAll('__PROMO_START_OVERRIDE__', optionalDateSql(cfg.promo_start_override))\n  .replaceAll('__PROMO_END_OVERRIDE__', optionalDateSql(cfg.promo_end_override));\n\nreturn [\n  {\n    json: {\n      promo_period_id: promoPeriodId,\n      product_marketing_category: productMarketingCategory,\n      marketing_category: productMarketingCategory, // alias for older analysis references\n      store_brand: storeBrand,\n      store_country: storeCountry,\n      brand_catalog_name: brandCatalogName,\n      brand_catalog_id: Math.trunc(brandCatalogId),\n      l10_non_promo_days: Math.trunc(l10Days),\n      promo_start_override: cfg.promo_start_override || null,\n      promo_end_override: cfg.promo_end_override || null,\n      metric: 'WSC',\n      sqlQuery,\n    },\n  },\n];\n"
+        "jsCode": "// Build the loyalty-lift BigQuery SQL from Configure Inputs.\n// Required: promo_period_id, product_marketing_category\n// Optional: brand_catalog_id, l10_non_promo_days, store_*, date overrides\n\nconst SQL_TEMPLATE = \"-- =============================================================================\\n-- LOYALTY PROMO LIFT (WSC)\\n-- =============================================================================\\n-- Pulls Cost Performance Hub Single Promo Detail\\u2013equivalent participating SKUs\\n-- for a loyalty promo period + product marketing category, joins Wayfair US daily WSC\\n-- for:\\n--   1) the loyalty promo window (from the promo period dates), and\\n--   2) the last N non-promo days before the promo start (default L10),\\n-- then computes daily averages and lift at SKU grain.\\n--\\n-- Product marketing category filter uses retail_dim_sku.mkcname\\n-- (not supplier MarketingCategory_SU).\\n--\\n-- WSC source of truth:\\n--   wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost\\n--   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU\\n--\\n-- L10 non-promo dates:\\n--   Days before promo start outside real NA promo windows from native\\n--   promotions_dataset_7_public.tbl_promo_periods (not Sheet-backed\\n--   staging.tbl_promo_calendar). Extended / Frequency / Super Rooms /\\n--   Source Rooms are ignored. FullData fallback uses the same rule.\\n--\\n-- Placeholders are filled by the n8n \\\"Build SQL Query\\\" node from Configure Inputs:\\n--   __PROMO_PERIOD_ID__\\n--   __MARKETING_CATEGORY__          -- product marketing category (mkcname)\\n--   __STORE_BRAND__\\n--   __STORE_COUNTRY__\\n--   __BRAND_CATALOG_NAME__\\n--   __BRAND_CATALOG_ID__\\n--   __L10_NON_PROMO_DAYS__\\n--   __PROMO_START_OVERRIDE__   -- DATE 'YYYY-MM-DD' or NULL\\n--   __PROMO_END_OVERRIDE__     -- DATE 'YYYY-MM-DD' or NULL\\n-- =============================================================================\\n\\nWITH inputs AS (\\n  SELECT\\n    __PROMO_PERIOD_ID__ AS Promo_Period_Id,\\n    '__MARKETING_CATEGORY__' AS Product_Marketing_Category,\\n    '__STORE_BRAND__' AS Store_Brand,\\n    '__STORE_COUNTRY__' AS Store_Country,\\n    '__BRAND_CATALOG_NAME__' AS Brand_Catalog_Name,\\n    __BRAND_CATALOG_ID__ AS Brand_Catalog_Id,\\n    __L10_NON_PROMO_DAYS__ AS L10_Non_Promo_Days,\\n    __PROMO_START_OVERRIDE__ AS Promo_Start_Override,\\n    __PROMO_END_OVERRIDE__ AS Promo_End_Override,\\n    49 AS Wayfair_US_SoID\\n),\\n\\npromo_window AS (\\n  SELECT\\n    inputs.Promo_Period_Id,\\n    inputs.Product_Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    COALESCE(inputs.Promo_Start_Override, MIN(DATE(eng.PromoStartDate))) AS promo_start_date,\\n    COALESCE(inputs.Promo_End_Override, MAX(DATE(eng.PromoEndDate))) AS promo_end_date,\\n    ANY_VALUE(eng.PromoPeriodName) AS promo_period_name\\n  FROM inputs\\n  LEFT JOIN `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n    ON eng.PromoPeriodId = inputs.Promo_Period_Id\\n   AND eng.BrandCatalog_ID = inputs.Brand_Catalog_Id\\n  GROUP BY\\n    inputs.Promo_Period_Id,\\n    inputs.Product_Marketing_Category,\\n    inputs.Store_Brand,\\n    inputs.Store_Country,\\n    inputs.Brand_Catalog_Name,\\n    inputs.Brand_Catalog_Id,\\n    inputs.L10_Non_Promo_Days,\\n    inputs.Wayfair_US_SoID,\\n    inputs.Promo_Start_Override,\\n    inputs.Promo_End_Override\\n),\\n\\n-- Participating loyalty SKUs (CPH Single Promo Detail equivalent, rolled to SKU)\\nparticipating_skus AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name AS brand_catalog,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID AS supplier_id,\\n    ANY_VALUE(eng.Supplier_Name) AS supplier_name,\\n    ANY_VALUE(eng.SRM) AS srm,\\n    eng.SKU AS sku,\\n    ANY_VALUE(dim_sku.clname) AS class_name,\\n    ANY_VALUE(dim_sku.mkcname) AS product_marketing_category,\\n    MAX(ABS(eng.DiscountPercent)) AS discount_pct,\\n    MAX(ABS(eng.RecommendedDiscountPercent)) AS rec_discount_pct,\\n    MAX(ABS(eng.B2B_DiscountPercent)) AS b2b_discount_pct,\\n    SUM(COALESCE(eng.WSC_L12M, 0)) AS wsc_rev_l12m,\\n    SUM(COALESCE(eng.GRS_L12M, 0)) AS grs_l12m,\\n    COUNT(DISTINCT eng.SupplierPart_ID) AS participating_part_count\\n  FROM `wf-gcp-us-ae-eunarta-prod.reporting.tbl_promo_parts_engagement` AS eng\\n  CROSS JOIN promo_window\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS dim_sku\\n    ON dim_sku.skuname = eng.SKU\\n  WHERE eng.PromoPeriodId = promo_window.Promo_Period_Id\\n    AND eng.BrandCatalog_ID = promo_window.Brand_Catalog_Id\\n    AND eng.Discount_Status = 'Active'\\n    AND ABS(COALESCE(eng.DiscountPercent, 0)) > 0\\n    AND dim_sku.mkcname = promo_window.Product_Marketing_Category\\n  GROUP BY\\n    promo_window.Promo_Period_Id,\\n    promo_window.promo_period_name,\\n    promo_window.promo_start_date,\\n    promo_window.promo_end_date,\\n    promo_window.Brand_Catalog_Name,\\n    promo_window.Store_Brand,\\n    promo_window.Store_Country,\\n    promo_window.Wayfair_US_SoID,\\n    eng.Supplier_ID,\\n    eng.SKU\\n),\\n\\n-- Resolve SKU names \\u2192 skuid (needed for the order-cost fact join)\\nsku_keys AS (\\n  SELECT\\n    participating_skus.promo_period_id,\\n    participating_skus.sku,\\n    participating_skus.Wayfair_US_SoID,\\n    retail_dim_sku.skuid\\n  FROM participating_skus\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\\n    ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)\\n),\\n\\n-- Real NA promo windows for L10 baseline (native BigQuery \\u2014 no Drive).\\n-- Do NOT use staging.tbl_promo_calendar: that object is Sheet-backed and\\n-- fails with \\\"Permission denied while getting Drive credentials\\\" under n8n.\\n-- Extended / Frequency / Super Room / Source Room names are ignored.\\nreal_na_promo_windows AS (\\n  SELECT DISTINCT\\n    DATE(pp.promo_period_start_date, 'America/New_York') AS window_start,\\n    CASE\\n      WHEN EXTRACT(HOUR FROM pp.promo_period_end_date) <= 15\\n       AND EXTRACT(HOUR FROM pp.promo_period_end_date) > 5\\n      THEN DATE(pp.promo_period_end_date, 'America/New_York') - 1\\n      ELSE DATE(pp.promo_period_end_date, 'America/New_York')\\n    END AS window_end,\\n    pp.promo_period_name_text AS promo_name\\n  FROM `wf-gcp-us-gst-acc-promo-prod.promotions_dataset_7_public.tbl_promo_periods` AS pp\\n  WHERE pp.promo_period_start_date IS NOT NULL\\n    AND pp.promo_period_end_date IS NOT NULL\\n    AND pp.promo_period_name_text NOT LIKE '%Test%'\\n    AND NOT (\\n      LOWER(pp.promo_period_name_text) LIKE 'eu%'\\n      OR LOWER(pp.promo_period_name_text) LIKE 'uk%'\\n      OR LOWER(pp.promo_period_name_text) LIKE 'perigold%'\\n      OR LOWER(pp.promo_period_name_text) LIKE 'pg%'\\n    )\\n    AND NOT REGEXP_CONTAINS(\\n      LOWER(COALESCE(pp.promo_period_name_text, '')),\\n      r'extended|frequency|super ?room|source ?room'\\n    )\\n),\\n\\n-- Candidate days before loyalty promo start (look back far enough to find N days).\\ncandidate_baseline_days AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    promo_window.L10_Non_Promo_Days,\\n    day AS sales_date\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 400 DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS day\\n),\\n\\n-- True non-promo = not inside any real NA promo window (extended/super room ignored).\\ncalendar_non_promo_dates AS (\\n  SELECT\\n    candidate_baseline_days.promo_period_id,\\n    candidate_baseline_days.sales_date,\\n    'non_promo' AS period_type,\\n    'promo_periods_excl_extended' AS non_promo_source\\n  FROM candidate_baseline_days\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM real_na_promo_windows AS w\\n    WHERE candidate_baseline_days.sales_date BETWEEN w.window_start AND w.window_end\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY candidate_baseline_days.promo_period_id\\n    ORDER BY candidate_baseline_days.sales_date DESC\\n  ) <= candidate_baseline_days.L10_Non_Promo_Days\\n),\\n\\n-- Fallback: FullData days where Final='N' OR Final='Y' only due to extended/super room\\n-- (and not also a T0/T1 event that day).\\nfulldata_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    non_promo.Date AS sales_date,\\n    'non_promo' AS period_type,\\n    'fulldata_excl_extended' AS non_promo_source\\n  FROM promo_window\\n  JOIN `wf-gcp-us-ae-eunarta-prod.staging.tbl_Pricing_tmp_NonPromo_Dates_Month_Week_FullData` AS non_promo\\n    ON CAST(non_promo.soid AS INT64) = promo_window.Wayfair_US_SoID\\n   AND non_promo.Date < promo_window.promo_start_date\\n   AND (\\n      non_promo.PromoFlag_Final = 'N'\\n      OR (\\n        REGEXP_CONTAINS(\\n          LOWER(CONCAT(\\n            COALESCE(non_promo.PromoName_Final, ''), ' ',\\n            COALESCE(non_promo.PromoName_T0T1, ''), ' ',\\n            COALESCE(non_promo.PromoName_NARTA, '')\\n          )),\\n          r'extended|frequency|super ?room|source ?room'\\n        )\\n        AND COALESCE(non_promo.PromoFlag_T0T1, 'N') = 'N'\\n      )\\n    )\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  QUALIFY ROW_NUMBER() OVER (\\n    PARTITION BY promo_window.Promo_Period_Id\\n    ORDER BY non_promo.Date DESC\\n  ) <= promo_window.L10_Non_Promo_Days\\n),\\n\\n-- Last-resort fallback: prior calendar days before promo start.\\nfallback_non_promo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'non_promo' AS period_type,\\n    'calendar_fallback' AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL promo_window.L10_Non_Promo_Days DAY),\\n      DATE_SUB(promo_window.promo_start_date, INTERVAL 1 DAY)\\n    )\\n  ) AS calendar_date\\n  WHERE NOT EXISTS (\\n    SELECT 1\\n    FROM calendar_non_promo_dates\\n    WHERE calendar_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n  AND NOT EXISTS (\\n    SELECT 1\\n    FROM fulldata_non_promo_dates\\n    WHERE fulldata_non_promo_dates.promo_period_id = promo_window.Promo_Period_Id\\n  )\\n),\\n\\nnon_promo_dates AS (\\n  SELECT * FROM calendar_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fulldata_non_promo_dates\\n  UNION ALL\\n  SELECT * FROM fallback_non_promo_dates\\n),\\n\\npromo_dates AS (\\n  SELECT\\n    promo_window.Promo_Period_Id AS promo_period_id,\\n    calendar_date AS sales_date,\\n    'loyalty' AS period_type,\\n    CAST(NULL AS STRING) AS non_promo_source\\n  FROM promo_window\\n  CROSS JOIN UNNEST(\\n    GENERATE_DATE_ARRAY(promo_window.promo_start_date, promo_window.promo_end_date)\\n  ) AS calendar_date\\n),\\n\\nanalysis_dates AS (\\n  SELECT * FROM promo_dates\\n  UNION ALL\\n  SELECT * FROM non_promo_dates\\n),\\n\\ndate_counts AS (\\n  SELECT\\n    promo_period_id,\\n    COUNTIF(period_type = 'loyalty') AS promo_day_count,\\n    COUNTIF(period_type = 'non_promo') AS non_promo_day_count,\\n    MIN(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_start_date,\\n    MAX(IF(period_type = 'non_promo', sales_date, NULL)) AS non_promo_end_date,\\n    MIN(sales_date) AS analysis_start_date,\\n    MAX(sales_date) AS analysis_end_date,\\n    ANY_VALUE(IF(period_type = 'non_promo', non_promo_source, NULL)) AS non_promo_source,\\n    STRING_AGG(\\n      IF(period_type = 'non_promo', CAST(sales_date AS STRING), NULL)\\n      ORDER BY sales_date DESC\\n    ) AS non_promo_dates_list\\n  FROM analysis_dates\\n  GROUP BY promo_period_id\\n),\\n\\n-- Daily WSC from retail order financials (SoT for wholesale cost / ProductCostNoRebates).\\n-- Pattern matches Cathay/Sunham scorecard + WBR category scripts: SoID 49 by OrderDate + skuid.\\norder_wsc_by_day AS (\\n  SELECT\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate) AS sales_date,\\n    SUM(COALESCE(orders.ProductCostNoRebates, orders.productcost, 0)) AS daily_wsc\\n  FROM sku_keys\\n  JOIN date_counts\\n    ON date_counts.promo_period_id = sku_keys.promo_period_id\\n  JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_fact_order_product_revenue_cost` AS orders\\n    ON orders.skuid = sku_keys.skuid\\n   AND orders.SoID = sku_keys.Wayfair_US_SoID\\n   AND DATE(orders.OrderDate) BETWEEN date_counts.analysis_start_date AND date_counts.analysis_end_date\\n  GROUP BY\\n    sku_keys.promo_period_id,\\n    sku_keys.sku,\\n    DATE(orders.OrderDate)\\n),\\n\\nsku_daily_wsc AS (\\n  SELECT\\n    order_wsc_by_day.sku,\\n    analysis_dates.period_type,\\n    order_wsc_by_day.sales_date,\\n    order_wsc_by_day.daily_wsc\\n  FROM order_wsc_by_day\\n  JOIN analysis_dates\\n    ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n   AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n),\\n\\nsku_period_wsc AS (\\n  SELECT\\n    sku,\\n    SUM(IF(period_type = 'loyalty', daily_wsc, 0)) AS loyalty_wsc_total,\\n    SUM(IF(period_type = 'non_promo', daily_wsc, 0)) AS non_promo_wsc_total,\\n    COUNTIF(period_type = 'loyalty' AND daily_wsc > 0) AS loyalty_days_with_wsc,\\n    COUNTIF(period_type = 'non_promo' AND daily_wsc > 0) AS non_promo_days_with_wsc\\n  FROM sku_daily_wsc\\n  GROUP BY sku\\n),\\n\\nrun_diagnostics AS (\\n  SELECT\\n    participating.promo_period_id,\\n    participating.participating_sku_count,\\n    COALESCE(keys.sku_key_count, 0) AS sku_key_count,\\n    COALESCE(wsc.skus_with_any_wsc, 0) AS skus_with_any_wsc,\\n    COALESCE(wsc.loyalty_wsc_total_sum, 0) AS loyalty_wsc_total_sum,\\n    COALESCE(wsc.non_promo_wsc_total_sum, 0) AS non_promo_wsc_total_sum\\n  FROM (\\n    SELECT promo_period_id, COUNT(*) AS participating_sku_count\\n    FROM participating_skus\\n    GROUP BY promo_period_id\\n  ) AS participating\\n  LEFT JOIN (\\n    SELECT promo_period_id, COUNT(DISTINCT sku) AS sku_key_count\\n    FROM sku_keys\\n    GROUP BY promo_period_id\\n  ) AS keys\\n    ON keys.promo_period_id = participating.promo_period_id\\n  LEFT JOIN (\\n    SELECT\\n      order_wsc_by_day.promo_period_id,\\n      COUNT(DISTINCT order_wsc_by_day.sku) AS skus_with_any_wsc,\\n      SUM(IF(analysis_dates.period_type = 'loyalty', order_wsc_by_day.daily_wsc, 0)) AS loyalty_wsc_total_sum,\\n      SUM(IF(analysis_dates.period_type = 'non_promo', order_wsc_by_day.daily_wsc, 0)) AS non_promo_wsc_total_sum\\n    FROM order_wsc_by_day\\n    JOIN analysis_dates\\n      ON analysis_dates.promo_period_id = order_wsc_by_day.promo_period_id\\n     AND analysis_dates.sales_date = order_wsc_by_day.sales_date\\n    GROUP BY order_wsc_by_day.promo_period_id\\n  ) AS wsc\\n    ON wsc.promo_period_id = participating.promo_period_id\\n)\\n\\nSELECT\\n  participating_skus.promo_period_id,\\n  participating_skus.promo_period_name,\\n  CAST(participating_skus.promo_start_date AS STRING) AS promo_start_date,\\n  CAST(participating_skus.promo_end_date AS STRING) AS promo_end_date,\\n  date_counts.promo_day_count,\\n  CAST(date_counts.non_promo_start_date AS STRING) AS non_promo_start_date,\\n  CAST(date_counts.non_promo_end_date AS STRING) AS non_promo_end_date,\\n  date_counts.non_promo_day_count,\\n  date_counts.non_promo_source,\\n  date_counts.non_promo_dates_list,\\n  CAST(date_counts.analysis_start_date AS STRING) AS analysis_start_date,\\n  CAST(date_counts.analysis_end_date AS STRING) AS analysis_end_date,\\n  run_diagnostics.participating_sku_count,\\n  run_diagnostics.sku_key_count,\\n  run_diagnostics.skus_with_any_wsc,\\n  ROUND(run_diagnostics.loyalty_wsc_total_sum, 2) AS loyalty_wsc_total_sum,\\n  ROUND(run_diagnostics.non_promo_wsc_total_sum, 2) AS non_promo_wsc_total_sum,\\n  participating_skus.brand_catalog,\\n  participating_skus.supplier_id,\\n  participating_skus.supplier_name,\\n  participating_skus.srm,\\n  participating_skus.sku,\\n  participating_skus.class_name,\\n  participating_skus.product_marketing_category,\\n  ROUND(participating_skus.discount_pct, 4) AS discount_pct,\\n  ROUND(participating_skus.rec_discount_pct, 4) AS rec_discount_pct,\\n  ROUND(participating_skus.b2b_discount_pct, 4) AS b2b_discount_pct,\\n  ROUND(participating_skus.wsc_rev_l12m, 2) AS wsc_rev_l12m,\\n  ROUND(participating_skus.grs_l12m, 2) AS grs_l12m,\\n  participating_skus.participating_part_count,\\n  COALESCE(sku_period_wsc.loyalty_days_with_wsc, 0) AS loyalty_days_with_wsc,\\n  COALESCE(sku_period_wsc.non_promo_days_with_wsc, 0) AS non_promo_days_with_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS non_promo_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0)),\\n    2\\n  ) AS loyalty_avg,\\n  ROUND(\\n    SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n    - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n    2\\n  ) AS incremental_wsc,\\n  ROUND(\\n    SAFE_DIVIDE(\\n      SAFE_DIVIDE(COALESCE(sku_period_wsc.loyalty_wsc_total, 0), NULLIF(date_counts.promo_day_count, 0))\\n      - SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n      NULLIF(\\n        SAFE_DIVIDE(COALESCE(sku_period_wsc.non_promo_wsc_total, 0), NULLIF(date_counts.non_promo_day_count, 0)),\\n        0\\n      )\\n    ),\\n    4\\n  ) AS lift_pct\\nFROM participating_skus\\nLEFT JOIN sku_period_wsc\\n  ON sku_period_wsc.sku = participating_skus.sku\\nLEFT JOIN date_counts\\n  ON date_counts.promo_period_id = participating_skus.promo_period_id\\nLEFT JOIN run_diagnostics\\n  ON run_diagnostics.promo_period_id = participating_skus.promo_period_id\\nORDER BY loyalty_avg DESC, non_promo_avg DESC, sku\\n;\\n\";\n\nconst cfg = $input.first().json;\n\nfunction requiredNumber(value, fieldName) {\n  const num = Number(value);\n  if (!Number.isFinite(num) || num <= 0) {\n    throw new Error(`Configure Inputs: set a valid ${fieldName} (got: ${JSON.stringify(value)})`);\n  }\n  return Math.trunc(num);\n}\n\nfunction escapeSqlString(value) {\n  return String(value ?? '').replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n}\n\nfunction optionalDateSql(value) {\n  if (value === null || value === undefined || value === '') return 'CAST(NULL AS DATE)';\n  const text = String(value).trim();\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {\n    throw new Error(`Configure Inputs: date overrides must be YYYY-MM-DD (got: ${value})`);\n  }\n  return `DATE '${text}'`;\n}\n\nconst promoPeriodId = requiredNumber(cfg.promo_period_id, 'promo_period_id');\nconst productMarketingCategory = String(\n  cfg.product_marketing_category || cfg.marketing_category || '',\n).trim();\nif (!productMarketingCategory) {\n  throw new Error(\n    'Configure Inputs: set product_marketing_category (product mkcname, e.g. Bedding or Window)',\n  );\n}\n\nconst storeBrand = String(cfg.store_brand || 'Wayfair').trim() || 'Wayfair';\nconst storeCountry = String(cfg.store_country || 'United States').trim() || 'United States';\nconst brandCatalogName = String(cfg.brand_catalog_name || 'Wayfair US').trim() || 'Wayfair US';\nconst brandCatalogId = Number(cfg.brand_catalog_id || 1);\nconst l10Days = Number(cfg.l10_non_promo_days || 10);\n\nif (!Number.isFinite(brandCatalogId) || brandCatalogId <= 0) {\n  throw new Error('Configure Inputs: brand_catalog_id must be a positive number');\n}\nif (!Number.isFinite(l10Days) || l10Days <= 0) {\n  throw new Error('Configure Inputs: l10_non_promo_days must be a positive number');\n}\n\nconst sqlQuery = SQL_TEMPLATE\n  .replaceAll('__PROMO_PERIOD_ID__', String(promoPeriodId))\n  .replaceAll('__MARKETING_CATEGORY__', escapeSqlString(productMarketingCategory))\n  .replaceAll('__STORE_BRAND__', escapeSqlString(storeBrand))\n  .replaceAll('__STORE_COUNTRY__', escapeSqlString(storeCountry))\n  .replaceAll('__BRAND_CATALOG_NAME__', escapeSqlString(brandCatalogName))\n  .replaceAll('__BRAND_CATALOG_ID__', String(Math.trunc(brandCatalogId)))\n  .replaceAll('__L10_NON_PROMO_DAYS__', String(Math.trunc(l10Days)))\n  .replaceAll('__PROMO_START_OVERRIDE__', optionalDateSql(cfg.promo_start_override))\n  .replaceAll('__PROMO_END_OVERRIDE__', optionalDateSql(cfg.promo_end_override));\n\nreturn [\n  {\n    json: {\n      promo_period_id: promoPeriodId,\n      product_marketing_category: productMarketingCategory,\n      marketing_category: productMarketingCategory, // alias for older analysis references\n      store_brand: storeBrand,\n      store_country: storeCountry,\n      brand_catalog_name: brandCatalogName,\n      brand_catalog_id: Math.trunc(brandCatalogId),\n      l10_non_promo_days: Math.trunc(l10Days),\n      promo_start_override: cfg.promo_start_override || null,\n      promo_end_override: cfg.promo_end_override || null,\n      metric: 'WSC',\n      sqlQuery,\n    },\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -98,7 +98,7 @@
         500,
         300
       ],
-      "id": "f471489a-1431-495f-b577-43e8a5d6a734",
+      "id": "6dc3bd70-3517-4735-80d0-ba430a6b0395",
       "name": "Build SQL Query"
     },
     {
@@ -119,7 +119,7 @@
         760,
         300
       ],
-      "id": "011c4136-fe12-490d-a74b-6f555795d233",
+      "id": "f0f3c243-a492-453b-8290-80e15cc620c9",
       "name": "Pull Loyalty WSC Lift SKUs",
       "credentials": {
         "googleBigQueryOAuth2Api": {
@@ -139,7 +139,7 @@
         1020,
         300
       ],
-      "id": "3cfa408e-2d1a-4490-b769-83b73f783500",
+      "id": "6024a2b7-7f46-4454-b496-448c0dac89dd",
       "name": "Build Analysis"
     },
     {
@@ -176,7 +176,7 @@
         1280,
         300
       ],
-      "id": "e31ab63a-24ab-4dc5-b7fe-eec3d0f8c71c",
+      "id": "d2130743-47b1-4c28-bd7c-75d10d1fef1e",
       "name": "Create Spreadsheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -196,7 +196,7 @@
         1560,
         820
       ],
-      "id": "6709362f-5c30-427a-9f77-7c22be57bed4",
+      "id": "7a63b2e9-cd86-498b-875b-0a578300f555",
       "name": "Prepare Email With Sheet Link"
     },
     {
@@ -210,7 +210,7 @@
         1560,
         -60
       ],
-      "id": "6d5fc930-afde-467a-8f76-8efaf2ee1459",
+      "id": "d710d66b-95be-4f91-84ab-74c6f40d90a3",
       "name": "Prepare SKU Rows"
     },
     {
@@ -224,7 +224,7 @@
         1560,
         80
       ],
-      "id": "e7af8aef-6d9d-4bf5-9512-55452c659a9f",
+      "id": "3983a497-c4b4-427b-89a7-17d3a784eef5",
       "name": "Prepare Category Rows"
     },
     {
@@ -238,7 +238,7 @@
         1560,
         220
       ],
-      "id": "a64acb1d-bd5b-4c3c-9be8-c7a3114d8c6c",
+      "id": "6ce65f4c-2eab-4dee-8719-2d56370dd1ca",
       "name": "Prepare Class Rows"
     },
     {
@@ -252,7 +252,7 @@
         1560,
         360
       ],
-      "id": "1f5ebd1b-5055-4ff5-9f2c-86f6ca1dd665",
+      "id": "48a50029-2f8d-477b-a33b-654282fc8453",
       "name": "Prepare Supplier Rows"
     },
     {
@@ -266,7 +266,7 @@
         1560,
         500
       ],
-      "id": "500dd1c7-6492-4891-a397-b37232942883",
+      "id": "e511405e-187b-41cb-9811-c5233485e809",
       "name": "Prepare Discount Rows"
     },
     {
@@ -280,7 +280,7 @@
         1560,
         640
       ],
-      "id": "2766d532-f67b-4cc2-b97e-9b15232fc0d2",
+      "id": "dd1a253b-21aa-4789-bd8a-88d53364116f",
       "name": "Prepare Baseline Rows"
     },
     {
@@ -310,7 +310,7 @@
         1840,
         -60
       ],
-      "id": "852c0b99-b7c0-4706-9cfa-dc293979287a",
+      "id": "c02b02bf-010a-480a-98db-bb22a4e6c7b8",
       "name": "Append SKU Data",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -346,7 +346,7 @@
         1840,
         80
       ],
-      "id": "adeca98d-d864-4d07-9793-febacc7abcd1",
+      "id": "c7a87e44-ea6a-4115-82dc-11df8b2f55a9",
       "name": "Append Category Summary",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -382,7 +382,7 @@
         1840,
         220
       ],
-      "id": "42c95928-5fcf-4f0c-92c0-4d45f20db25d",
+      "id": "c516a66c-d4e5-407a-b921-59027ac69df2",
       "name": "Append Class Summary",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -418,7 +418,7 @@
         1840,
         360
       ],
-      "id": "8cb6ee87-e8f0-41ec-9826-8aaf0a448a39",
+      "id": "b25d5bc0-24f5-4f7c-8284-ec82a4b67aa7",
       "name": "Append Supplier Summary",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -454,7 +454,7 @@
         1840,
         500
       ],
-      "id": "104615bd-0d1d-4aba-aba9-bcddc73343f9",
+      "id": "3a0a1676-447c-45d0-93d5-2941b54ce8e3",
       "name": "Append Discount Buckets",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -490,7 +490,7 @@
         1840,
         640
       ],
-      "id": "f168eb20-40c8-459c-908e-97ed270ec6bb",
+      "id": "b884ebb4-9af3-4a91-8384-bdcf722a4cd5",
       "name": "Append Baseline Tiers",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -513,9 +513,9 @@
         1840,
         820
       ],
-      "id": "1dcbf5ea-44b7-4027-bf32-54869bf33a98",
+      "id": "7c14430f-1d70-4ec2-b1d2-aec89810a484",
       "name": "Send Case Study Email",
-      "webhookId": "5936de39-c05a-4f4f-bcfc-338793aa1345",
+      "webhookId": "3cc4588d-86bc-4c38-9dda-8b93c7517227",
       "credentials": {
         "gmailOAuth2": {
           "id": "ZmmontG7EgaANggr",
@@ -705,7 +705,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "7f5d6188-041e-4953-be3f-6db18d91c767",
+  "versionId": "4597d3a1-ff2f-43e6-95b0-a7e6f8e2b368",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"

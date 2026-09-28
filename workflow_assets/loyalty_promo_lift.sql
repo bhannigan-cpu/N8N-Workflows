@@ -16,11 +16,10 @@
 --   SoID = 49 (Wayfair US), SUM(ProductCostNoRebates) by OrderDate + SKU
 --
 -- L10 non-promo dates:
---   Days before promo start that fall outside real NA promo windows from
---   tbl_promo_calendar. Extended Discounts / Frequency / Super Rooms /
---   Source Rooms are ignored (they do not count as promo for this baseline).
---   Fallback: FullData days with Final='N' or Final='Y' only from those
---   ignored promo types (and not a concurrent T0/T1 event).
+--   Days before promo start outside real NA promo windows from native
+--   promotions_dataset_7_public.tbl_promo_periods (not Sheet-backed
+--   staging.tbl_promo_calendar). Extended / Frequency / Super Rooms /
+--   Source Rooms are ignored. FullData fallback uses the same rule.
 --
 -- Placeholders are filled by the n8n "Build SQL Query" node from Configure Inputs:
 --   __PROMO_PERIOD_ID__
@@ -153,9 +152,11 @@ real_na_promo_windows AS (
   WHERE pp.promo_period_start_date IS NOT NULL
     AND pp.promo_period_end_date IS NOT NULL
     AND pp.promo_period_name_text NOT LIKE '%Test%'
-    AND NOT REGEXP_CONTAINS(
-      LOWER(COALESCE(pp.promo_period_name_text, '')),
-      r'^(eu|uk|perigold|pg)\\b'
+    AND NOT (
+      LOWER(pp.promo_period_name_text) LIKE 'eu%'
+      OR LOWER(pp.promo_period_name_text) LIKE 'uk%'
+      OR LOWER(pp.promo_period_name_text) LIKE 'perigold%'
+      OR LOWER(pp.promo_period_name_text) LIKE 'pg%'
     )
     AND NOT REGEXP_CONTAINS(
       LOWER(COALESCE(pp.promo_period_name_text, '')),
