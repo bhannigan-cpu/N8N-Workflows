@@ -58,7 +58,8 @@ SELECT
 , TRUE AS Filter_To_Listed_SRMs -- Set FALSE to include every SRM in the category
 , [
     'Hannigan, Benjamin',
-    'Carvalho, Madison'
+    'Carvalho, Madison',
+    'Paragamian, Missy'
   ] AS SRM_Names -- Enter one or more names exactly as they appear in srmcontactname
 
 -------------------------------------------
@@ -415,6 +416,7 @@ const llmRows = $input.all().map((item) => item.json);
 const srmEmailMap = {
   'Hannigan, Benjamin': 'bhannigan@wayfair.com',
   'Carvalho, Madison': 'bhannigan@wayfair.com',
+  'Paragamian, Missy': 'bhannigan@wayfair.com',
 };
 const fallbackEmail = 'bhannigan@wayfair.com';
 const TOP_N = 25;

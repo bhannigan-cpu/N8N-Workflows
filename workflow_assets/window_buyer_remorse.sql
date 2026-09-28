@@ -34,7 +34,8 @@ SELECT
 , TRUE AS Filter_To_Listed_SRMs -- Set FALSE to include every SRM in the category
 , [
     'Hannigan, Benjamin',
-    'Carvalho, Madison'
+    'Carvalho, Madison',
+    'Paragamian, Missy'
   ] AS SRM_Names -- Enter one or more names exactly as they appear in srmcontactname
 
 -------------------------------------------
