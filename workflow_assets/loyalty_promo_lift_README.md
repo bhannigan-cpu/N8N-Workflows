@@ -7,11 +7,12 @@ Reusable loyalty case-study workflow. For each new loyalty promo, edit two input
 1. **Re-import** `Loyalty Promo WSC Lift.json` into n8n (required after SQL/email fixes).
 2. Open the **Configure Inputs** node and set:
    - `promo_period_id` — CPH / Partner Home promo period ID (must be > 0)
-   - `marketing_category` — exact CPH spelling (e.g. `Bedding`, `Window`)
+   - `product_marketing_category` — **product** marketing category (`retail_dim_sku.mkcname`), e.g. `Bedding`, `Window`  
+     (not supplier marketing category / `MarketingCategory_SU`)
 3. Click **Manual Trigger**.
 
 Everything else updates from those inputs:
-- participating SKUs come from that promo + category
+- participating SKUs come from that promo + **product** marketing category
 - promo start/end come from the promo period (unless overridden)
 - L10 non-promo baseline auto-selects the last 10 days **before promo start** that fall outside real NA promo windows
 - **Extended Discounts, Frequency Product Discounts, Super Rooms, and Source Rooms do not count as promo** (ignored when picking L10)
@@ -21,7 +22,7 @@ Everything else updates from those inputs:
 | Field | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `promo_period_id` | yes | `0` (must change) | Loyalty promo period ID |
-| `marketing_category` | yes | `Bedding` | Marketing category filter |
+| `product_marketing_category` | yes | `Bedding` | Product marketing category (`mkcname`) |
 | `brand_catalog_id` | no | `1` | Wayfair US brand catalog |
 | `brand_catalog_name` | no | `Wayfair US` | Label only |
 | `store_brand` | no | `Wayfair` | Label only |
@@ -32,10 +33,10 @@ Everything else updates from those inputs:
 
 ## What the workflow does
 
-1. **Configure Inputs** — plug in promo ID + marketing category
+1. **Configure Inputs** — plug in promo ID + product marketing category
 2. **Build SQL Query** — injects those inputs into the lift SQL
 3. **Pull Loyalty WSC Lift SKUs** — BigQuery:
-   - CPH participating SKUs (`tbl_promo_parts_engagement`)
+   - CPH participating SKUs (`tbl_promo_parts_engagement`) filtered by **product** `mkcname`
    - loyalty-window **WSC** from `retail_fact_order_product_revenue_cost` (SoID 49)
    - L10 non-promo **WSC** for the same SKUs
    - daily averages + lift + run diagnostics
@@ -61,7 +62,7 @@ The email includes a yellow diagnostics box when both promo and L10 WSC are zero
 
 1. **Re-import the latest workflow JSON** — older copies still used `retail_sku_store_date_agg` with `agg_level = 'DAILY'`, which returns no rows.
 2. **`promo_period_id`** is the real CPH ID (not left at `0`).
-3. **`marketing_category`** matches CPH exactly (case/spelling).
+3. **`product_marketing_category`** matches `retail_dim_sku.mkcname` exactly (not supplier category).
 4. **Promo dates** in the email look right; if not, set `promo_start_override` / `promo_end_override`.
 5. **Diagnostics row fields** on the SKU sheet / email:
    - `participating_sku_count` > 0 — CPH filter worked

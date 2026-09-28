@@ -138,17 +138,20 @@ sku_keys AS (
 -- Real NA promo windows for L10 baseline.
 -- Extended Discounts / Frequency / Super Rooms / Source Rooms do NOT count as
 -- promo (NARTA guidance: ignore those quarterly rows when picking non-promo days).
+-- tbl_promo_calendar columns: Geo, PromoName, PromoStartDate, PromoEndDate, Tier
 real_na_promo_windows AS (
   SELECT DISTINCT
-    DATE(cal.PromoPeriodStartDate) AS window_start,
-    DATE(cal.PromoPeriodEndDate) AS window_end,
-    cal.PromoPeriodNameText AS promo_name
+    DATE(cal.PromoStartDate) AS window_start,
+    DATE(cal.PromoEndDate) AS window_end,
+    cal.PromoName AS promo_name
   FROM `wf-gcp-us-ae-eunarta-prod.staging.tbl_promo_calendar` AS cal
-  WHERE UPPER(COALESCE(cal.GEO, '')) = 'NA'
-    AND cal.PromoPeriodStartDate IS NOT NULL
-    AND cal.PromoPeriodEndDate IS NOT NULL
+  WHERE UPPER(COALESCE(cal.Geo, '')) = 'NA'
+    AND cal.PromoStartDate IS NOT NULL
+    AND cal.PromoEndDate IS NOT NULL
+    AND cal.PromoPeriodId IS NOT NULL
+    AND COALESCE(CAST(cal.Tier AS STRING), '') != 'Q'
     AND NOT REGEXP_CONTAINS(
-      LOWER(COALESCE(cal.PromoPeriodNameText, '')),
+      LOWER(COALESCE(cal.PromoName, '')),
       r'extended|frequency|super ?room|source ?room'
     )
 ),

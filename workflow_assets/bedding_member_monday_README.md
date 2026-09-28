@@ -8,6 +8,6 @@ Use:
 
 For each new loyalty event, edit **Configure Inputs**:
 1. `promo_period_id`
-2. `marketing_category`
+2. `product_marketing_category` (product `mkcname`, not supplier category)
 
-Metric is **WSC** (not GRS). L10 non-promo days auto-update from the promo start date.
+Metric is **WSC** (not GRS). L10 non-promo days auto-update from the promo start date (extended discounts / super rooms ignored).
