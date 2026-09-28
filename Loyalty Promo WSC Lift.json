@@ -144,41 +144,13 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://www.googleapis.com/drive/v3/files/1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM/copy?supportsAllDrives=true&fields=id,name,webViewLink,mimeType",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ name: $json.spreadsheetTitle }) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1280,
-        300
-      ],
-      "id": "e02b02fb-21c2-43b2-a4b7-78e9f71f1299",
-      "name": "Copy Template Spreadsheet",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "eI9KdqVYqhKdz25D",
-          "name": "Google Sheets account 610"
-        }
-      },
-      "notes": "Copies the Member Monday Loyalty Lift Google Sheet template (https://docs.google.com/spreadsheets/d/1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM) via Drive files.copy, then downstream nodes clear sample rows and rewrite Discount vs Lift / Class Summary / Supplier Summary / Discount Buckets. The OAuth account needs access to that template. If copy fails with 404, share the template with the Sheets credential account or widen Drive scopes.",
-      "notesInFlow": true
-    },
-    {
-      "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Attach the created Google Sheet URL into the case-study email body/subject.\nconst analysis = $('Build Analysis').first().json;\nconst sheet = $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from template copy output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
+        "jsCode": "// Attach the created Google Sheet URL into the case-study email body/subject.\nconst analysis = $('Build Analysis').first().json;\nconst sheet = $('Create Spreadsheet').first().json || $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from spreadsheet create/copy output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        3040,
         820
       ],
       "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
@@ -192,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
+        3480,
         -60
       ],
       "id": "ab9a9f29-64f0-4e31-afa0-36cfb272b11c",
@@ -220,7 +192,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
+        3480,
         220
       ],
       "id": "b609748e-f2e7-4013-a0d3-4b097edb64f0",
@@ -234,7 +206,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
+        3480,
         360
       ],
       "id": "0a6005d4-a319-4267-989f-49b6ab69cb6c",
@@ -248,7 +220,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
+        3480,
         500
       ],
       "id": "bfbfcd71-05ac-4296-b78d-c6593f246ffb",
@@ -292,7 +264,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2280,
+        3700,
         -60
       ],
       "id": "b7532285-4034-44d2-9275-38459fa0f546",
@@ -364,7 +336,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2280,
+        3700,
         220
       ],
       "id": "dd4b1a21-e2f8-4a40-997c-d2bfae7ea207",
@@ -400,7 +372,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2280,
+        3700,
         360
       ],
       "id": "f3164c99-58c3-4e1a-bf14-9e50e0025a38",
@@ -436,7 +408,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2280,
+        3700,
         500
       ],
       "id": "470eca12-8f05-4926-8887-875c38ed2c47",
@@ -495,7 +467,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1840,
+        3260,
         820
       ],
       "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
@@ -510,22 +482,38 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Normalize Drive copy output to the spreadsheetId/spreadsheetUrl shape used downstream.\nconst analysis = $('Build Analysis').first().json;\nconst copied = $input.first().json || {};\nconst spreadsheetId = copied.id || copied.spreadsheetId || null;\nconst spreadsheetUrl =\n  copied.webViewLink ||\n  copied.spreadsheetUrl ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nif (!spreadsheetId) {\n  throw new Error('Template copy did not return a spreadsheet id. Check Google Drive access to the Member Monday Loyalty Lift template.');\n}\n\nreturn [\n  {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl,\n      name: copied.name || analysis.spreadsheetTitle,\n      spreadsheetTitle: analysis.spreadsheetTitle,\n      templateSpreadsheetId: '1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM',\n    },\n  },\n];\n"
+        "resource": "spreadsheet",
+        "title": "={{ $json.spreadsheetTitle }}",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "_tmp"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
       "position": [
-        1420,
+        1280,
         300
       ],
       "id": "438bfa3e-0b98-4918-95c3-c1d018644bb1",
-      "name": "Create Spreadsheet"
+      "name": "Create Spreadsheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      },
+      "notes": "Creates a destination workbook, then copies each tab from the Member Monday Loyalty Lift template (1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM) via Sheets spreadsheets.sheets.copyTo (works with Google Sheets OAuth; Drive files.copy is blocked by drive.file scope).",
+      "notesInFlow": true
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}?fields=spreadsheetId,sheets.properties",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Create Spreadsheet').item.json.spreadsheetId }}?fields=spreadsheetId,properties,sheets.properties",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "options": {}
@@ -533,7 +521,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
+        2920,
         300
       ],
       "id": "54f20c53-b808-4472-8d23-b48b6ad9e748",
@@ -554,7 +542,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1700,
+        3140,
         300
       ],
       "id": "93eb1db0-9875-411a-8e5f-a809f6e35375",
@@ -574,7 +562,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1840,
+        3360,
         300
       ],
       "id": "6828bfab-cd41-437d-a17e-14ca8a7aebac",
@@ -586,6 +574,148 @@
         }
       },
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM?fields=spreadsheetId,sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        300
+      ],
+      "id": "859b4aae-8ea3-4b78-ba07-5d37ca978547",
+      "name": "List Template Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      },
+      "notes": "Reads tab metadata from the shared Member Monday Loyalty Lift template. Share that sheet with the Sheets OAuth account if this fails.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const TEMPLATE_ID = '1X_8cBZYRGUqsFiM5jNV-sNvp3WBA1_3Jm4Zbk3iGxxM';\nconst dest = $('Create Spreadsheet').first().json || {};\nconst spreadsheetId = dest.spreadsheetId || dest.id;\nif (!spreadsheetId) {\n  throw new Error('Create Spreadsheet did not return spreadsheetId');\n}\nconst spreadsheetUrl =\n  dest.spreadsheetUrl ||\n  dest.url ||\n  `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;\n\nconst sheets = ($input.first().json.sheets || []);\nif (!sheets.length) {\n  throw new Error('Template spreadsheet returned no sheets. Confirm the OAuth account can access the template.');\n}\n\nreturn sheets.map((sheet) => {\n  const props = sheet.properties || sheet;\n  return {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl,\n      templateSpreadsheetId: TEMPLATE_ID,\n      sourceSheetId: props.sheetId,\n      sourceTitle: props.title,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        300
+      ],
+      "id": "375b8bd9-ab33-439e-ac70-8eb7cf331151",
+      "name": "Prepare Sheet Copies"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.templateSpreadsheetId }}/sheets/{{ $json.sourceSheetId }}/copyTo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationSpreadsheetId: $json.spreadsheetId }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        300
+      ],
+      "id": "b1218198-6598-4404-afbf-4ba94f5904fc",
+      "name": "Copy Sheet From Template",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Create Spreadsheet').item.json.spreadsheetId }}?fields=spreadsheetId,sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2260,
+        300
+      ],
+      "id": "3a9557fb-84d0-40f1-b44c-7ad94d41b770",
+      "name": "List Destination Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const dest = $('Create Spreadsheet').first().json || {};\nconst spreadsheetId = dest.spreadsheetId || dest.id;\nconst spreadsheetUrl =\n  dest.spreadsheetUrl ||\n  dest.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst sheets = ($input.first().json.sheets || []).map((sheet) => sheet.properties || sheet);\nconst requests = [];\n\nfor (const sheet of sheets) {\n  const title = String(sheet.title || '');\n  if (title === '_tmp' || title === 'Sheet1') {\n    requests.push({ deleteSheet: { sheetId: sheet.sheetId } });\n    continue;\n  }\n  if (title.startsWith('Copy of ')) {\n    requests.push({\n      updateSheetProperties: {\n        properties: {\n          sheetId: sheet.sheetId,\n          title: title.replace(/^Copy of /, ''),\n        },\n        fields: 'title',\n      },\n    });\n  }\n}\n\nif (!requests.length) {\n  throw new Error('No finalize requests built after template sheet copy. Destination may not contain copied tabs.');\n}\n\nreturn [\n  {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl,\n      requests,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        300
+      ],
+      "id": "38772187-a8dd-4a80-b91d-7d22689635b3",
+      "name": "Build Finalize Requests"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2700,
+        300
+      ],
+      "id": "d2b709c8-08c3-42ae-a077-ef6ffcb2ec5b",
+      "name": "Finalize Spreadsheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const dest = $('Create Spreadsheet').first().json || {};\nconst spreadsheetId = dest.spreadsheetId || dest.id;\nconst spreadsheetUrl =\n  dest.spreadsheetUrl ||\n  dest.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst copied = $input.all().map((item) => item.json);\nif (!copied.length) {\n  throw new Error('No template sheets were copied into the destination spreadsheet.');\n}\n\nreturn [\n  {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl,\n      copiedSheetCount: copied.length,\n      copiedSheets: copied.map((row) => ({\n        sheetId: row.sheetId,\n        title: row.title,\n      })),\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        300
+      ],
+      "id": "0df694b1-729c-4f13-91f6-b6e8eabb3d99",
+      "name": "After Sheet Copies"
     }
   ],
   "connections": {
@@ -637,7 +767,7 @@
       "main": [
         [
           {
-            "node": "Copy Template Spreadsheet",
+            "node": "Create Spreadsheet",
             "type": "main",
             "index": 0
           }
@@ -648,7 +778,7 @@
       "main": [
         [
           {
-            "node": "List Copied Sheets",
+            "node": "List Template Sheets",
             "type": "main",
             "index": 0
           },
@@ -715,17 +845,6 @@
         ]
       ]
     },
-    "Copy Template Spreadsheet": {
-      "main": [
-        [
-          {
-            "node": "Create Spreadsheet",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Clear Template Data": {
       "main": [
         [
@@ -768,6 +887,83 @@
         [
           {
             "node": "Clear Template Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Template Sheets": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sheet Copies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sheet Copies": {
+      "main": [
+        [
+          {
+            "node": "Copy Sheet From Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Sheet From Template": {
+      "main": [
+        [
+          {
+            "node": "After Sheet Copies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Destination Sheets": {
+      "main": [
+        [
+          {
+            "node": "Build Finalize Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Finalize Requests": {
+      "main": [
+        [
+          {
+            "node": "Finalize Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "List Copied Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After Sheet Copies": {
+      "main": [
+        [
+          {
+            "node": "List Destination Sheets",
             "type": "main",
             "index": 0
           }
