@@ -135,23 +135,30 @@ sku_keys AS (
     ON UPPER(retail_dim_sku.skuname) = UPPER(participating_skus.sku)
 ),
 
--- Real NA promo windows for L10 baseline.
--- Extended Discounts / Frequency / Super Rooms / Source Rooms do NOT count as
--- promo (NARTA guidance: ignore those quarterly rows when picking non-promo days).
--- tbl_promo_calendar columns: Geo, PromoName, PromoStartDate, PromoEndDate, Tier
+-- Real NA promo windows for L10 baseline (native BigQuery — no Drive).
+-- Do NOT use staging.tbl_promo_calendar: that object is Sheet-backed and
+-- fails with "Permission denied while getting Drive credentials" under n8n.
+-- Extended / Frequency / Super Room / Source Room names are ignored.
 real_na_promo_windows AS (
   SELECT DISTINCT
-    DATE(cal.PromoStartDate) AS window_start,
-    DATE(cal.PromoEndDate) AS window_end,
-    cal.PromoName AS promo_name
-  FROM `wf-gcp-us-ae-eunarta-prod.staging.tbl_promo_calendar` AS cal
-  WHERE UPPER(COALESCE(cal.Geo, '')) = 'NA'
-    AND cal.PromoStartDate IS NOT NULL
-    AND cal.PromoEndDate IS NOT NULL
-    AND cal.PromoPeriodId IS NOT NULL
-    AND COALESCE(CAST(cal.Tier AS STRING), '') != 'Q'
+    DATE(pp.promo_period_start_date, 'America/New_York') AS window_start,
+    CASE
+      WHEN EXTRACT(HOUR FROM pp.promo_period_end_date) <= 15
+       AND EXTRACT(HOUR FROM pp.promo_period_end_date) > 5
+      THEN DATE(pp.promo_period_end_date, 'America/New_York') - 1
+      ELSE DATE(pp.promo_period_end_date, 'America/New_York')
+    END AS window_end,
+    pp.promo_period_name_text AS promo_name
+  FROM `wf-gcp-us-gst-acc-promo-prod.promotions_dataset_7_public.tbl_promo_periods` AS pp
+  WHERE pp.promo_period_start_date IS NOT NULL
+    AND pp.promo_period_end_date IS NOT NULL
+    AND pp.promo_period_name_text NOT LIKE '%Test%'
     AND NOT REGEXP_CONTAINS(
-      LOWER(COALESCE(cal.PromoName, '')),
+      LOWER(COALESCE(pp.promo_period_name_text, '')),
+      r'^(eu|uk|perigold|pg)\\b'
+    )
+    AND NOT REGEXP_CONTAINS(
+      LOWER(COALESCE(pp.promo_period_name_text, '')),
       r'extended|frequency|super ?room|source ?room'
     )
 ),
@@ -177,7 +184,7 @@ calendar_non_promo_dates AS (
     candidate_baseline_days.promo_period_id,
     candidate_baseline_days.sales_date,
     'non_promo' AS period_type,
-    'promo_calendar_excl_extended' AS non_promo_source
+    'promo_periods_excl_extended' AS non_promo_source
   FROM candidate_baseline_days
   WHERE NOT EXISTS (
     SELECT 1

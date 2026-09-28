@@ -49,7 +49,7 @@ Everything else updates from those inputs:
 
 Uses **WSC** (`ProductCostNoRebates` on the order-cost fact, Wayfair US / SoID 49), not GRS.
 
-L10 baseline days come from `tbl_promo_calendar` (GEO = NA), taking dates before promo start that are **not** inside a real promo window. Names matching Extended / Frequency / Super Room / Source Room are ignored so those long-running discounts do not wipe out the baseline. The email/sheet include `non_promo_dates_list` with the exact days used.
+L10 baseline days come from native `tbl_promo_periods` (not the Sheet-backed `tbl_promo_calendar`, which needs Drive credentials). Dates before promo start that are **not** inside a real promo window are used; names matching Extended / Frequency / Super Room / Source Room are ignored. The email/sheet include `non_promo_dates_list` with the exact days used.
 
 - `non_promo_avg` = L10 non-promo WSC / N days
 - `loyalty_avg` = promo-window WSC / promo day count
