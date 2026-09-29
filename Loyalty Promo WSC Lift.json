@@ -150,7 +150,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1940,
+        2040,
         820
       ],
       "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
@@ -164,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1940,
+        2040,
         -60
       ],
       "id": "ab9a9f29-64f0-4e31-afa0-36cfb272b11c",
@@ -178,7 +178,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        2040,
         80
       ],
       "id": "32506f2b-7bf9-464d-849c-36d08a6f9503",
@@ -192,7 +192,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1940,
+        2040,
         220
       ],
       "id": "b609748e-f2e7-4013-a0d3-4b097edb64f0",
@@ -206,7 +206,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1940,
+        2040,
         360
       ],
       "id": "0a6005d4-a319-4267-989f-49b6ab69cb6c",
@@ -220,7 +220,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1940,
+        2040,
         500
       ],
       "id": "bfbfcd71-05ac-4296-b78d-c6593f246ffb",
@@ -234,7 +234,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        2040,
         640
       ],
       "id": "77b173b0-275d-4990-ad90-43c17517d869",
@@ -264,7 +264,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2160,
+        2260,
         -60
       ],
       "id": "b7532285-4034-44d2-9275-38459fa0f546",
@@ -300,7 +300,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2260,
         80
       ],
       "id": "25c4eb1e-146c-49d3-b3b0-12e0f3e4db71",
@@ -336,7 +336,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2160,
+        2260,
         220
       ],
       "id": "dd4b1a21-e2f8-4a40-997c-d2bfae7ea207",
@@ -372,7 +372,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2160,
+        2260,
         360
       ],
       "id": "f3164c99-58c3-4e1a-bf14-9e50e0025a38",
@@ -408,7 +408,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2160,
+        2260,
         500
       ],
       "id": "470eca12-8f05-4926-8887-875c38ed2c47",
@@ -444,7 +444,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1840,
+        2260,
         640
       ],
       "id": "c4e9ed89-add7-4fc6-a0ab-13428796982a",
@@ -467,7 +467,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2160,
+        2260,
         820
       ],
       "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
@@ -522,18 +522,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}/values:batchClear",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Create Spreadsheet').item.json.spreadsheetId }}/values:batchClear",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  ranges: [\n    \"'Discount vs Lift'!A2:Z\",\n    \"'Class Summary'!A2:Z\",\n    \"'Supplier Summary'!A2:Z\",\n    \"'Discount Buckets'!A2:Z\"\n  ]\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  ranges: [\n    \"'Discount vs Lift'!A2:Z\",\n    \"'Class Summary'!A2:Z\",\n    \"'Supplier Summary'!A2:Z\",\n    \"'Discount Buckets'!A2:Z\",\n    \"'Category Summary'!A2:Z\",\n    \"'Baseline Tiers'!A2:Z\"\n  ]\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1720,
+        1820,
         300
       ],
       "id": "0476435e-472b-4c2f-8bc4-6bc601a5aa11",
@@ -546,6 +546,35 @@
       },
       "continueOnFail": true,
       "notes": "Clears sample data rows while keeping header formatting from the copied template. Uses existing Sheets credential.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  requests: [\n    { addSheet: { properties: { title: 'Category Summary' } } },\n    { addSheet: { properties: { title: 'Baseline Tiers' } } }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1610,
+        300
+      ],
+      "id": "440d2a80-327e-437c-9ac7-19443b7b609e",
+      "name": "Add Extra Summary Tabs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Adds Category Summary and Baseline Tiers tabs (not in the Window template) so those append branches can write.",
       "notesInFlow": true
     }
   ],
@@ -620,12 +649,23 @@
       "main": [
         [
           {
-            "node": "Clear Template Sample Rows",
+            "node": "Add Extra Summary Tabs",
             "type": "main",
             "index": 0
           },
           {
             "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Extra Summary Tabs": {
+      "main": [
+        [
+          {
+            "node": "Clear Template Sample Rows",
             "type": "main",
             "index": 0
           }
@@ -641,6 +681,11 @@
             "index": 0
           },
           {
+            "node": "Prepare Category Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Prepare Class Rows",
             "type": "main",
             "index": 0
@@ -652,6 +697,11 @@
           },
           {
             "node": "Prepare Discount Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Baseline Rows",
             "type": "main",
             "index": 0
           }
@@ -674,6 +724,17 @@
         [
           {
             "node": "Append Discount vs Lift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Category Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Category Summary",
             "type": "main",
             "index": 0
           }
@@ -707,6 +768,17 @@
         [
           {
             "node": "Append Discount Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Baseline Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Baseline Tiers",
             "type": "main",
             "index": 0
           }
