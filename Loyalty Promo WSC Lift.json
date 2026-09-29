@@ -145,13 +145,13 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst sheet = $input.first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from template copy output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst sheet = $('Create Spreadsheet').first().json || {};\n\nconst spreadsheetId = sheet.spreadsheetId || sheet.id || null;\nconst spreadsheetUrl =\n  sheet.spreadsheetUrl ||\n  sheet.url ||\n  (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '');\n\nconst linkHtml = spreadsheetUrl\n  ? `<p style=\"margin:12px 0;\"><strong>Workbook:</strong> <a href=\"${spreadsheetUrl}\">${spreadsheetUrl}</a></p>`\n  : '<p style=\"margin:12px 0;color:#996600;\"><strong>Workbook:</strong> spreadsheet URL unavailable from template copy output.</p>';\n\nconst emailHtml = String(analysis.emailHtml || '').replace('<!-- SPREADSHEET_LINK -->', linkHtml);\nconst markdown = spreadsheetUrl\n  ? `${analysis.markdown || ''}\\n\\nWorkbook: ${spreadsheetUrl}\\n`\n  : analysis.markdown || '';\n\nreturn [\n  {\n    json: {\n      ...analysis,\n      spreadsheetId,\n      spreadsheetUrl,\n      emailHtml,\n      markdown,\n      subject: analysis.subject || 'Loyalty WSC Lift Case Study',\n    },\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        820
+        3360,
+        220
       ],
       "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
       "name": "Prepare Email With Sheet Link"
@@ -164,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
+        1940,
         -60
       ],
       "id": "ab9a9f29-64f0-4e31-afa0-36cfb272b11c",
@@ -178,8 +178,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        80
+        1940,
+        900
       ],
       "id": "32506f2b-7bf9-464d-849c-36d08a6f9503",
       "name": "Prepare Category Rows"
@@ -192,8 +192,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        220
+        1940,
+        140
       ],
       "id": "b609748e-f2e7-4013-a0d3-4b097edb64f0",
       "name": "Prepare Class Rows"
@@ -206,8 +206,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        360
+        1940,
+        340
       ],
       "id": "0a6005d4-a319-4267-989f-49b6ab69cb6c",
       "name": "Prepare Supplier Rows"
@@ -220,8 +220,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        500
+        1940,
+        540
       ],
       "id": "bfbfcd71-05ac-4296-b78d-c6593f246ffb",
       "name": "Prepare Discount Rows"
@@ -234,8 +234,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2040,
-        640
+        1940,
+        1080
       ],
       "id": "77b173b0-275d-4990-ad90-43c17517d869",
       "name": "Prepare Baseline Rows"
@@ -264,7 +264,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
+        2160,
         -60
       ],
       "id": "b7532285-4034-44d2-9275-38459fa0f546",
@@ -300,8 +300,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
-        80
+        2160,
+        900
       ],
       "id": "25c4eb1e-146c-49d3-b3b0-12e0f3e4db71",
       "name": "Append Category Summary",
@@ -336,8 +336,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
-        220
+        2160,
+        140
       ],
       "id": "dd4b1a21-e2f8-4a40-997c-d2bfae7ea207",
       "name": "Append Class Summary",
@@ -372,8 +372,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
-        360
+        2160,
+        340
       ],
       "id": "f3164c99-58c3-4e1a-bf14-9e50e0025a38",
       "name": "Append Supplier Summary",
@@ -408,8 +408,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
-        500
+        2160,
+        540
       ],
       "id": "470eca12-8f05-4926-8887-875c38ed2c47",
       "name": "Append Discount Buckets",
@@ -444,8 +444,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2260,
-        640
+        2160,
+        1080
       ],
       "id": "c4e9ed89-add7-4fc6-a0ab-13428796982a",
       "name": "Append Baseline Tiers",
@@ -467,8 +467,8 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2260,
-        820
+        3580,
+        220
       ],
       "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
       "name": "Send Case Study Email",
@@ -527,13 +527,13 @@
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  ranges: [\n    \"'Discount vs Lift'!A2:Z\",\n    \"'Class Summary'!A2:Z\",\n    \"'Supplier Summary'!A2:Z\",\n    \"'Discount Buckets'!A2:Z\",\n    \"'Category Summary'!A2:Z\",\n    \"'Baseline Tiers'!A2:Z\"\n  ]\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  ranges: [\n    \"'Discount vs Lift'!A2:Z\",\n    \"'Class Summary'!A2:Z\",\n    \"'Supplier Summary'!A2:Z\",\n    \"'Discount Buckets'!A2:Z\"\n  ]\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1820,
+        1720,
         300
       ],
       "id": "0476435e-472b-4c2f-8bc4-6bc601a5aa11",
@@ -550,32 +550,87 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}:batchUpdate",
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2480,
+        220
+      ],
+      "id": "0c9529a7-922d-4243-9a2c-e81ae3d52dba",
+      "name": "Wait For Sheet Appends"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Create Spreadsheet').item.json.spreadsheetId }}?fields=spreadsheetId,sheets(properties(sheetId,title),charts,images)",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  requests: [\n    { addSheet: { properties: { title: 'Category Summary' } } },\n    { addSheet: { properties: { title: 'Baseline Tiers' } } }\n  ]\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1610,
-        300
+        2700,
+        220
       ],
-      "id": "440d2a80-327e-437c-9ac7-19443b7b609e",
-      "name": "Add Extra Summary Tabs",
+      "id": "1880ecfc-db3e-44a1-a048-23d0ab3cf31a",
+      "name": "List Spreadsheet Charts",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "eI9KdqVYqhKdz25D",
           "name": "Google Sheets account 610"
         }
       },
-      "continueOnFail": true,
-      "notes": "Adds Category Summary and Baseline Tiers tabs (not in the Window template) so those append branches can write.",
+      "continueOnFail": false,
+      "notes": "Reads chart/image object IDs from the copied workbook so Build Live Chart Requests can delete static template visuals and attach live charts to this run\u2019s data ranges. Tip: also delete pasted chart PNGs from the master template once for cleaner copies.",
       "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Replace static template chart images with live Google Sheets charts\n// bound to this run's Class / Supplier / Discount summary tabs.\nconst spreadsheetId = $('Create Spreadsheet').first().json.spreadsheetId;\nconst analysis = $('Build Analysis').first().json || {};\nconst meta = $input.first().json || {};\nconst sheets = meta.sheets || [];\nconst requests = [];\n\nfunction sheetByTitle(title) {\n  return sheets.find((sheet) => (sheet.properties || {}).title === title) || null;\n}\n\nfunction deleteEmbedded(sheet) {\n  for (const chart of sheet.charts || []) {\n    if (chart.chartId != null) {\n      requests.push({ deleteEmbeddedObject: { objectId: chart.chartId } });\n    }\n  }\n  for (const image of sheet.images || []) {\n    const imageId = image.imageId ?? image.id;\n    if (imageId != null) {\n      requests.push({ deleteEmbeddedObject: { objectId: imageId } });\n    }\n  }\n}\n\nfor (const sheet of sheets) {\n  deleteEmbedded(sheet);\n}\n\nfunction addColumnChart({ sheetId, title, domainCol, seriesCols, anchorCol, rowCount }) {\n  const endRow = Math.max(2, Number(rowCount) || 2);\n  const series = seriesCols.map((col) => ({\n    series: {\n      sourceRange: {\n        sources: [\n          {\n            sheetId,\n            startRowIndex: 0,\n            endRowIndex: endRow,\n            startColumnIndex: col,\n            endColumnIndex: col + 1,\n          },\n        ],\n      },\n    },\n    targetAxis: 'LEFT_AXIS',\n  }));\n\n  requests.push({\n    addChart: {\n      chart: {\n        spec: {\n          title,\n          basicChart: {\n            chartType: 'COLUMN',\n            legendPosition: 'BOTTOM_LEGEND',\n            domains: [\n              {\n                domain: {\n                  sourceRange: {\n                    sources: [\n                      {\n                        sheetId,\n                        startRowIndex: 0,\n                        endRowIndex: endRow,\n                        startColumnIndex: domainCol,\n                        endColumnIndex: domainCol + 1,\n                      },\n                    ],\n                  },\n                },\n              },\n            ],\n            series,\n            headerCount: 1,\n          },\n        },\n        position: {\n          overlayPosition: {\n            anchorCell: {\n              sheetId,\n              rowIndex: 0,\n              columnIndex: anchorCol,\n            },\n            widthPixels: 720,\n            heightPixels: 400,\n          },\n        },\n      },\n    },\n  });\n}\n\nfunction addBarChart({ sheetId, title, domainCol, seriesCol, anchorCol, rowCount }) {\n  const endRow = Math.max(2, Number(rowCount) || 2);\n  requests.push({\n    addChart: {\n      chart: {\n        spec: {\n          title,\n          basicChart: {\n            chartType: 'BAR',\n            legendPosition: 'BOTTOM_LEGEND',\n            domains: [\n              {\n                domain: {\n                  sourceRange: {\n                    sources: [\n                      {\n                        sheetId,\n                        startRowIndex: 0,\n                        endRowIndex: endRow,\n                        startColumnIndex: domainCol,\n                        endColumnIndex: domainCol + 1,\n                      },\n                    ],\n                  },\n                },\n              },\n            ],\n            series: [\n              {\n                series: {\n                  sourceRange: {\n                    sources: [\n                      {\n                        sheetId,\n                        startRowIndex: 0,\n                        endRowIndex: endRow,\n                        startColumnIndex: seriesCol,\n                        endColumnIndex: seriesCol + 1,\n                      },\n                    ],\n                  },\n                },\n                targetAxis: 'LEFT_AXIS',\n              },\n            ],\n            headerCount: 1,\n          },\n        },\n        position: {\n          overlayPosition: {\n            anchorCell: {\n              sheetId,\n              rowIndex: 12,\n              columnIndex: anchorCol,\n            },\n            widthPixels: 720,\n            heightPixels: 400,\n          },\n        },\n      },\n    },\n  });\n}\n\n// Column layout written by Prepare* nodes:\n// Class/Discount: class_name|discount_bucket, sku_count, positive_lift_skus,\n//   l10_non_promo_daily_avg, member_monday_sales, incremental_sales, weighted_lift_pct, ...\n// Supplier: supplier_id, supplier_name, srm, sku_count, positive_lift_skus,\n//   l10_non_promo_daily_avg, member_monday_sales, incremental_sales, weighted_lift_pct, ...\n\nconst classSheet = sheetByTitle('Class Summary');\nconst supplierSheet = sheetByTitle('Supplier Summary');\nconst discountSheet = sheetByTitle('Discount Buckets');\n\nconst classRows = 1 + ((analysis.class_summary || []).length || 0);\nconst supplierRows = 1 + Math.min(15, (analysis.supplier_summary || []).length || 0);\nconst discountRows = 1 + ((analysis.discount_summary || []).length || 0);\n\nif (classSheet) {\n  const sheetId = classSheet.properties.sheetId;\n  addColumnChart({\n    sheetId,\n    title: 'Loyalty WSC vs L10 non-promo average by class',\n    domainCol: 0,\n    seriesCols: [3, 4],\n    anchorCol: 12,\n    rowCount: classRows,\n  });\n  addBarChart({\n    sheetId,\n    title: 'Weighted lift % by class',\n    domainCol: 0,\n    seriesCol: 6,\n    anchorCol: 12,\n    rowCount: classRows,\n  });\n}\n\nif (discountSheet) {\n  const sheetId = discountSheet.properties.sheetId;\n  addColumnChart({\n    sheetId,\n    title: 'Lift by promotional investment (discount bucket)',\n    domainCol: 0,\n    seriesCols: [3, 4],\n    anchorCol: 12,\n    rowCount: discountRows,\n  });\n}\n\nif (supplierSheet) {\n  const sheetId = supplierSheet.properties.sheetId;\n  addColumnChart({\n    sheetId,\n    title: 'Top suppliers: L10 vs loyalty WSC',\n    domainCol: 1,\n    seriesCols: [5, 6],\n    anchorCol: 14,\n    rowCount: supplierRows,\n  });\n  addBarChart({\n    sheetId,\n    title: 'Top suppliers: incremental WSC',\n    domainCol: 1,\n    seriesCol: 7,\n    anchorCol: 14,\n    rowCount: supplierRows,\n  });\n}\n\nif (!requests.length) {\n  throw new Error(\n    'No chart refresh requests built. Confirm Class Summary / Supplier Summary / Discount Buckets tabs exist on the copied workbook.',\n  );\n}\n\nreturn [\n  {\n    json: {\n      spreadsheetId,\n      spreadsheetUrl: $('Create Spreadsheet').first().json.spreadsheetUrl,\n      requestCount: requests.length,\n      requests,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2920,
+        220
+      ],
+      "id": "77ff9451-bb32-4158-98de-32f334b10f14",
+      "name": "Build Live Chart Requests",
+      "notes": "Deletes copied template chart images/objects, then adds live Sheets charts bound to this run\u2019s summary tabs.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3140,
+        220
+      ],
+      "id": "1dde9a4c-03b1-4b3d-b7f4-1feb6974ff15",
+      "name": "Apply Live Charts",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
     }
   ],
   "connections": {
@@ -649,22 +704,6 @@
       "main": [
         [
           {
-            "node": "Add Extra Summary Tabs",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Email With Sheet Link",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Add Extra Summary Tabs": {
-      "main": [
-        [
-          {
             "node": "Clear Template Sample Rows",
             "type": "main",
             "index": 0
@@ -677,11 +716,6 @@
         [
           {
             "node": "Prepare SKU Rows",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Category Rows",
             "type": "main",
             "index": 0
           },
@@ -699,22 +733,6 @@
             "node": "Prepare Discount Rows",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Prepare Baseline Rows",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Email With Sheet Link": {
-      "main": [
-        [
-          {
-            "node": "Send Case Study Email",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -724,17 +742,6 @@
         [
           {
             "node": "Append Discount vs Lift",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Category Rows": {
-      "main": [
-        [
-          {
-            "node": "Append Category Summary",
             "type": "main",
             "index": 0
           }
@@ -774,11 +781,99 @@
         ]
       ]
     },
-    "Prepare Baseline Rows": {
+    "Append Discount vs Lift": {
       "main": [
         [
           {
-            "node": "Append Baseline Tiers",
+            "node": "Wait For Sheet Appends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Class Summary": {
+      "main": [
+        [
+          {
+            "node": "Wait For Sheet Appends",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Append Supplier Summary": {
+      "main": [
+        [
+          {
+            "node": "Wait For Sheet Appends",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Append Discount Buckets": {
+      "main": [
+        [
+          {
+            "node": "Wait For Sheet Appends",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Wait For Sheet Appends": {
+      "main": [
+        [
+          {
+            "node": "List Spreadsheet Charts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Spreadsheet Charts": {
+      "main": [
+        [
+          {
+            "node": "Build Live Chart Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Live Chart Requests": {
+      "main": [
+        [
+          {
+            "node": "Apply Live Charts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Live Charts": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email With Sheet Link": {
+      "main": [
+        [
+          {
+            "node": "Send Case Study Email",
             "type": "main",
             "index": 0
           }
