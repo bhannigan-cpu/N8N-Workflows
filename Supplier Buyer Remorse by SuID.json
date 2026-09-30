@@ -1,0 +1,280 @@
+{
+  "name": "Supplier Buyer's Remorse by SuID",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9f1be283-92cc-4d5e-96de-8802a0497204",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db1b93f5-7dfe-4551-9472-7b97759972d4",
+              "name": "supplier_suid",
+              "value": 12345,
+              "type": "number"
+            },
+            {
+              "id": "36ce509b-8bf2-4501-b687-eff5295dc39d",
+              "name": "benchmark_buyer_remorse_rate",
+              "value": 0.095,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ad61075f-e21e-4fc3-b898-6cc8e6f9d65b",
+      "name": "Enter Supplier SuID",
+      "notesInFlow": true,
+      "notes": "Change supplier_suid here (and optionally the benchmark rate). No need to edit the SQL."
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-retail-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-retail-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-retail-prod"
+        },
+        "sqlQuery": "=-- =============================================================================\n-- SUPPLIER BUYER'S REMORSE SPIKE ALERT  (by SuID)\n-- =============================================================================\n-- QUALIFICATION (per SKU, within the configured supplier)\n--   \u2022 Recent buyer's remorse rate  >  benchmark buyer's remorse rate\n--   \u2022 Recent rate is at least +3.0 percentage points vs. the L6M baseline\n--   \u2022 At least 5 returns in the 6-week evaluation window\n--   \u2022 Ranked by L12M WSC (USD) desc; top N SKUs for the supplier are returned\n--   \u2022 GRS intentionally omitted (supplier-facing)\n-- =============================================================================\n\nWITH inputs AS (\n\n-------------------------------------------\n--------- Enter Store Name Below ----------\n-------------------------------------------\n\nSELECT\n  'Wayfair' AS Store_Brand -- e.g. Wayfair, AllModern, Joss & Main\n, 'United States' AS Store_Country -- e.g. United States, Canada\n, 'Wayfair US' AS Brand_Catalog_Name -- e.g. Wayfair US, Wayfair CA\n, 1 AS Display_SKU_BclgID -- 1 = Wayfair US display SKUs\n, 'https://www.wayfair.com/v/product/show_pdp?sku=' AS PDP_URL_Prefix\n\n-------------------------------------------\n---- SuID comes from prior Set node -------\n-------------------------------------------\n\n, {{ $json.supplier_suid }} AS Supplier_SuID -- from Enter Supplier SuID node\n\n-------------------------------------------\n-- Benchmark comes from prior Set node ----\n-------------------------------------------\n\n, {{ $json.benchmark_buyer_remorse_rate }} AS Benchmark_Buyer_Remorse_Rate -- from Enter Supplier SuID node\n\n-------------------------------------------\n-------------------------------------------\n-------------------------------------------\n\n-- Thresholds (usually leave these as-is)\n, 0.03 AS Spike_Threshold -- +3.0 pts vs L6M baseline\n, 5 AS Min_Return_Count -- minimum returns in the 6-week window\n, 15 AS Top_N -- max SKUs returned for the supplier\n\n),\n\nrecent_period_metrics AS (\n  -- CTE 1: Aggregates 6-Week Evaluation Window (8 weeks ago to 2 weeks ago)\n  -- based on RETURN OCCURRENCE DATES\n  SELECT\n    retail_dim_supplier.origsuid AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_dim_sku.skuname AS sku,\n    REGEXP_EXTRACT(retail_dim_sku.skufullname, r'\\((.*?)\\)') AS sku_display_name,\n    retail_dim_sku.mkcname AS marketing_category,\n\n    ROUND(SUM(orders.cartqty), 0) AS recent_ordered_units,\n    ROUND(SUM(orders.returnqty), 0) AS recent_return_qty,\n\n    -- Buyer's Remorse Rate (6-Week Evaluation Window)\n    SAFE_DIVIDE(SUM(ops.remorse_return_rate_op_num), NULLIF(SUM(ops.remorse_return_rate_op_denom), 0)) AS recent_buyer_remorse_rate_op\n\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  CROSS JOIN inputs\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS ops\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  WHERE\n    retail_sku_store_date.brandname = inputs.Store_Brand\n    AND retail_sku_store_date.styname = inputs.Store_Country\n    AND retail_sku_store_date.date >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 8 WEEK)\n    AND retail_sku_store_date.date < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK)\n    AND retail_dim_supplier.origsuid = inputs.Supplier_SuID\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n  GROUP BY 1, 2, 3, 4, 5\n),\n\nl6m_period_metrics AS (\n  -- CTE 2: Aggregates Trailing 6-Month (L6M / 26-Week) Baseline based on\n  -- RETURN OCCURRENCE DATES\n  SELECT\n    retail_dim_sku.skuname AS sku,\n    SAFE_DIVIDE(SUM(ops.remorse_return_rate_op_num), NULLIF(SUM(ops.remorse_return_rate_op_denom), 0)) AS l6m_buyer_remorse_rate_op\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  CROSS JOIN inputs\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS ops\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  WHERE\n    retail_sku_store_date.brandname = inputs.Store_Brand\n    AND retail_sku_store_date.styname = inputs.Store_Country\n    AND retail_sku_store_date.date >= DATE_SUB(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK), INTERVAL 26 WEEK)\n    AND retail_sku_store_date.date < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK)\n    AND retail_dim_supplier.origsuid = inputs.Supplier_SuID\n    AND retail_sku_store_date.agg_level = 'MONTHLY'\n  GROUP BY 1\n),\n\nl12m_financials AS (\n  -- CTE 3: Aggregates Trailing 12-Month (L12M / 52-Week) WSC USD only\n  -- (GRS omitted \u2014 supplier-facing)\n  SELECT\n    retail_dim_sku.skuname AS sku,\n    ROUND(\n      (\n        SUM(DISTINCT (CAST(ROUND(COALESCE(orders.productcostnorebates * COALESCE(dim_currency.ExchangeRate, 1), 0)*(1/1000*1.0), 9) AS NUMERIC)\n          + (CAST(CAST(CONCAT('0x', SUBSTR(TO_HEX(MD5(CAST(orders.id AS STRING))), 1, 15)) AS INT64) AS NUMERIC) * 4294967296\n          + CAST(CAST(CONCAT('0x', SUBSTR(TO_HEX(MD5(CAST(orders.id AS STRING))), 16, 8)) AS INT64) AS NUMERIC)) * 0.000000001))\n        -\n        SUM(DISTINCT (CAST(CAST(CONCAT('0x', SUBSTR(TO_HEX(MD5(CAST(orders.id AS STRING))), 1, 15)) AS INT64) AS NUMERIC) * 4294967296\n          + CAST(CAST(CONCAT('0x', SUBSTR(TO_HEX(MD5(CAST(orders.id AS STRING))), 16, 8)) AS INT64) AS NUMERIC)) * 0.000000001)\n      ) / (1/1000*1.0), 2\n    ) AS wsc_l12m_usd\n\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg` AS retail_sku_store_date\n  CROSS JOIN inputs\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_sku` AS retail_dim_sku\n    ON retail_dim_sku.skuid = retail_sku_store_date.skuid\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  LEFT JOIN `wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion` AS dim_currency\n    ON dim_currency.CuyShortName = 'USD'\n  WHERE\n    retail_sku_store_date.brandname = inputs.Store_Brand\n    AND retail_sku_store_date.styname = inputs.Store_Country\n    AND retail_sku_store_date.date >= DATE_SUB(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK), INTERVAL 52 WEEK)\n    AND retail_sku_store_date.date < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK)\n    AND retail_dim_supplier.origsuid = inputs.Supplier_SuID\n    AND retail_sku_store_date.agg_level = 'MONTHLY'\n  GROUP BY 1\n),\n\nfiltered_offending_skus AS (\n  -- CTE 4: Qualification + supplier ranking\n  --   recent remorse  >  benchmark remorse\n  --   AND recent remorse \u2212 L6M remorse  >=  +3.0 pts\n  --   AND >= Min_Return_Count returns in the 6-week window\n  SELECT\n    r.supplier_id,\n    r.supplier_name,\n    r.marketing_category,\n    r.sku,\n    r.sku_display_name,\n    COALESCE(f.wsc_l12m_usd, 0) AS wsc_l12m_usd,\n    r.recent_ordered_units AS ordered_units_6w,\n    r.recent_return_qty AS return_count_6w,\n\n    ROUND(inputs.Benchmark_Buyer_Remorse_Rate * 100, 2) AS benchmark_buyer_remorse_rate_pct,\n    ROUND(r.recent_buyer_remorse_rate_op * 100, 2) AS recent_buyer_remorse_rate_pct,\n    ROUND(COALESCE(l.l6m_buyer_remorse_rate_op, 0) * 100, 2) AS l6m_buyer_remorse_rate_pct,\n    ROUND((r.recent_buyer_remorse_rate_op - COALESCE(l.l6m_buyer_remorse_rate_op, 0)) * 100, 2) AS remorse_rate_l6m_delta_pts,\n\n    ROW_NUMBER() OVER (\n      ORDER BY COALESCE(f.wsc_l12m_usd, 0) DESC, r.recent_return_qty DESC, r.recent_buyer_remorse_rate_op DESC\n    ) AS supplier_sku_rank\n  FROM recent_period_metrics r\n  CROSS JOIN inputs\n  LEFT JOIN l6m_period_metrics l\n    ON r.sku = l.sku\n  LEFT JOIN l12m_financials f\n    ON r.sku = f.sku\n  WHERE\n    r.recent_return_qty >= inputs.Min_Return_Count\n    AND r.recent_buyer_remorse_rate_op > inputs.Benchmark_Buyer_Remorse_Rate\n    AND (r.recent_buyer_remorse_rate_op - COALESCE(l.l6m_buyer_remorse_rate_op, 0)) >= inputs.Spike_Threshold\n),\n\nall_pdp_reviews AS (\n  -- CTE 5: Actionable Customer Reviews (<=3 Stars, Non-Empty Text, Non-Actionable Keywords Excluded)\n  SELECT\n    j.PrSKU AS sku,\n    COUNT(DISTINCT r.PrvID) AS review_count_6w,\n    ROUND(AVG(r.PrvRating), 2) AS avg_star_rating_6w,\n    STRING_AGG(\n      CONCAT(\n        '[', CAST(r.PrvRating AS STRING), '\u2605 - ', FORMAT_DATE('%Y-%m-%d', DATE(r.PrvDateSubmitted)), ']: ',\n        COALESCE(NULLIF(TRIM(REPLACE(r.PrvPrComments, '\\n', ' ')), ''), 'No text comment provided')\n      ),\n      ' || '\n      ORDER BY r.PrvDateSubmitted DESC\n    ) AS customer_reviews_all\n  FROM `wf-gcp-us-ae-sql-data-prod.elt_review.tbl_product_review` r\n  JOIN `wf-gcp-us-ae-bulk-prod.csn_review.tbl_join_product_product_review` j\n    ON r.PrvID = j.PrvID\n  WHERE\n    r.PrvStatus = 6\n    AND r.PrvRating <= 3\n    AND r.PrvPrComments IS NOT NULL\n    AND TRIM(r.PrvPrComments) != ''\n    AND r.PrvDateSubmitted >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 8 WEEK)\n    AND r.PrvDateSubmitted < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK)\n    AND NOT REGEXP_CONTAINS(\n      LOWER(r.PrvPrComments),\n      r'(?i)(' ||\n        r'(ordered|bought|purchased)\\s+(multiple|several|both|two|2|three|3|different)|' ||\n        r'best fit|see which (one|window|curtain|shade|blind)|decid(e|ing) between|keep (only )?(one|the other)|' ||\n        r'\\b(fedex|ups|usps|carrier|driver)\\b|shipping delay|arrived late|lost in transit|' ||\n        r'ordered (by mistake|accidentally|wrong (size|item|color))|changed (my|our) mind|no longer need(ed)?|' ||\n        r'found (it )?(cheaper|elsewhere)|price dropped' ||\n      r')'\n    )\n  GROUP BY 1\n),\n\nall_return_comments AS (\n  -- CTE 6: Actionable Customer Return Comments (Non-Actionable Keywords Excluded)\n  SELECT\n    x.prsku AS sku,\n    COUNT(DISTINCT cf.externalid) AS return_feedback_count_6w,\n    STRING_AGG(\n      CONCAT(\n        '[', FORMAT_DATE('%Y-%m-%d', DATE(cf.feedbackdate)), ']: ',\n        COALESCE(NULLIF(TRIM(REPLACE(cf.feedbackcomment, '\\n', ' ')), ''), 'No text comment provided')\n      ),\n      ' || '\n      ORDER BY cf.feedbackdate DESC\n    ) AS customer_return_comments_all\n  FROM `wf-gcp-us-ae-merch-prod.bi_merch_reporting.tbl_customer_feedback_sku_date_bclg_supplier_part_order` x\n  CROSS JOIN inputs\n  CROSS JOIN UNNEST(x.customerfeedback) AS cf\n  WHERE\n    cf.feedbacktype = 'RETURNS'\n    AND x.brandcatalogname = inputs.Brand_Catalog_Name\n    AND cf.returns_validreturnflag = 1\n    AND DATE(cf.feedbackdate) >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 8 WEEK)\n    AND DATE(cf.feedbackdate) < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK(SUNDAY)), INTERVAL 2 WEEK)\n    AND cf.feedbackcomment IS NOT NULL\n    AND TRIM(cf.feedbackcomment) != ''\n    AND NOT REGEXP_CONTAINS(\n      LOWER(cf.feedbackcomment),\n      r'(?i)(' ||\n        r'(ordered|bought|purchased)\\s+(multiple|several|both|two|2|three|3|different)|' ||\n        r'best fit|see which (one|window|curtain|shade|blind)|decid(e|ing) between|keep (only )?(one|the other)|' ||\n        r'\\b(fedex|ups|usps|carrier|driver)\\b|shipping delay|arrived late|lost in transit|' ||\n        r'ordered (by mistake|accidentally|wrong (size|item|color))|changed (my|our) mind|no longer need(ed)?|' ||\n        r'found (it )?(cheaper|elsewhere)|price dropped' ||\n      r')'\n    )\n  GROUP BY 1\n),\n\ndisplay_sku_mapping AS (\n  -- CTE 7: Maps Internal SKU (PrSKU) to Customer-Facing Display SKU (PrDisplaySKU)\n  SELECT\n    m.PrSKU AS sku,\n    m.PrDisplaySKU AS display_sku,\n    CONCAT(inputs.PDP_URL_Prefix, m.PrDisplaySKU) AS pdp_url\n  FROM `wf-gcp-us-ae-bulk-prod.csn_product.tbl_current_pr_display_sku` m\n  CROSS JOIN inputs\n  WHERE m.bclgid = inputs.Display_SKU_BclgID\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY m.PrSKU ORDER BY m.PrDisplaySKU) = 1\n)\n\n-- Final SELECT: Top N qualifying SKUs for the supplier, prioritized by WSC L12M DESC\nSELECT\n  s.supplier_id,\n  s.supplier_name,\n  s.supplier_sku_rank AS rank_per_supplier,\n  s.marketing_category,\n  s.sku AS internal_sku,\n  d.display_sku,\n  d.pdp_url,\n  s.sku_display_name,\n  s.wsc_l12m_usd,\n  s.ordered_units_6w,\n  s.return_count_6w,\n  s.benchmark_buyer_remorse_rate_pct,\n  s.recent_buyer_remorse_rate_pct,\n  s.l6m_buyer_remorse_rate_pct,\n  s.remorse_rate_l6m_delta_pts,\n  COALESCE(rev.review_count_6w, 0) AS review_count_6w,\n  rev.avg_star_rating_6w,\n  COALESCE(rev.customer_reviews_all, 'No actionable customer reviews (<=3\u2605 with comments) submitted in this 6-week window') AS customer_pdp_reviews,\n  COALESCE(ret.return_feedback_count_6w, 0) AS return_feedback_count_6w,\n  COALESCE(ret.customer_return_comments_all, 'No customer return feedback submitted in this 6-week window') AS customer_return_comments\n\nFROM filtered_offending_skus s\nCROSS JOIN inputs\nLEFT JOIN display_sku_mapping d\n  ON s.sku = d.sku\nLEFT JOIN all_pdp_reviews rev\n  ON s.sku = rev.sku\nLEFT JOIN all_return_comments ret\n  ON s.sku = ret.sku\nWHERE\n  s.supplier_sku_rank <= inputs.Top_N\nORDER BY\n  s.supplier_sku_rank ASC\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "72c87dc1-4e7e-48bd-a5e2-b51d3b4e4677",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this SKU for buyer's remorse.\n\nSupplier ID: {{ $json.supplier_id }}\nSupplier: {{ $json.supplier_name }}\nCategory: {{ $json.marketing_category }}\nInternal SKU: {{ $json.internal_sku }}\nDisplay SKU: {{ $json.display_sku }}\nProduct: {{ $json.sku_display_name }}\nPDP: {{ $json.pdp_url }}\n\nMetrics:\n- Ordered units (6W): {{ $json.ordered_units_6w }}\n- Returns (6W): {{ $json.return_count_6w }}\n- Benchmark buyer's remorse: {{ $json.benchmark_buyer_remorse_rate_pct }}%\n- Recent 6W buyer's remorse: {{ $json.recent_buyer_remorse_rate_pct }}%\n- L6M buyer's remorse: {{ $json.l6m_buyer_remorse_rate_pct }}%\n- Delta vs L6M (pts): {{ $json.remorse_rate_l6m_delta_pts }}\n- Review count (6W): {{ $json.review_count_6w }}\n- Avg star rating (6W): {{ $json.avg_star_rating_6w }}\n- Return feedback count (6W): {{ $json.return_feedback_count_6w }}\n\nCustomer PDP reviews (<=3\u2605):\n{{ $json.customer_pdp_reviews }}\n\nCustomer return comments:\n{{ $json.customer_return_comments }}\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a product-quality specialist helping Wayfair suppliers diagnose buyer's-remorse spikes on their catalog.\n\nFor each SKU, analyze the provided 1\u20133\u2605 PDP reviews and return-survey comments.\nFocus on product-quality and expectation issues the supplier can act on.\nCommon defect themes include: light filtration / opacity mismatch, color mismatch vs listing photos, fit/dimensions (length, width, coverage, panel count), missing product pieces (hardware, tie-backs, liners, second panel), and material/construction quality.\n\nReturn exactly these three fields:\n- pdp_summary: 1\u20132 short bullets on 1\u20133\u2605 perception issues\n- return_summary: 1\u20132 short bullets on return drivers\n- recommended_action: 1\u20132 concrete supplier fixes (listing accuracy, QC, packaging, product design)\n\nBe concise, specific, and actionable. If comments are thin, say so and recommend the highest-leverage listing/product check.\nDo not mention GRS, revenue, or internal Wayfair metrics."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        768,
+        0
+      ],
+      "id": "60a2a01d-36ba-4c04-8cd7-7d6d577b130b",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        224
+      ],
+      "id": "ee364749-e9ab-4295-b1da-3dba31dcdb58",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QQRZCHYxSr0UM9uU",
+          "name": "OpenAI - bhannigan@wayfair.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"pdp_summary\": {\n      \"type\": \"string\",\n      \"description\": \"1-2 bullets on 1-3 star PDP perception issues (light filtration, color mismatch, fit/dimensions, missing pieces).\"\n    },\n    \"return_summary\": {\n      \"type\": \"string\",\n      \"description\": \"1-2 bullets on return drivers from return-survey comments.\"\n    },\n    \"recommended_action\": {\n      \"type\": \"string\",\n      \"description\": \"1-2 concrete supplier fixes.\"\n    }\n  },\n  \"required\": [\n    \"pdp_summary\",\n    \"return_summary\",\n    \"recommended_action\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        992,
+        224
+      ],
+      "id": "6ff0ee0f-6000-4e28-959a-d76d2002ba38",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Join BigQuery rows to LLM structured outputs by index, build one supplier email.\nconst bqRows = $('Execute a SQL query').all().map((item) => item.json);\nconst llmRows = $input.all().map((item) => item.json);\n\nconst fallbackEmail = 'bhannigan@wayfair.com';\nconst TOP_N = 15;\nconst configuredSuid = $('Enter Supplier SuID').first().json.supplier_suid;\n\nfunction escapeHtml(value) {\n  return String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction fmtMoney(value) {\n  const num = Number(value);\n  if (Number.isNaN(num)) return '';\n  return new Intl.NumberFormat('en-US', {\n    style: 'currency',\n    currency: 'USD',\n    maximumFractionDigits: 0,\n  }).format(num);\n}\n\nfunction fmtNum(value) {\n  const num = Number(value);\n  if (Number.isNaN(num)) return '';\n  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(num);\n}\n\nfunction fmtPct(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (Number.isNaN(num)) return String(value);\n  return `${num.toFixed(2)}%`;\n}\n\nfunction topComments(text, limit = 2) {\n  if (!text) return '';\n  const chunks = String(text)\n    .split(' || ')\n    .map((s) => s.trim())\n    .filter(Boolean)\n    .slice(0, limit);\n  return chunks.join('<br/>');\n}\n\nfunction csvEscape(value) {\n  const s = String(value ?? '');\n  if (/[\",\\n]/.test(s)) return `\"${s.replace(/\"/g, '\"\"')}\"`;\n  return s;\n}\n\nif (!bqRows.length) {\n  return [\n    {\n      json: {\n        supplier_id: configuredSuid ?? 'N/A',\n        supplier_name: 'N/A',\n        recipient_email: fallbackEmail,\n        subject: \"[Action Required] Top Offending SKUs by Buyer's Remorse - Supplier\",\n        emailHtml:\n          '<html><body style=\"font-family:Arial,sans-serif;\">' +\n          '<h2>Supplier Buyer\\'s Remorse Alert</h2>' +\n          '<p>No qualifying SKUs for SuID <b>' + escapeHtml(configuredSuid) + '</b> this week (threshold: &gt; benchmark remorse, +3.0 pts vs L6M, \u22655 returns).</p>' +\n          '<p style=\"color:#666;font-size:12px;\">Supplier Buyer\\'s Remorse Automation</p>' +\n          '</body></html>',\n      },\n    },\n  ];\n}\n\nconst enriched = bqRows.map((row, idx) => {\n  const llm = llmRows[idx] || {};\n  const output = llm.output || llm;\n  return {\n    ...row,\n    pdp_summary: output.pdp_summary || llm.pdp_summary || '',\n    return_summary: output.return_summary || llm.return_summary || '',\n    recommended_action: output.recommended_action || llm.recommended_action || '',\n  };\n});\n\nconst capped = enriched\n  .slice()\n  .sort((a, b) => Number(a.rank_per_supplier || 999) - Number(b.rank_per_supplier || 999))\n  .slice(0, TOP_N);\n\nconst supplierName = capped[0].supplier_name || 'Supplier';\nconst supplierId = capped[0].supplier_id || '';\nconst benchmarkPct = capped[0].benchmark_buyer_remorse_rate_pct;\n\nconst headerCells = [\n  'Rank',\n  'SKU',\n  'Product / Category',\n  'WSC L12M',\n  'Orders 6W',\n  'Returns 6W',\n  '6W Remorse',\n  'L6M Remorse',\n  'Delta pts',\n  'Top PDP Reviews',\n  'Top Return Comments',\n  'PDP Summary',\n  'Return Summary',\n  'Recommended Action',\n];\n\nconst tableRowsHtml = capped\n  .map((r) => {\n    const skuLabel = escapeHtml(r.display_sku || r.internal_sku || '');\n    const skuCell = r.pdp_url\n      ? `<a href=\"${escapeHtml(r.pdp_url)}\">${skuLabel}</a>`\n      : skuLabel;\n    const productCategory = `${escapeHtml(r.sku_display_name || '')}<br/><span style=\"color:#555;\">${escapeHtml(r.marketing_category || '')}</span>`;\n    const cells = [\n      escapeHtml(r.rank_per_supplier),\n      skuCell,\n      productCategory,\n      escapeHtml(fmtMoney(r.wsc_l12m_usd)),\n      escapeHtml(fmtNum(r.ordered_units_6w)),\n      escapeHtml(fmtNum(r.return_count_6w)),\n      escapeHtml(fmtPct(r.recent_buyer_remorse_rate_pct)),\n      escapeHtml(fmtPct(r.l6m_buyer_remorse_rate_pct)),\n      escapeHtml(r.remorse_rate_l6m_delta_pts),\n      topComments(r.customer_pdp_reviews),\n      topComments(r.customer_return_comments),\n      escapeHtml(r.pdp_summary).replace(/\\n/g, '<br/>'),\n      escapeHtml(r.return_summary).replace(/\\n/g, '<br/>'),\n      escapeHtml(r.recommended_action).replace(/\\n/g, '<br/>'),\n    ];\n    return `<tr>${cells.map((c) => `<td style=\"vertical-align:top;padding:6px;border:1px solid #ddd;font-size:12px;\">${c}</td>`).join('')}</tr>`;\n  })\n  .join('');\n\nconst csvHeader = [\n  'rank_per_supplier',\n  'supplier_id',\n  'supplier_name',\n  'marketing_category',\n  'internal_sku',\n  'display_sku',\n  'pdp_url',\n  'sku_display_name',\n  'wsc_l12m_usd',\n  'ordered_units_6w',\n  'return_count_6w',\n  'benchmark_buyer_remorse_rate_pct',\n  'recent_buyer_remorse_rate_pct',\n  'l6m_buyer_remorse_rate_pct',\n  'remorse_rate_l6m_delta_pts',\n  'customer_pdp_reviews',\n  'customer_return_comments',\n  'pdp_summary',\n  'return_summary',\n  'recommended_action',\n];\n\nconst csvLines = [csvHeader.join(',')];\nfor (const r of capped) {\n  csvLines.push(\n    [\n      r.rank_per_supplier,\n      r.supplier_id,\n      r.supplier_name,\n      r.marketing_category,\n      r.internal_sku,\n      r.display_sku,\n      r.pdp_url,\n      r.sku_display_name,\n      r.wsc_l12m_usd,\n      r.ordered_units_6w,\n      r.return_count_6w,\n      r.benchmark_buyer_remorse_rate_pct,\n      r.recent_buyer_remorse_rate_pct,\n      r.l6m_buyer_remorse_rate_pct,\n      r.remorse_rate_l6m_delta_pts,\n      r.customer_pdp_reviews,\n      r.customer_return_comments,\n      r.pdp_summary,\n      r.return_summary,\n      r.recommended_action,\n    ]\n      .map(csvEscape)\n      .join(',')\n  );\n}\n\nconst emailHtml = `\n<html>\n<body style=\"font-family:Arial,Helvetica,sans-serif;color:#222;\">\n  <h2 style=\"margin-bottom:4px;\">Supplier Buyer's Remorse Alert</h2>\n  <p style=\"margin-top:0;\">Hi ${escapeHtml(supplierName)} team, below are your top offending SKUs by buyer's remorse (max ${TOP_N}). Benchmark: <b>${escapeHtml(fmtPct(benchmarkPct))}</b>; spike threshold: <b>+3.0 pts vs L6M</b>; min returns: <b>5</b>. SuID: <b>${escapeHtml(supplierId)}</b>.</p>\n  <table cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;width:100%;max-width:1400px;\">\n    <thead>\n      <tr style=\"background:#f3f4f6;\">\n        ${headerCells.map((h) => `<th style=\"text-align:left;padding:6px;border:1px solid #ddd;font-size:12px;\">${h}</th>`).join('')}\n      </tr>\n    </thead>\n    <tbody>\n      ${tableRowsHtml}\n    </tbody>\n  </table>\n  <h3 style=\"margin-top:24px;\">CSV (copy/paste into Sheets)</h3>\n  <pre style=\"white-space:pre-wrap;font-size:11px;background:#fafafa;border:1px solid #eee;padding:12px;\">${escapeHtml(csvLines.join('\\n'))}</pre>\n  <p style=\"color:#666;font-size:12px;margin-top:24px;\">Supplier Buyer's Remorse Alert \u00b7 Supplier-Facing Automation</p>\n</body>\n</html>`.trim();\n\nreturn [\n  {\n    json: {\n      supplier_id: supplierId,\n      supplier_name: supplierName,\n      recipient_email: fallbackEmail,\n      subject: `[Action Required] Top Offending SKUs by Buyer's Remorse - ${supplierName}`,\n      emailHtml,\n      sku_count: capped.length,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "023cf63b-51f7-45bd-9835-f4d97370fa82",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "bhannigan@wayfair.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "58d3f2d3-1010-4a9b-be6c-8fd5304db58f",
+      "name": "Send a message",
+      "webhookId": "89e6eebd-bf92-4b1f-bd63-64f7150b3b7d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZmmontG7EgaANggr",
+          "name": "Gmail account 287"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Enter Supplier SuID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enter Supplier SuID": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "supplier-buyer-remorse-suid-v1",
+  "meta": {
+    "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"
+  },
+  "nodeGroups": [],
+  "id": "supplier-buyer-remorse-suid",
+  "tags": []
+}
