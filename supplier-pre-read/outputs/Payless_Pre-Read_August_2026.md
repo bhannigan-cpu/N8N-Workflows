@@ -18,15 +18,15 @@ Brief Agenda:
 ![August performance dashboard](../assets/performance_dashboard.png)
 
 - **$60.1K in WSC (+14% MoM, +1% YoY)**
-  - MoM trend over indexed the Blinds & Shades Class
-  - YoY trend under indexed Blinds & Shades class
+  - MoM trend `[vs Blinds & Shades Class]`
+  - YoY trend `[vs Blinds & Shades Class]`
 
 - **Traffic:**
   - 30k SKU Visits (+3% MoM, +29% YoY)
-    - YoY trend over indexed Blinds & Shades Class
-    - MoM trend under indexed Blinds & Shades Class
+    - YoY trend `[vs Blinds & Shades Class]`
+    - MoM trend `[vs Blinds & Shades Class]`
   - 1.83% CVR in August
-    - CVR is over indexing class
+    - CVR `[vs Blinds & Shades Class]`
 
 ![August traffic](../assets/traffic.png)
 
@@ -76,7 +76,4 @@ Ben
 | Fill Rate DS | 100.0% | L3M Operations |
 | Ad spend (Aug) | $203 / 0.3% of WSC | Advertising Program Breakdown |
 | Primary class | Blinds and Shades (100% share) | Top 10 Class Breakdown |
-| Class WSC/GRS YoY (YTD) | +6.06% → Payless +1% = under index | [Window US Category Data Deep Dive](https://docs.google.com/document/d/1y_mAVBS_8qKPvZpeUg0PixR43XqF9mtarrY5PyvlTsc) |
-| Class SKU visits YoY (YTD) | +14.87% → Payless +29% = over index | Window Deep Dive |
-| Class SKU CVR (Jul LCM in deep dive) | 1.26% (Aug ’25: 1.55%) → Payless 1.83% = over index | Monthly training performance Blinds & Shades |
-| Class MoM context (Jul) | GRS ~+0.7% MoM, SKU visits ~+15% MoM → Payless Aug +14% WSC / +3% visits used for MoM over/under | Deep dive monthly table ends Jul 2026; Aug class MoM not published there yet |
+| Class over/under indexing | Placeholder — provide preferred class MoM/YoY source or screenshot | Do not use Window US Category Data Deep Dive |

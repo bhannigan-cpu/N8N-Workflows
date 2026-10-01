@@ -25,7 +25,7 @@ Monthly Supplier Report dashboard: https://partners.wayfair.com/d/hxVugArzfrkD6Y
 
 | Section | What is needed | Typical source |
 |---|---|---|
-| Over / under indexing vs class | WSC MoM, WSC YoY, Traffic MoM, Traffic YoY, CVR vs primary class (Payless = **Blinds & Shades**) | Prefer full-month class MoM/YoY from Traffic Hub / class scorecard. Fallback: [Window US Category Data Deep Dive](https://docs.google.com/document/d/1y_mAVBS_8qKPvZpeUg0PixR43XqF9mtarrY5PyvlTsc) monthly Blinds & Shades training table + YTD class deltas |
+| Over / under indexing vs class | WSC MoM, WSC YoY, Traffic MoM, Traffic YoY, CVR vs primary class (Payless = **Blinds & Shades**) | Only use the class comparison source the user provides (screenshot / dashboard export). Do **not** use the Window US Category Data Deep Dive. |
 | Branded Competitiveness | % Uncompetitive + stacked competitiveness chart | Branded competitiveness / pricing dashboard |
 | Cost Stack / pricing deep dive | Link + 1-sentence Key Point | Existing Cost Stack spreadsheet / prior-month talking point |
 | Promotions / Key Asks | Upcoming events + asks | Calendar + relationship context |
