@@ -21,11 +21,34 @@ Monthly Supplier Report dashboard: https://partners.wayfair.com/d/hxVugArzfrkD6Y
 | Dropship | Supplier Fill Rate DS (or induction fill rate if used) | L3M Operations Metrics |
 | Top class context | Class name, share, MoM, YoY | Top 10 Class Breakdown |
 
-## Usually need a second source (not in Monthly Supplier Report)
+## Class / category comparison input (required for indexing)
+
+Each month, the user will also drop in a **Monthly Supplier Report for the class/category** (e.g. Blinds & Shades).
+
+**Hard rules for comps:**
+- Compare **only MoM % and YoY %** (and CVR level / bps change when writing “over indexing class”).
+- **Never** use class/category dollar values (WSC/GRS/$) or visit counts in the Pre-Read comparison language.
+- Supplier dollars/visits stay in the Pre-Read; class/category contributes **rates only**.
+
+| Supplier metric | Class/category field to pull | Pre-Read language |
+|---|---|---|
+| WSC MoM % | Class LCM WSC MoM % | over / under / in line with Blinds & Shades Class |
+| WSC YoY % | Class LCM WSC YoY % | over / under / in line with Blinds & Shades Class |
+| SKU Visits MoM % | Class SKU Visit Count MoM % | over / under / in line |
+| SKU Visits YoY % | Class SKU Visit Count YoY % | over / under / in line |
+| CVR | Class SKU CVR (and MoM/YoY bps if shown) | CVR is over / under indexing class |
+
+Indexing rule of thumb:
+- Supplier % **better than** class % → over indexed  
+- Supplier % **worse than** class % → under indexed  
+- Within ~1–2 pts (or as the user’s prior voice treats “in line”) → in line with class  
+
+Do **not** use Window US Category Data Deep Dive or other secondary docs when a class/category Monthly Supplier Report was provided.
+
+## Other optional second sources
 
 | Section | What is needed | Typical source |
 |---|---|---|
-| Over / under indexing vs class | WSC MoM, WSC YoY, Traffic MoM, Traffic YoY, CVR vs primary class (Payless = **Blinds & Shades**) | Only use the class comparison source the user provides (screenshot / dashboard export). Do **not** use the Window US Category Data Deep Dive. |
 | Branded Competitiveness | % Uncompetitive + stacked competitiveness chart | Branded competitiveness / pricing dashboard |
 | Cost Stack / pricing deep dive | Link + 1-sentence Key Point | Existing Cost Stack spreadsheet / prior-month talking point |
 | Promotions / Key Asks | Upcoming events + asks | Calendar + relationship context |

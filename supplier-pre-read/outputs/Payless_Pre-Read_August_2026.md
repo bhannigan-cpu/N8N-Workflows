@@ -76,4 +76,4 @@ Ben
 | Fill Rate DS | 100.0% | L3M Operations |
 | Ad spend (Aug) | $203 / 0.3% of WSC | Advertising Program Breakdown |
 | Primary class | Blinds and Shades (100% share) | Top 10 Class Breakdown |
-| Class over/under indexing | Placeholder — provide preferred class MoM/YoY source or screenshot | Do not use Window US Category Data Deep Dive |
+| Class over/under indexing | Placeholder until class/category Monthly Supplier Report is uploaded | Use only class MoM%/YoY% (never class $ or visit counts) |

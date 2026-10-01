@@ -6,17 +6,23 @@ Repeatable process for turning a **Monthly Supplier Report** PDF into a supplier
 
 In this Cursor conversation (or a new one with this repo/context):
 
-1. Upload the new **Monthly Supplier Report** PDF (Looker export).
-2. Say which supplier / team (e.g. Payless Decor Team) and the meeting date if known.
-3. Optionally attach anything **not** in the Monthly Supplier Report:
-   - class over/under indexing notes or screenshot
+1. Upload the supplier **Monthly Supplier Report** PDF (Looker export).
+2. Upload the **class/category Monthly Supplier Report** PDF (e.g. Blinds & Shades) for comps.
+3. Say which supplier / team (e.g. Payless Decor Team) and the meeting date if known.
+4. Optionally attach anything else still missing:
    - branded competitiveness chart / % uncompetitive
    - promotions / key asks / assortment notes
-4. I will:
-   - extract LCM metrics, traffic, CVR, ads, B2B, availability, fill rate
-   - crop the dashboard screenshots
+5. I will:
+   - extract LCM metrics, traffic, CVR, ads, B2B, availability, fill rate from the **supplier** report
+   - crop supplier dashboard screenshots
+   - compute over/under indexing vs class using **only MoM % and YoY %** from the class/category report
    - draft a Pre-Read matching `templates/SECTION_MAP.md`
-   - leave yellow/TODO markers only where a second source is still needed
+
+### Class/category comparison rules
+
+- Use the class/category MSR for **percentage comps only** (MoM %, YoY %, CVR indexing).
+- **Never** put class/category dollar values or visit counts into the Pre-Read comparison text.
+- Supplier absolute $ / visit figures stay; class contributes rates only.
 
 Paste the finished draft into your living Google Doc:  
 https://docs.google.com/document/d/11VbsFgVPNox_8o5b-_EJ0z3QFTYIMgSkdrzn3_yf0X4
@@ -44,13 +50,9 @@ https://docs.google.com/document/d/11VbsFgVPNox_8o5b-_EJ0z3QFTYIMgSkdrzn3_yf0X4
 
 ## What you still need to provide (or confirm)
 
-These appear in your historical Pre-Reads but are **not** in the Monthly Supplier Report PDF alone:
-
-1. **Over / under indexing vs Blinds & Shades Class** for WSC, Traffic, and CVR  
-2. **Branded Competitiveness** (% uncompetitive + chart)  
+1. **Class/category Monthly Supplier Report** each month (for MoM/YoY % comps only)  
+2. **Branded Competitiveness** (% uncompetitive + chart) when you want that section filled  
 3. Any month-specific **Key Asks** (promotions, assortment, tickets)
-
-If you tell me which dashboard/view you pull class indexing from, I can treat that as a standard second attachment each month.
 
 ## Related automation
 
