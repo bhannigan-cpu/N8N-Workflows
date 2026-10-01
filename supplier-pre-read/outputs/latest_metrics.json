@@ -1,0 +1,20 @@
+{
+  "source_pdf": "/home/ubuntu/.cursor/projects/workspace/uploads/Monthly_Supplier_Report_2026-10-01T1049_afdb.pdf",
+  "metrics": {
+    "lcm_month": "August 2026",
+    "suid": "12688",
+    "supplier_name": "Payless Decor LLC DBATop Blind",
+    "lcm_sales": "60,080",
+    "b2b_share": "18%",
+    "availability": "91.1%",
+    "fill_rate_ds": "100.0%"
+  },
+  "assets": [
+    "/workspace/supplier-pre-read/assets/performance_dashboard.png",
+    "/workspace/supplier-pre-read/assets/traffic.png",
+    "/workspace/supplier-pre-read/assets/advertising.png",
+    "/workspace/supplier-pre-read/assets/availability.png",
+    "/workspace/supplier-pre-read/assets/class_breakdown.png",
+    "/workspace/supplier-pre-read/assets/b2b_ops.png"
+  ]
+}
