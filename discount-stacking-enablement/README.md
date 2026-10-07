@@ -1,21 +1,26 @@
 # B2B Discount Stacking — Team Enablement Deck
 
-5-slide internal deck to equip SRMs for supplier conversations ahead of the **November 9, 2026** stacking go-live.
+Internal deck to equip SRMs for supplier conversations ahead of the **November 9, 2026** stacking go-live.
 
-## File
+## Files
 
-- [`B2B_Discount_Stacking_Team_Enablement.pptx`](./B2B_Discount_Stacking_Team_Enablement.pptx)
+| File | What it is |
+|------|------------|
+| [`B2B_Discount_Stacking_Team_Enablement.pptx`](./B2B_Discount_Stacking_Team_Enablement.pptx) | 6-slide team presentation |
+| [`Discount_Stacking_SRM_Field_Playbook.pdf`](./Discount_Stacking_SRM_Field_Playbook.pdf) | SRM field playbook (timeline, ask ladder, talk tracks, FAQs) |
+| [`Discount_Stacking_CM_Training_Deck.pdf`](./Discount_Stacking_CM_Training_Deck.pdf) | Full CM training deck (mechanics & examples) |
 
 ## Slide outline
 
-1. **What's changing** — stacking goes live Nov 9; Everyday B2B + item-level deals apply on top of live B2C promo costs
-2. **Timeline & key dates** — Sep 28 Growth@ → Early Oct Partner Home visibility → Oct 13 webinar → Nov 6 confirmation → Nov 9 go-live
-3. **Ask ladder** — Keep [X]% → Drop to realized [Y]% → Drop to 0% · **Never change promo/B2C pricing to fund B2B**
-4. **Who to call first & mechanics** — outreach tiers + five rules cold
-5. **Conversation playbook** — closing fork + objection handling
+1. **What's changing**
+2. **Timeline & key dates**
+3. **Ask ladder** — Keep [X]% → Drop to realized [Y]% → Drop to 0% · Never change promo/B2C pricing
+4. **Who to call first & mechanics**
+5. **Conversation playbook**
+6. **Resources** — the two PDFs above, Slack `#temp-stacking-questions-26`, NA/WGS office hours, webinar
 
-## Source materials
+## Support (also on slide 6)
 
-- [Discount Stacking — SRM Field Playbook](https://docs.google.com/document/d/1KVpgAtiYRtFblgTSlf2aWzDRkGNjG1XEE49JU455nOQ)
-- [B2B Discount Stacking Go-Live (Nov 9)](https://docs.google.com/document/d/1ZDrQo96VX6UVDVIU1rxA1b51CmKfQPvS8X6qP-Sw1-I)
-- [Discount Stacking CM Training Deck](https://docs.google.com/presentation/d/1_u_MSPnieF9bf2irfwKNNAwz1adtaLEcoY4feuCEZc0)
+- **Slack:** `#temp-stacking-questions-26`
+- **Office hours:** NA Tue/Thu 3:30 PM ET · WGS Wed 4:00–4:30 PM ET
+- **Supplier webinar:** Tue, Oct 13 · 11:00 AM ET
