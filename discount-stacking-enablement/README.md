@@ -8,6 +8,7 @@ Internal deck to equip SRMs for supplier conversations ahead of the **November 9
 |------|------------|
 | [`B2B_Discount_Stacking_Team_Enablement.pptx`](./B2B_Discount_Stacking_Team_Enablement.pptx) | 6-slide internal team presentation |
 | [`Discount_Stacking_Supplier_Facing.pptx`](./Discount_Stacking_Supplier_Facing.pptx) | **1-slide supplier-facing overview** (no internal jargon) |
+| [`Supplier_Email_Template_Oct13_Training.md`](./Supplier_Email_Template_Oct13_Training.md) | Supplier email template — change + Oct 13 training CTA |
 | [`Discount_Stacking_SRM_Field_Playbook.pdf`](./Discount_Stacking_SRM_Field_Playbook.pdf) | SRM field playbook (timeline, ask ladder, talk tracks, FAQs) |
 | [`Discount_Stacking_CM_Training_Deck.pdf`](./Discount_Stacking_CM_Training_Deck.pdf) | Full CM training deck (mechanics & examples) |
 
