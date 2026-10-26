@@ -4,6 +4,8 @@ Competitive and Wayfair Superbrowse captures for Soft Home / Bedding (Winter–F
 
 **By-module report (ICP, Superbrowse, PDP, nav, search…):** [MODULE-REPORT.md](./MODULE-REPORT.md)
 
+**CViz-style recs sheet (Current State → Competitor → PDP → Rec → Rationale):** [SMART-BEDDING-CVIZ-RECS.md](./SMART-BEDDING-CVIZ-RECS.md) · [CSV](./SMART-BEDDING-CVIZ-RECS.csv)
+
 Canvas: [Smart Bedding Analysis](https://cursor.com/canvas/store-b14010e6-3438-447e-8cc0-63d5b257e78a/e32b028a-0642-4611-8829-6064707dc787)
 
 ## Bottom line
