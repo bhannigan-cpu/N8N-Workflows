@@ -2,7 +2,9 @@
 
 Competitive and Wayfair Superbrowse captures for Soft Home / Bedding (Winter–Fall 2026).
 
-Canvas report: [Smart Bedding Analysis](https://cursor.com/canvas/store-b14010e6-3438-447e-8cc0-63d5b257e78a/e32b028a-0642-4611-8829-6064707dc787)
+**By-module report (ICP, Superbrowse, PDP, nav, search…):** [MODULE-REPORT.md](./MODULE-REPORT.md)
+
+Canvas: [Smart Bedding Analysis](https://cursor.com/canvas/store-b14010e6-3438-447e-8cc0-63d5b257e78a/e32b028a-0642-4611-8829-6064707dc787)
 
 ## Bottom line
 
@@ -18,6 +20,12 @@ Discovery is underbuilt and seasonality is broken. Cooling still sits in top-nav
 ---
 
 ## Wayfair
+
+### ICP — Stay warm on cool nights
+
+Winter merchandising module (texture · heated blankets · extra-warm duvet fills). Not captured in the original scrape; supplied for the by-module report.
+
+![Stay warm on cool nights ICP](screenshots/wf-icp-stay-warm-cool-nights.jpg)
 
 ### Bedding Sets Superbrowse
 
