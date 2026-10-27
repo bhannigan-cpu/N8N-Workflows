@@ -1,0 +1,220 @@
+{
+  "name": "Ad Hoc Supplier Pre-Read",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "none",
+        "formTitle": "Ad Hoc Supplier Pre-Read",
+        "formDescription": "Enter a supplier ID (SuID) to generate an ad hoc supplier pre-read in your meeting-note format. Optional notes let you tailor the draft before sending.",
+        "formFields": {
+          "values": [
+            {
+              "fieldName": "supplier_id",
+              "fieldLabel": "Supplier ID (SuID)",
+              "fieldType": "text",
+              "placeholder": "381",
+              "requiredField": true
+            },
+            {
+              "fieldName": "recipient_email",
+              "fieldLabel": "Send pre-read to",
+              "fieldType": "email",
+              "placeholder": "name@example.com",
+              "defaultValue": "bhannigan@wayfair.com",
+              "requiredField": true
+            },
+            {
+              "fieldName": "team_name",
+              "fieldLabel": "Greeting / team name (optional)",
+              "fieldType": "text",
+              "placeholder": "Home Weavers team",
+              "requiredField": false
+            },
+            {
+              "fieldName": "portfolio_owner",
+              "fieldLabel": "Portfolio owner filter",
+              "fieldType": "text",
+              "defaultValue": "Hannigan, Benjamin",
+              "requiredField": true
+            },
+            {
+              "fieldName": "unfindables_notes",
+              "fieldLabel": "Unfindables notes (optional)",
+              "fieldType": "textarea",
+              "placeholder": "I submitted the containment form...",
+              "requiredField": false
+            },
+            {
+              "fieldName": "ad_hoc_notes",
+              "fieldLabel": "Ad hoc notes (optional)",
+              "fieldType": "textarea",
+              "placeholder": "SEND NEW SKU PLAYBOOK\nWILL INCREASE BUDGET FOR ADS",
+              "requiredField": false
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "buttonLabel": "Generate ad hoc pre-read",
+          "path": "ad-hoc-supplier-pre-read",
+          "ignoreBots": true,
+          "appendAttribution": false,
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "text",
+              "formSubmittedText": "Your ad hoc supplier pre-read is being generated and will be emailed shortly."
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "682c63ba-841d-4894-ac32-aa79b28580fe",
+      "name": "Form Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\nconst trim = (value) => String(value ?? '').trim();\nconst supplierId = trim(input.supplier_id).replace(/[^0-9]/g, '');\nif (!supplierId) {\n  throw new Error('Enter a valid numeric supplier_id / SuID.');\n}\n\nconst recipientEmail = trim(input.recipient_email) || 'bhannigan@wayfair.com';\nconst teamName = trim(input.team_name);\nconst portfolioOwner = trim(input.portfolio_owner) || 'Hannigan, Benjamin';\nconst unfindablesNotes = trim(input.unfindables_notes);\nconst adHocNotes = trim(input.ad_hoc_notes);\nconst dashboardUrl = 'https://partners.wayfair.com/d/hxVugArzfrkD6YuI94A2dq/monthly-supplier-report';\n\nconst escapeSql = (value) => value.replace(/'/g, \"''\");\nconst portfolioOwnerSql = escapeSql(portfolioOwner);\nconst supplierIdSql = escapeSql(supplierId);\n\nconst sqlQuery = `WITH params AS (\n  SELECT\n    DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) AS current_month_start,\n    DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 2 MONTH), MONTH) AS prior_month_start,\n    DATE_TRUNC(DATE_SUB(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), INTERVAL 1 YEAR), MONTH) AS prior_year_month_start,\n    '${portfolioOwnerSql}' AS portfolio_owner,\n    '${supplierIdSql}' AS supplier_id\n),\nselected_months AS (\n  SELECT current_month_start AS month_start FROM params\n  UNION ALL SELECT prior_month_start FROM params\n  UNION ALL SELECT prior_year_month_start FROM params\n),\nrequested_supplier AS (\n  SELECT\n    params.supplier_id AS supplier_id,\n    ANY_VALUE(dim.origsuname) AS supplier_name,\n    COUNT(dim.supplierkey) > 0 AS supplier_exists\n  FROM params\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS dim\n    ON dim.srmcontactname = params.portfolio_owner\n   AND CAST(dim.origsuid AS STRING) = params.supplier_id\n  GROUP BY params.supplier_id\n),\ncurrency AS (\n  SELECT\n    ANY_VALUE(ExchangeRate) AS exchange_rate,\n    ANY_VALUE(currency_symbol) AS currency_symbol\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion\\`\n  WHERE CuyShortName = 'USD'\n),\nwsc_order_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, MONTH) AS month_start,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    orders.id AS order_id,\n    COALESCE(orders.productcostnorebates, 0) * COALESCE(currency.exchange_rate, 1) AS wsc\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname IN ('AllModern', 'Birch Lane', 'Joss & Main', 'Wayfair', 'Perigold')\n    AND retail_sku_store_date.styname IN ('United States', 'Canada', 'Germany', 'Ireland', 'UK')\n    AND retail_sku_store_date.agg_level = 'DAILY'\n    AND retail_dim_supplier.srmcontactname = params.portfolio_owner\n    AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id\n    AND DATE_TRUNC(retail_sku_store_date.date, MONTH) IN (\n      SELECT month_start FROM selected_months\n    )\n    AND orders.id IS NOT NULL\n),\nwsc_deduped AS (\n  SELECT\n    month_start,\n    supplier_id,\n    supplier_name,\n    order_id,\n    ANY_VALUE(wsc) AS wsc\n  FROM wsc_order_rows\n  GROUP BY month_start, supplier_id, supplier_name, order_id\n),\nmonthly_wsc AS (\n  SELECT\n    month_start,\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    ANY_VALUE(currency.currency_symbol) AS currency_symbol,\n    SUM(wsc) AS monthly_wsc\n  FROM wsc_deduped\n  CROSS JOIN currency\n  GROUP BY month_start, supplier_id\n),\nwsc_summary AS (\n  SELECT\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    ANY_VALUE(currency_symbol) AS currency_symbol,\n    SUM(IF(month_start = params.current_month_start, monthly_wsc, 0)) AS current_wsc,\n    SUM(IF(month_start = params.prior_month_start, monthly_wsc, 0)) AS prior_month_wsc,\n    SUM(IF(month_start = params.prior_year_month_start, monthly_wsc, 0)) AS prior_year_wsc\n  FROM monthly_wsc\n  CROSS JOIN params\n  GROUP BY supplier_id\n),\ntraffic_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, MONTH) AS month_start,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    traffic_source.id AS traffic_source_id,\n    COALESCE(traffic_source.skuvisits, 0) AS visits,\n    COALESCE(traffic_source.skuconverted, 0) AS converted\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.traffic_source) AS traffic_source\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname IN ('AllModern', 'Birch Lane', 'Joss & Main', 'Wayfair', 'Perigold')\n    AND retail_sku_store_date.styname IN ('United States', 'Canada', 'Germany', 'Ireland', 'UK')\n    AND retail_sku_store_date.agg_level = 'DAILY'\n    AND retail_dim_supplier.srmcontactname = params.portfolio_owner\n    AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id\n    AND DATE_TRUNC(retail_sku_store_date.date, MONTH) IN (\n      SELECT month_start FROM selected_months\n    )\n    AND traffic_source.id IS NOT NULL\n),\ntraffic_deduped AS (\n  SELECT\n    month_start,\n    supplier_id,\n    supplier_name,\n    traffic_source_id,\n    ANY_VALUE(visits) AS visits,\n    ANY_VALUE(converted) AS converted\n  FROM traffic_rows\n  GROUP BY month_start, supplier_id, supplier_name, traffic_source_id\n),\nmonthly_traffic AS (\n  SELECT\n    month_start,\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    SUM(visits) AS monthly_visits,\n    SUM(converted) AS monthly_converted,\n    SAFE_DIVIDE(SUM(converted), SUM(visits)) AS monthly_cvr\n  FROM traffic_deduped\n  GROUP BY month_start, supplier_id\n),\ntraffic_summary AS (\n  SELECT\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    SUM(IF(month_start = params.current_month_start, monthly_visits, 0)) AS current_visits,\n    SUM(IF(month_start = params.prior_month_start, monthly_visits, 0)) AS prior_month_visits,\n    SUM(IF(month_start = params.prior_year_month_start, monthly_visits, 0)) AS prior_year_visits,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.current_month_start, monthly_converted, 0)),\n      SUM(IF(month_start = params.current_month_start, monthly_visits, 0))\n    ) AS current_cvr,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.prior_month_start, monthly_converted, 0)),\n      SUM(IF(month_start = params.prior_month_start, monthly_visits, 0))\n    ) AS prior_month_cvr,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.prior_year_month_start, monthly_converted, 0)),\n      SUM(IF(month_start = params.prior_year_month_start, monthly_visits, 0))\n    ) AS prior_year_cvr\n  FROM monthly_traffic\n  CROSS JOIN params\n  GROUP BY supplier_id\n),\navailability_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, MONTH) AS month_start,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    retail_ops.id AS ops_id,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_num, 0)\n      ELSE 0\n    END AS availability_num,\n    CASE\n      WHEN UPPER(retail_ops_dims.program) NOT IN ('CASTLEGATE', 'DROPSHIP')\n      THEN COALESCE(availability_global_denom, 0)\n      ELSE 0\n    END AS availability_denom\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.opdimensions) AS retail_ops_dims\n  LEFT JOIN UNNEST(supplier_part_struct.ops) AS retail_ops\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname IN ('AllModern', 'Birch Lane', 'Joss & Main', 'Wayfair', 'Perigold')\n    AND retail_sku_store_date.styname IN ('United States', 'Canada', 'Germany', 'Ireland', 'UK')\n    AND retail_sku_store_date.agg_level = 'DAILY'\n    AND retail_dim_supplier.srmcontactname = params.portfolio_owner\n    AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id\n    AND DATE_TRUNC(retail_sku_store_date.date, MONTH) IN (\n      SELECT month_start FROM selected_months\n    )\n    AND retail_ops.id IS NOT NULL\n),\navailability_deduped AS (\n  SELECT\n    month_start,\n    supplier_id,\n    supplier_name,\n    ops_id,\n    MAX(availability_num) AS availability_num,\n    MAX(availability_denom) AS availability_denom\n  FROM availability_rows\n  GROUP BY month_start, supplier_id, supplier_name, ops_id\n),\nmonthly_availability AS (\n  SELECT\n    month_start,\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    SUM(availability_num) AS availability_num,\n    SUM(availability_denom) AS availability_denom,\n    SAFE_DIVIDE(SUM(availability_num), SUM(availability_denom)) AS availability_rate\n  FROM availability_deduped\n  GROUP BY month_start, supplier_id\n),\navailability_summary AS (\n  SELECT\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.current_month_start, availability_num, 0)),\n      SUM(IF(month_start = params.current_month_start, availability_denom, 0))\n    ) AS current_availability,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.prior_month_start, availability_num, 0)),\n      SUM(IF(month_start = params.prior_month_start, availability_denom, 0))\n    ) AS prior_month_availability,\n    SAFE_DIVIDE(\n      SUM(IF(month_start = params.prior_year_month_start, availability_num, 0)),\n      SUM(IF(month_start = params.prior_year_month_start, availability_denom, 0))\n    ) AS prior_year_availability\n  FROM monthly_availability\n  CROSS JOIN params\n  GROUP BY supplier_id\n),\nmrpi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, MONTH) AS month_start,\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    supplier_struct.id AS supplier_struct_id,\n    COALESCE(supplier_struct.mrpi28d_numerator, 0) AS mrpi_num,\n    COALESCE(supplier_struct.mrpi28d_denominator, 0) AS mrpi_denom\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname IN ('AllModern', 'Birch Lane', 'Joss & Main', 'Wayfair', 'Perigold')\n    AND retail_sku_store_date.styname IN ('United States', 'Canada', 'Germany', 'Ireland', 'UK')\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND retail_dim_supplier.srmcontactname = params.portfolio_owner\n    AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id\n    AND DATE_TRUNC(retail_sku_store_date.date, MONTH) IN (\n      SELECT month_start FROM selected_months\n    )\n    AND supplier_struct.id IS NOT NULL\n),\nmrpi_deduped AS (\n  SELECT\n    month_start,\n    week_start,\n    supplier_id,\n    supplier_name,\n    supplier_struct_id,\n    ANY_VALUE(mrpi_num) AS mrpi_num,\n    ANY_VALUE(mrpi_denom) AS mrpi_denom\n  FROM mrpi_rows\n  GROUP BY month_start, week_start, supplier_id, supplier_name, supplier_struct_id\n),\nweekly_mrpi AS (\n  SELECT\n    month_start,\n    week_start,\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    SAFE_DIVIDE(SUM(mrpi_num), SUM(mrpi_denom)) AS mrpi_rate\n  FROM mrpi_deduped\n  GROUP BY month_start, week_start, supplier_id\n),\nmonthly_mrpi_snapshot AS (\n  SELECT month_start, supplier_id, supplier_name, mrpi_rate\n  FROM (\n    SELECT\n      month_start,\n      supplier_id,\n      supplier_name,\n      mrpi_rate,\n      ROW_NUMBER() OVER (PARTITION BY month_start, supplier_id ORDER BY week_start DESC) AS row_num\n    FROM weekly_mrpi\n  )\n  WHERE row_num = 1\n),\nmrpi_summary AS (\n  SELECT\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    MAX(IF(month_start = params.current_month_start, mrpi_rate, NULL)) AS current_mrpi,\n    MAX(IF(month_start = params.prior_month_start, mrpi_rate, NULL)) AS prior_month_mrpi,\n    MAX(IF(month_start = params.prior_year_month_start, mrpi_rate, NULL)) AS prior_year_mrpi\n  FROM monthly_mrpi_snapshot\n  CROSS JOIN params\n  GROUP BY supplier_id\n),\nwsi_rows AS (\n  SELECT\n    DATE_TRUNC(retail_sku_store_date.date, MONTH) AS month_start,\n    DATE_TRUNC(retail_sku_store_date.date, WEEK(SUNDAY)) AS week_start,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    retail_dim_supplier.origsuname AS supplier_name,\n    CAST(wpi_wsi.indexdate AS DATE) AS index_date,\n    wpi_wsi.id AS wpi_wsi_id,\n    COALESCE(wpi_wsi.WSI28D_Numerator, 0) AS wsi_num,\n    COALESCE(wpi_wsi.WSI28D_Denominator, 0) AS wsi_denom\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.wpi_wsi) AS wpi_wsi\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname IN ('AllModern', 'Birch Lane', 'Joss & Main', 'Wayfair', 'Perigold')\n    AND retail_sku_store_date.styname IN ('United States', 'Canada', 'Germany', 'Ireland', 'UK')\n    AND retail_sku_store_date.agg_level = 'WEEKLY'\n    AND retail_dim_supplier.srmcontactname = params.portfolio_owner\n    AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id\n    AND DATE_TRUNC(retail_sku_store_date.date, MONTH) IN (\n      SELECT month_start FROM selected_months\n    )\n    AND wpi_wsi.id IS NOT NULL\n),\nwsi_deduped AS (\n  SELECT\n    month_start,\n    week_start,\n    supplier_id,\n    supplier_name,\n    index_date,\n    wpi_wsi_id,\n    ANY_VALUE(wsi_num) AS wsi_num,\n    ANY_VALUE(wsi_denom) AS wsi_denom\n  FROM wsi_rows\n  GROUP BY month_start, week_start, supplier_id, supplier_name, index_date, wpi_wsi_id\n),\nweekly_wsi AS (\n  SELECT\n    month_start,\n    week_start,\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    ANY_VALUE(index_date) AS index_date,\n    SAFE_DIVIDE(SUM(wsi_num), SUM(wsi_denom)) AS wsi_rate\n  FROM wsi_deduped\n  GROUP BY month_start, week_start, supplier_id\n),\nmonthly_wsi_snapshot AS (\n  SELECT month_start, supplier_id, supplier_name, wsi_rate\n  FROM (\n    SELECT\n      month_start,\n      supplier_id,\n      supplier_name,\n      wsi_rate,\n      ROW_NUMBER() OVER (\n        PARTITION BY month_start, supplier_id\n        ORDER BY week_start DESC, index_date DESC\n      ) AS row_num\n    FROM weekly_wsi\n  )\n  WHERE row_num = 1\n),\nwsi_summary AS (\n  SELECT\n    supplier_id,\n    ANY_VALUE(supplier_name) AS supplier_name,\n    MAX(IF(month_start = params.current_month_start, wsi_rate, NULL)) AS current_wsi,\n    MAX(IF(month_start = params.prior_month_start, wsi_rate, NULL)) AS prior_month_wsi,\n    MAX(IF(month_start = params.prior_year_month_start, wsi_rate, NULL)) AS prior_year_wsi\n  FROM monthly_wsi_snapshot\n  CROSS JOIN params\n  GROUP BY supplier_id\n)\nSELECT\n  requested_supplier.supplier_id,\n  COALESCE(\n    requested_supplier.supplier_name,\n    wsc_summary.supplier_name,\n    traffic_summary.supplier_name,\n    availability_summary.supplier_name,\n    mrpi_summary.supplier_name,\n    wsi_summary.supplier_name\n  ) AS supplier_name,\n  requested_supplier.supplier_exists,\n  params.portfolio_owner,\n  params.current_month_start,\n  params.prior_month_start,\n  params.prior_year_month_start,\n  FORMAT_DATE('%B %Y', params.current_month_start) AS current_month_label,\n  FORMAT_DATE('%B %Y', params.prior_month_start) AS prior_month_label,\n  FORMAT_DATE('%B %Y', params.prior_year_month_start) AS prior_year_month_label,\n  wsc_summary.currency_symbol,\n  wsc_summary.current_wsc,\n  wsc_summary.prior_month_wsc,\n  wsc_summary.prior_year_wsc,\n  wsc_summary.current_wsc - wsc_summary.prior_month_wsc AS mom_wsc_change,\n  SAFE_DIVIDE(wsc_summary.current_wsc - wsc_summary.prior_month_wsc, wsc_summary.prior_month_wsc) AS mom_wsc_pct,\n  wsc_summary.current_wsc - wsc_summary.prior_year_wsc AS yoy_wsc_change,\n  SAFE_DIVIDE(wsc_summary.current_wsc - wsc_summary.prior_year_wsc, wsc_summary.prior_year_wsc) AS yoy_wsc_pct,\n  traffic_summary.current_visits,\n  traffic_summary.prior_month_visits,\n  traffic_summary.prior_year_visits,\n  traffic_summary.current_cvr,\n  traffic_summary.prior_month_cvr,\n  traffic_summary.prior_year_cvr,\n  traffic_summary.current_visits - traffic_summary.prior_month_visits AS mom_visits_change,\n  SAFE_DIVIDE(traffic_summary.current_visits - traffic_summary.prior_month_visits, traffic_summary.prior_month_visits) AS mom_visits_pct,\n  traffic_summary.current_visits - traffic_summary.prior_year_visits AS yoy_visits_change,\n  SAFE_DIVIDE(traffic_summary.current_visits - traffic_summary.prior_year_visits, traffic_summary.prior_year_visits) AS yoy_visits_pct,\n  traffic_summary.current_cvr - traffic_summary.prior_month_cvr AS mom_cvr_change,\n  traffic_summary.current_cvr - traffic_summary.prior_year_cvr AS yoy_cvr_change,\n  availability_summary.current_availability,\n  availability_summary.prior_month_availability,\n  availability_summary.prior_year_availability,\n  availability_summary.current_availability - availability_summary.prior_month_availability AS mom_availability_change,\n  availability_summary.current_availability - availability_summary.prior_year_availability AS yoy_availability_change,\n  mrpi_summary.current_mrpi,\n  mrpi_summary.prior_month_mrpi,\n  mrpi_summary.prior_year_mrpi,\n  mrpi_summary.current_mrpi - mrpi_summary.prior_month_mrpi AS mom_mrpi_change,\n  mrpi_summary.current_mrpi - mrpi_summary.prior_year_mrpi AS yoy_mrpi_change,\n  wsi_summary.current_wsi,\n  wsi_summary.prior_month_wsi,\n  wsi_summary.prior_year_wsi,\n  wsi_summary.current_wsi - wsi_summary.prior_month_wsi AS mom_wsi_change,\n  wsi_summary.current_wsi - wsi_summary.prior_year_wsi AS yoy_wsi_change\nFROM params\nCROSS JOIN requested_supplier\nLEFT JOIN wsc_summary\n  ON wsc_summary.supplier_id = requested_supplier.supplier_id\nLEFT JOIN traffic_summary\n  ON traffic_summary.supplier_id = requested_supplier.supplier_id\nLEFT JOIN availability_summary\n  ON availability_summary.supplier_id = requested_supplier.supplier_id\nLEFT JOIN mrpi_summary\n  ON mrpi_summary.supplier_id = requested_supplier.supplier_id\nLEFT JOIN wsi_summary\n  ON wsi_summary.supplier_id = requested_supplier.supplier_id`;\n\nreturn [{\n  json: {\n    supplierId,\n    recipientEmail,\n    teamName,\n    portfolioOwner,\n    unfindablesNotes,\n    adHocNotes,\n    dashboardUrl,\n    sqlQuery,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ],
+      "id": "6885b4b8-72a6-4f3c-a24d-cd8c2a33ac54",
+      "name": "Prepare Input"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "={{ $json.sqlQuery }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        0
+      ],
+      "id": "8dfd05ae-eb2b-4d08-bab7-c1701c581173",
+      "name": "Dashboard-Aligned Snapshot",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst request = $('Prepare Input').item.json;\n\nconst safeNumber = (value) => {\n  if (value === null || value === undefined || value === '') return null;\n  const num = Number(value);\n  return Number.isFinite(num) ? num : null;\n};\n\nconst escapeHtml = (value) => String(value ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst money = (value) => {\n  const num = safeNumber(value);\n  if (num === null) return 'N/A';\n  return new Intl.NumberFormat('en-US', {\n    style: 'currency',\n    currency: 'USD',\n    maximumFractionDigits: 0,\n  }).format(num);\n};\n\nconst integer = (value) => {\n  const num = safeNumber(value);\n  if (num === null) return 'N/A';\n  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(num);\n};\n\nconst percent = (value, digits = 1) => {\n  const num = safeNumber(value);\n  if (num === null) return 'N/A';\n  return `${(num * 100).toFixed(digits)}%`;\n};\n\nconst points = (value, digits = 1) => {\n  const num = safeNumber(value);\n  if (num === null) return 'N/A';\n  const scaled = num * 100;\n  const sign = scaled > 0 ? '+' : '';\n  return `${sign}${scaled.toFixed(digits)} pts`;\n};\n\nconst directionalPct = (value, label) => {\n  const num = safeNumber(value);\n  if (num === null) return `flat ${escapeHtml(label)}`;\n  const direction = num > 0 ? 'up' : num < 0 ? 'down' : 'flat';\n  return `${direction} ${Math.abs(num * 100).toFixed(0)}% ${escapeHtml(label)}`;\n};\n\nconst makeSection = (title, body) => `\n  <div class=\"section\">\n    <h2>${escapeHtml(title)}</h2>\n    ${body}\n  </div>\n`;\n\nconst supplierId = data.supplier_id || request.supplierId;\nconst supplierName = data.supplier_name || `Supplier ${supplierId}`;\nconst teamName = request.teamName || `${supplierName} team`;\nconst currentMonth = data.current_month_label || 'Last Completed Month';\nconst priorMonth = data.prior_month_label || 'Prior month';\nconst priorYearMonth = data.prior_year_month_label || 'Prior year month';\nconst dashboardUrl = request.dashboardUrl;\nconst unfindablesNotes = request.unfindablesNotes;\nconst adHocNotes = request.adHocNotes;\nconst subject = `Ad Hoc Supplier Pre-Read | ${supplierName} (${supplierId}) | ${currentMonth}`;\n\nlet bodySections = [];\nlet warningBlock = '';\n\nif (!data.supplier_exists) {\n  warningBlock = `<div class=\"warning\">No supplier in the selected portfolio matched SuID <strong>${escapeHtml(supplierId)}</strong>. Check the ID or portfolio owner filter before using this pre-read.</div>`;\n}\n\nconst introHtml = `\n  <p>Hi ${escapeHtml(teamName)},</p>\n  <p>I\u2019m looking forward to meeting with you today and aligning on future goals!</p>\n  <p><strong>Brief Agenda:</strong><br/>I included your ${escapeHtml(currentMonth)} performance below as a reference for you. I\u2019d love to walk through this performance recap to highlight additional areas we can partner together in 2026.</p>\n`;\n\nbodySections.push(makeSection(\n  `Business Review ${currentMonth}`,\n  `\n    <p>${escapeHtml(currentMonth)} landed at <strong>${money(data.current_wsc)}</strong> in WSC which was <strong>${directionalPct(data.mom_wsc_pct, 'MoM')}</strong> and <strong>${directionalPct(data.yoy_wsc_pct, 'YoY')}</strong>.</p>\n    <ul>\n      <li>${escapeHtml(priorMonth)} WSC: <strong>${money(data.prior_month_wsc)}</strong></li>\n      <li>${escapeHtml(priorYearMonth)} WSC: <strong>${money(data.prior_year_wsc)}</strong></li>\n    </ul>\n  `\n));\n\nbodySections.push(makeSection(\n  'Traffic',\n  `\n    <p><strong>${integer(data.current_visits)}</strong> SKU Visits (${directionalPct(data.mom_visits_pct, 'MoM')}, ${directionalPct(data.yoy_visits_pct, 'YoY')})</p>\n    <p><strong>${percent(data.current_cvr, 2)}</strong> CVR (${points(data.mom_cvr_change, 2)} vs ${escapeHtml(priorMonth)}, ${points(data.yoy_cvr_change, 2)} vs ${escapeHtml(priorYearMonth)})</p>\n  `\n));\n\nbodySections.push(makeSection(\n  'Availability',\n  `\n    <p>${escapeHtml(currentMonth)} Global Availability: <strong>${percent(data.current_availability)}</strong></p>\n    <ul>\n      <li>MoM change: <strong>${points(data.mom_availability_change)}</strong></li>\n      <li>YoY change: <strong>${points(data.yoy_availability_change)}</strong></li>\n      <li>MRPI: <strong>${percent(data.current_mrpi)}</strong> (${points(data.mom_mrpi_change)} MoM)</li>\n      <li>WSI: <strong>${percent(data.current_wsi)}</strong> (${points(data.mom_wsi_change)} MoM)</li>\n    </ul>\n  `\n));\n\nbodySections.push(makeSection(\n  'Wayfair Professional',\n  `\n    <p>Use the linked <strong>monthly_supplier_report</strong> dashboard for the B2B share and discount context before the meeting.</p>\n  `\n));\n\nbodySections.push(makeSection(\n  'Advertising',\n  `\n    <p>Use the dashboard\u2019s <strong>Performance Marketing</strong> section to review spend, attributed WSC, and ROAS before sending this externally.</p>\n  `\n));\n\nbodySections.push(makeSection(\n  `Dropship Performance (${currentMonth})`,\n  `\n    <p>Use the dashboard\u2019s <strong>L3M Operations Metrics</strong> tile to pull fill rate, OTS, OTD, and related operations callouts for the meeting narrative.</p>\n  `\n));\n\nbodySections.push(makeSection(\n  'Promotions',\n  `\n    <p>Use this section to add any live promotion questions or frequency / source-room follow-ups before sharing the draft.</p>\n  `\n));\n\nbodySections.push(makeSection(\n  'Assortment',\n  `\n    <p>Reference <strong>Active SKU Count LCM</strong>, <strong>Top SKUs</strong>, and <strong>Top Supplier Parts</strong> in the dashboard for assortment talking points.</p>\n  `\n));\n\nif (unfindablesNotes) {\n  bodySections.push(makeSection(\n    'Unfindables',\n    `<p>${escapeHtml(unfindablesNotes)}</p>`\n  ));\n}\n\nbodySections.push(makeSection(\n  'Ad Hoc',\n  adHocNotes\n    ? `<p>${escapeHtml(adHocNotes).replace(/\\n/g, '<br/>')}</p>`\n    : '<p>Add one-off notes, asks, or follow-ups here before sharing the draft.</p>'\n));\n\nconst dashboardSection = `\n  <div class=\"dashboard-box\">\n    <strong>Dashboard reference:</strong>\n    <a href=\"${escapeHtml(dashboardUrl)}\" target=\"_blank\">monthly_supplier_report</a>\n    <div class=\"small\">Source dashboard slug: hxVugArzfrkD6YuI94A2dq</div>\n  </div>\n`;\n\nconst htmlBody = `\n<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"UTF-8\" />\n    <style>\n      body {\n        font-family: Arial, sans-serif;\n        color: #1f2933;\n        line-height: 1.55;\n        margin: 0;\n        padding: 24px;\n      }\n      .header {\n        background: #7F187F;\n        color: #fff;\n        border-radius: 8px;\n        padding: 16px 18px;\n        margin-bottom: 18px;\n      }\n      h1 {\n        margin: 0;\n        font-size: 24px;\n      }\n      h2 {\n        color: #7F187F;\n        border-bottom: 2px solid #ead6ea;\n        padding-bottom: 4px;\n        margin-top: 28px;\n        margin-bottom: 10px;\n      }\n      .section p {\n        margin: 8px 0;\n      }\n      ul {\n        margin-top: 8px;\n      }\n      .warning {\n        background: #fff4db;\n        color: #7c5a00;\n        border: 1px solid #f0c36d;\n        border-radius: 8px;\n        padding: 12px 14px;\n        margin-bottom: 18px;\n      }\n      .dashboard-box {\n        margin-top: 22px;\n        padding: 12px 14px;\n        border: 1px solid #d9e2ec;\n        background: #f8fbfd;\n        border-radius: 8px;\n      }\n      a {\n        color: #7F187F;\n      }\n      .small {\n        color: #7b8794;\n        font-size: 12px;\n        margin-top: 6px;\n      }\n    </style>\n  </head>\n  <body>\n    <div class=\"header\">\n      <h1>Ad Hoc Supplier Pre-Read</h1>\n      <div>Supplier: <strong>${escapeHtml(supplierName)}</strong> (SuID ${escapeHtml(supplierId)})</div>\n      <div>Reporting month: <strong>${escapeHtml(currentMonth)}</strong></div>\n    </div>\n    ${warningBlock}\n    ${introHtml}\n    ${bodySections.join('\\n')}\n    ${dashboardSection}\n  </body>\n</html>`;\n\nreturn [{\n  json: {\n    sendTo: request.recipientEmail,\n    subject,\n    message: htmlBody,\n    previewHtml: htmlBody,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        0
+      ],
+      "id": "38f68a18-8c4d-4a49-8c62-e2c4ebf2ccd2",
+      "name": "Build Ad Hoc Email"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.sendTo }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "2f8d8cfe-70be-4d02-b95d-fe9e5624aef7",
+      "name": "Send Pre-Read",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZmmontG7EgaANggr",
+          "name": "Gmail account 287"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Dashboard-Aligned Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard-Aligned Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Build Ad Hoc Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ad Hoc Email": {
+      "main": [
+        [
+          {
+            "node": "Send Pre-Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Pre-Read": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3f8ac6fd-2282-4628-b77c-4095ba4ef98d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"
+  },
+  "id": "NnYmXo5XqW7a8tQg",
+  "tags": []
+}
