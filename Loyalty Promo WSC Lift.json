@@ -1,6 +1,22 @@
 {
-  "name": "Loyalty Promo WSC Lift",
+  "name": "Loyalty Promo WSC Lift (Go-Forward)",
   "nodes": [
+    {
+      "parameters": {
+        "content": "## GO-FORWARD WORKFLOW\nApproved working version for Loyalty Promo WSC Lift + Mailmeteor SRM outreach.\n\n**Flow**\n1. Configure Inputs \u2192 lift SKU pull \u2192 Build Analysis\n2. Copy Member Monday template \u2192 keep SKU Lift + Supplier Lift formatting\n3. Append SKU / Supplier / Templates / Mailmeteor rows from analysis\n4. Late OAM: SUID list \u2192 Partner Home contact pull \u2192 fill Email column\n\n**Do not** put OAM at the start. OAM is last and only for analysis suppliers (~\u2264100).",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "id": "882d930d-0a2f-4c8f-ae9d-50df4e50071c",
+      "name": "Go-Forward Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        180
+      ]
+    },
     {
       "parameters": {},
       "type": "n8n-nodes-base.manualTrigger",
@@ -989,6 +1005,15 @@
     "templateCredsSetupCompleted": true,
     "instanceId": "03eaefce1798e2883471ae7d5d2dfbc186343411ac19c565c97d8bae537d45f1"
   },
-  "tags": [],
+  "tags": [
+    {
+      "id": "2ae38871-5f0a-4f97-b384-531b4f230a54",
+      "name": "go-forward"
+    },
+    {
+      "id": "9a062b1d-1e31-438e-a7bc-a585bc226755",
+      "name": "loyalty"
+    }
+  ],
   "pinData": {}
 }
