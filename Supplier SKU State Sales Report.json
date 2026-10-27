@@ -1,0 +1,182 @@
+{
+  "name": "Supplier SKU State Sales Report",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2fbefbb1-b260-4dc0-b802-aeaf0fd8a565",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = {\n  supplier_name: 'HLC.ME',\n  supplier_id: '29955',\n  lookback_weeks: 52,\n  top_states: 10,\n  top_skus_per_state: 5,\n  state_field_override: '',\n  sku_field_override: '',\n  sku_name_field_override: '',\n  quantity_field_override: ''\n};\n\nreturn [{ json: config }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "7bfe687d-b8e2-4955-b347-cbf5610a0f5f",
+      "name": "Report Config"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "WITH field_paths AS (\n  SELECT field_path\n  FROM `wf-gcp-us-ae-retail-prod.cm_reporting.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`\n  WHERE table_name = 'retail_sku_store_date_agg'\n)\nSELECT\n  STRING_AGG(\n    DISTINCT IF(\n      REGEXP_CONTAINS(LOWER(field_path), r'(^|\\.)([a-z0-9_]*state[a-z0-9_]*)$'),\n      field_path,\n      NULL\n    ),\n    '\\n' ORDER BY field_path\n  ) AS state_candidates,\n  STRING_AGG(\n    DISTINCT IF(\n      REGEXP_CONTAINS(LOWER(field_path), r'(^|\\.)(sku[a-z0-9_]*|[a-z0-9_]*sku|partnumber|part_number|supplierpart[a-z0-9_]*|productid|product_id|itemid|item_id)$'),\n      field_path,\n      NULL\n    ),\n    '\\n' ORDER BY field_path\n  ) AS sku_candidates,\n  STRING_AGG(\n    DISTINCT IF(\n      REGEXP_CONTAINS(LOWER(field_path), r'(^|\\.)(skuname|sku_name|productname|product_name|partname|part_name|itemname|item_name|producttitle|product_title)$'),\n      field_path,\n      NULL\n    ),\n    '\\n' ORDER BY field_path\n  ) AS sku_name_candidates,\n  STRING_AGG(\n    DISTINCT IF(\n      REGEXP_CONTAINS(LOWER(field_path), r'(^|\\.)(quantity|qty|units|unit_count)$'),\n      field_path,\n      NULL\n    ),\n    '\\n' ORDER BY field_path\n  ) AS quantity_candidates\nFROM field_paths;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        460,
+        0
+      ],
+      "id": "aaad8120-f38d-4fad-a8b0-9d27dd74516e",
+      "name": "Discover Report Fields",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const discovery = $input.first().json;\nconst config = $('Report Config').first().json;\n\nfunction splitCandidates(value) {\n  return String(value || '')\n    .split('\\n')\n    .map((entry) => entry.trim())\n    .filter(Boolean);\n}\n\nfunction normalisePath(value) {\n  return String(value || '').trim().replace(/^retail_sku_store_date\\./, '');\n}\n\nfunction dedupe(values) {\n  return [...new Set(values.map(normalisePath).filter(Boolean))];\n}\n\nfunction pickCandidate(candidates, preferredSuffixes, blockedFragments) {\n  const blocked = blockedFragments || [];\n  const scored = dedupe(candidates).map((candidate) => {\n    const lower = candidate.toLowerCase();\n    let score = 0;\n\n    preferredSuffixes.forEach((suffix, index) => {\n      if (lower === suffix || lower.endsWith(`.${suffix}`)) {\n        score += 200 - index;\n      } else if (lower.includes(suffix)) {\n        score += 40 - index;\n      }\n    });\n\n    if (lower.startsWith('supplier_struct.supplier_part_struct.orders.')) score += 40;\n    if (lower.startsWith('supplier_struct.supplier_part_struct.')) score += 30;\n    if (lower.startsWith('supplier_struct.')) score += 20;\n    if (!candidate.includes('.')) score += 10;\n\n    blocked.forEach((fragment) => {\n      if (lower.includes(fragment)) score -= 500;\n    });\n\n    return { candidate, score };\n  });\n\n  scored.sort((left, right) => right.score - left.score || left.candidate.localeCompare(right.candidate));\n  return scored[0] ? scored[0].candidate : '';\n}\n\nconst candidates = {\n  state: splitCandidates(discovery.state_candidates),\n  sku: splitCandidates(discovery.sku_candidates),\n  skuName: splitCandidates(discovery.sku_name_candidates),\n  quantity: splitCandidates(discovery.quantity_candidates),\n};\n\nconst warnings = [];\nconst joins = new Map();\n\nfunction resolveExpression(fieldPath) {\n  const normalised = normalisePath(fieldPath);\n  if (!normalised) {\n    return '';\n  }\n\n  const directMappings = [\n    ['supplier_struct.supplier_part_struct.orders.', 'orders.'],\n    ['orders.', 'orders.'],\n    ['supplier_struct.supplier_part_struct.', 'supplier_part_struct.'],\n    ['supplier_part_struct.', 'supplier_part_struct.'],\n    ['supplier_struct.', 'supplier_struct.'],\n    ['traffic_source.', 'traffic_source.'],\n  ];\n\n  for (const [prefix, replacement] of directMappings) {\n    if (normalised.startsWith(prefix)) {\n      if (prefix === 'traffic_source.') {\n        joins.set('traffic_source', 'LEFT JOIN UNNEST(retail_sku_store_date.traffic_source) AS traffic_source');\n      }\n      return replacement + normalised.slice(prefix.length);\n    }\n  }\n\n  if (normalised.startsWith('store_struct.')) {\n    joins.set('store_struct', 'LEFT JOIN UNNEST(retail_sku_store_date.store_struct) AS store_struct');\n    return 'store_struct.' + normalised.slice('store_struct.'.length);\n  }\n\n  if (normalised.startsWith('stores.')) {\n    joins.set('stores', 'LEFT JOIN UNNEST(retail_sku_store_date.stores) AS stores');\n    return 'stores.' + normalised.slice('stores.'.length);\n  }\n\n  return `retail_sku_store_date.${normalised}`;\n}\n\nconst stateField = normalisePath(config.state_field_override) || pickCandidate(\n  candidates.state,\n  ['state_name', 'ship_to_state', 'destination_state', 'customer_state', 'order_state', 'bill_to_state', 'store_state_name', 'state', 'state_code', 'statecode'],\n  ['styname', 'statement', 'country']\n);\n\nconst skuField = normalisePath(config.sku_field_override) || pickCandidate(\n  candidates.sku,\n  ['sku_id', 'skuid', 'sku', 'part_number', 'partnumber', 'supplier_part_id', 'supplierpartid', 'product_id', 'item_id', 'id'],\n  []\n);\n\nconst skuNameField = normalisePath(config.sku_name_field_override) || pickCandidate(\n  candidates.skuName,\n  ['sku_name', 'skuname', 'product_name', 'productname', 'part_name', 'partname', 'item_name', 'itemname', 'product_title'],\n  []\n);\n\nconst quantityField = normalisePath(config.quantity_field_override) || pickCandidate(\n  candidates.quantity,\n  ['quantity', 'qty', 'units', 'unit_count'],\n  []\n);\n\nif (!stateField) {\n  throw new Error(`Unable to auto-detect a state field. Populate state_field_override in the Report Config node. Discovery result: ${JSON.stringify(candidates.state)}`);\n}\n\nif (!skuField) {\n  throw new Error(`Unable to auto-detect a SKU key field. Populate sku_field_override in the Report Config node. Discovery result: ${JSON.stringify(candidates.sku)}`);\n}\n\nconst stateExpression = resolveExpression(stateField);\nconst skuExpression = resolveExpression(skuField);\nconst skuNameExpression = skuNameField ? resolveExpression(skuNameField) : skuExpression;\nlet quantityExpression = '0';\n\nif (quantityField) {\n  quantityExpression = `COALESCE(CAST(${resolveExpression(quantityField)} AS NUMERIC), 0)`;\n} else {\n  warnings.push('No quantity field was detected automatically, so units_sold will be 0 unless quantity_field_override is set.');\n}\n\nif (!skuNameField) {\n  warnings.push('No SKU name field was detected automatically, so SKU labels will mirror the SKU key field.');\n}\n\nconst supplierName = String(config.supplier_name || '').trim();\nconst supplierId = String(config.supplier_id || '').trim();\nconst lookbackWeeks = Number(config.lookback_weeks || 52);\nconst topStates = Number(config.top_states || 10);\nconst topSkusPerState = Number(config.top_skus_per_state || 5);\n\nif (!supplierName && !supplierId) {\n  throw new Error('Set supplier_name, supplier_id, or both in the Report Config node.');\n}\n\nconst sqlQuery = `DECLARE supplier_name_input STRING DEFAULT ${JSON.stringify(supplierName)};\nDECLARE supplier_id_input STRING DEFAULT ${JSON.stringify(supplierId)};\nDECLARE lookback_weeks_input INT64 DEFAULT ${Number.isFinite(lookbackWeeks) ? lookbackWeeks : 52};\n\nWITH params AS (\n  SELECT\n    supplier_name_input AS supplier_name,\n    supplier_id_input AS supplier_id,\n    DATE_SUB(CURRENT_DATE(), INTERVAL lookback_weeks_input WEEK) AS start_date,\n    CURRENT_DATE() AS end_date\n),\ncurrency AS (\n  SELECT\n    ANY_VALUE(ExchangeRate) AS exchange_rate,\n    ANY_VALUE(currency_symbol) AS currency_symbol\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.vw_local_currency_conversion\\`\n  WHERE CuyShortName = 'USD'\n),\nbase_rows AS (\n  SELECT\n    retail_dim_supplier.origsuname AS supplier_name,\n    CAST(retail_dim_supplier.origsuid AS STRING) AS supplier_id,\n    COALESCE(NULLIF(TRIM(CAST(${stateExpression} AS STRING)), ''), 'Unknown') AS state_name,\n    COALESCE(NULLIF(TRIM(CAST(${skuExpression} AS STRING)), ''), 'Unknown SKU') AS sku_key,\n    COALESCE(NULLIF(TRIM(CAST(${skuNameExpression} AS STRING)), ''), COALESCE(NULLIF(TRIM(CAST(${skuExpression} AS STRING)), ''), 'Unknown SKU')) AS sku_name,\n    orders.id AS order_id,\n    ${quantityExpression} AS units_sold,\n    COALESCE(orders.grossrevenuestable, 0) * COALESCE(currency.exchange_rate, 1) AS gross_revenue,\n    currency.currency_symbol AS currency_symbol,\n    DATE(retail_sku_store_date.date) AS order_date\n  FROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_sku_store_date_agg\\` AS retail_sku_store_date\n  LEFT JOIN UNNEST(retail_sku_store_date.supplier_struct) AS supplier_struct\n  LEFT JOIN UNNEST(supplier_struct.supplier_part_struct) AS supplier_part_struct\n  LEFT JOIN UNNEST(supplier_part_struct.orders) AS orders\n  ${Array.from(joins.values()).join('\\n  ')}\n  LEFT JOIN \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS retail_dim_supplier\n    ON retail_dim_supplier.supplierkey = supplier_struct.supplierkey\n  CROSS JOIN currency\n  CROSS JOIN params\n  WHERE retail_sku_store_date.brandname = 'Wayfair'\n    AND retail_sku_store_date.agg_level = 'DAILY'\n    AND DATE(retail_sku_store_date.date) BETWEEN params.start_date AND params.end_date\n    AND (\n      (params.supplier_id <> '' AND CAST(retail_dim_supplier.origsuid AS STRING) = params.supplier_id)\n      OR (params.supplier_name <> '' AND LOWER(retail_dim_supplier.origsuname) = LOWER(params.supplier_name))\n    )\n),\ndeduped_sales AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    state_name,\n    sku_key,\n    sku_name,\n    currency_symbol,\n    order_id,\n    ANY_VALUE(units_sold) AS units_sold,\n    ANY_VALUE(gross_revenue) AS gross_revenue,\n    MIN(order_date) AS first_order_date,\n    MAX(order_date) AS last_order_date\n  FROM base_rows\n  WHERE order_id IS NOT NULL\n  GROUP BY\n    supplier_name,\n    supplier_id,\n    state_name,\n    sku_key,\n    sku_name,\n    currency_symbol,\n    order_id\n),\nsku_state_sales AS (\n  SELECT\n    supplier_name,\n    supplier_id,\n    state_name,\n    sku_key,\n    sku_name,\n    currency_symbol,\n    COUNT(DISTINCT order_id) AS order_count,\n    SUM(units_sold) AS units_sold,\n    SUM(gross_revenue) AS gross_revenue,\n    MIN(first_order_date) AS first_order_date,\n    MAX(last_order_date) AS last_order_date\n  FROM deduped_sales\n  GROUP BY\n    supplier_name,\n    supplier_id,\n    state_name,\n    sku_key,\n    sku_name,\n    currency_symbol\n)\nSELECT\n  supplier_name,\n  supplier_id,\n  state_name,\n  sku_key,\n  sku_name,\n  currency_symbol,\n  order_count,\n  units_sold,\n  gross_revenue,\n  first_order_date,\n  last_order_date\nFROM sku_state_sales\nORDER BY gross_revenue DESC, units_sold DESC, state_name, sku_name;`;\n\nreturn [{\n  json: {\n    sqlQuery,\n    metadata: {\n      supplier_name: supplierName,\n      supplier_id: supplierId,\n      lookback_weeks: Number.isFinite(lookbackWeeks) ? lookbackWeeks : 52,\n      top_states: Number.isFinite(topStates) ? topStates : 10,\n      top_skus_per_state: Number.isFinite(topSkusPerState) ? topSkusPerState : 5,\n      warnings,\n      resolved_fields: {\n        state_field: stateField,\n        sku_field: skuField,\n        sku_name_field: skuNameField || '',\n        quantity_field: quantityField || ''\n      },\n      discovery_candidates: candidates\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        0
+      ],
+      "id": "8d10e1d9-2c0b-4d44-b4bd-b43cdeecf64f",
+      "name": "Build Sales Query"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-eunarta-proc-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-eunarta-proc-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-eunarta-proc-prod"
+        },
+        "sqlQuery": "={{ $json.sqlQuery }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        940,
+        0
+      ],
+      "id": "b8b2c5b9-f09a-4679-a931-fc250b44f6eb",
+      "name": "Supplier SKU State Sales",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((item) => item.json);\nconst queryConfig = $('Build Sales Query').first().json;\nconst metadata = queryConfig.metadata || {};\n\nfunction toNumber(value) {\n  const number = Number(value || 0);\n  return Number.isFinite(number) ? number : 0;\n}\n\nfunction money(value, symbol) {\n  return `${symbol}${toNumber(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;\n}\n\nfunction number(value) {\n  return toNumber(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });\n}\n\nfunction percent(value) {\n  return `${(toNumber(value) * 100).toFixed(1)}%`;\n}\n\nfunction escapeHtml(value) {\n  return String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n}\n\nfunction makeMarkdownTable(headers, tableRows) {\n  const headerLine = `| ${headers.join(' | ')} |`;\n  const divider = `| ${headers.map(() => '---').join(' | ')} |`;\n  const body = tableRows.map((row) => `| ${row.join(' | ')} |`).join('\\n');\n  return [headerLine, divider, body].filter(Boolean).join('\\n');\n}\n\nfunction makeHtmlTable(headers, tableRows) {\n  const headerHtml = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('');\n  const bodyHtml = tableRows\n    .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)\n    .join('');\n  return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;\n}\n\nconst normalisedRows = rows.map((row) => ({\n  supplier_name: row.supplier_name || metadata.supplier_name || '',\n  supplier_id: String(row.supplier_id || metadata.supplier_id || ''),\n  state_name: row.state_name || 'Unknown',\n  sku_key: row.sku_key || 'Unknown SKU',\n  sku_name: row.sku_name || row.sku_key || 'Unknown SKU',\n  currency_symbol: row.currency_symbol || '$',\n  order_count: toNumber(row.order_count),\n  units_sold: toNumber(row.units_sold),\n  gross_revenue: toNumber(row.gross_revenue),\n  first_order_date: row.first_order_date || '',\n  last_order_date: row.last_order_date || ''\n}));\n\nif (normalisedRows.length === 0) {\n  const noResultsMessage = `# Supplier SKU State Sales Report\\n\\nNo rows were returned for ${metadata.supplier_name || 'the requested supplier'} (${metadata.supplier_id || 'no supplier ID supplied'}) across the last ${metadata.lookback_weeks || 52} weeks.`;\n  const warningLines = (metadata.warnings || []).map((warning) => `- ${warning}`).join('\\n');\n  return [{\n    json: {\n      metadata,\n      warnings: metadata.warnings || [],\n      markdownReport: [noResultsMessage, warningLines && `\\n## Warnings\\n${warningLines}`].filter(Boolean).join('\\n'),\n      htmlReport: `<h1>Supplier SKU State Sales Report</h1><p>No rows were returned for ${escapeHtml(metadata.supplier_name || 'the requested supplier')} (${escapeHtml(metadata.supplier_id || 'no supplier ID supplied')}) across the last ${escapeHtml(String(metadata.lookback_weeks || 52))} weeks.</p>`,\n      overallTotals: { gross_revenue: 0, units_sold: 0, order_count: 0, state_count: 0, sku_count: 0 },\n      stateTotals: [],\n      skuSummary: [],\n      topSkusByState: [],\n      skuStateDetail: []\n    }\n  }];\n}\n\nnormalisedRows.sort((left, right) => right.gross_revenue - left.gross_revenue || right.units_sold - left.units_sold || left.state_name.localeCompare(right.state_name));\nconst currencySymbol = normalisedRows[0].currency_symbol || '$';\nconst overall = { gross_revenue: 0, units_sold: 0, order_count: 0, state_count: 0, sku_count: 0 };\nconst stateMap = new Map();\nconst skuMap = new Map();\n\nfor (const row of normalisedRows) {\n  overall.gross_revenue += row.gross_revenue;\n  overall.units_sold += row.units_sold;\n  overall.order_count += row.order_count;\n\n  if (!stateMap.has(row.state_name)) {\n    stateMap.set(row.state_name, {\n      state_name: row.state_name,\n      gross_revenue: 0,\n      units_sold: 0,\n      order_count: 0,\n      sku_map: new Map()\n    });\n  }\n\n  if (!skuMap.has(row.sku_key)) {\n    skuMap.set(row.sku_key, {\n      sku_key: row.sku_key,\n      sku_name: row.sku_name,\n      gross_revenue: 0,\n      units_sold: 0,\n      order_count: 0,\n      state_map: new Map()\n    });\n  }\n\n  const stateEntry = stateMap.get(row.state_name);\n  stateEntry.gross_revenue += row.gross_revenue;\n  stateEntry.units_sold += row.units_sold;\n  stateEntry.order_count += row.order_count;\n\n  const stateSkuKey = `${row.sku_key}::${row.sku_name}`;\n  if (!stateEntry.sku_map.has(stateSkuKey)) {\n    stateEntry.sku_map.set(stateSkuKey, {\n      sku_key: row.sku_key,\n      sku_name: row.sku_name,\n      gross_revenue: 0,\n      units_sold: 0,\n      order_count: 0\n    });\n  }\n  const stateSkuEntry = stateEntry.sku_map.get(stateSkuKey);\n  stateSkuEntry.gross_revenue += row.gross_revenue;\n  stateSkuEntry.units_sold += row.units_sold;\n  stateSkuEntry.order_count += row.order_count;\n\n  const skuEntry = skuMap.get(row.sku_key);\n  skuEntry.gross_revenue += row.gross_revenue;\n  skuEntry.units_sold += row.units_sold;\n  skuEntry.order_count += row.order_count;\n\n  if (!skuEntry.state_map.has(row.state_name)) {\n    skuEntry.state_map.set(row.state_name, {\n      state_name: row.state_name,\n      gross_revenue: 0,\n      units_sold: 0,\n      order_count: 0\n    });\n  }\n  const skuStateEntry = skuEntry.state_map.get(row.state_name);\n  skuStateEntry.gross_revenue += row.gross_revenue;\n  skuStateEntry.units_sold += row.units_sold;\n  skuStateEntry.order_count += row.order_count;\n}\n\nconst stateTotals = Array.from(stateMap.values()).map((entry) => {\n  const topSkus = Array.from(entry.sku_map.values())\n    .sort((left, right) => right.gross_revenue - left.gross_revenue || right.units_sold - left.units_sold)\n    .map((sku, index) => ({\n      rank: index + 1,\n      sku_key: sku.sku_key,\n      sku_name: sku.sku_name,\n      gross_revenue: sku.gross_revenue,\n      units_sold: sku.units_sold,\n      order_count: sku.order_count,\n      revenue_share_of_state: entry.gross_revenue ? sku.gross_revenue / entry.gross_revenue : 0\n    }));\n\n  return {\n    state_name: entry.state_name,\n    gross_revenue: entry.gross_revenue,\n    units_sold: entry.units_sold,\n    order_count: entry.order_count,\n    sku_count: topSkus.length,\n    revenue_share_of_supplier: overall.gross_revenue ? entry.gross_revenue / overall.gross_revenue : 0,\n    top_sku: topSkus[0] || null,\n    top_skus: topSkus.slice(0, metadata.top_skus_per_state || 5)\n  };\n}).sort((left, right) => right.gross_revenue - left.gross_revenue || right.units_sold - left.units_sold || left.state_name.localeCompare(right.state_name));\n\nconst skuSummary = Array.from(skuMap.values()).map((entry) => {\n  const rankedStates = Array.from(entry.state_map.values())\n    .sort((left, right) => right.gross_revenue - left.gross_revenue || right.units_sold - left.units_sold || left.state_name.localeCompare(right.state_name))\n    .map((state, index) => ({\n      rank: index + 1,\n      state_name: state.state_name,\n      gross_revenue: state.gross_revenue,\n      units_sold: state.units_sold,\n      order_count: state.order_count,\n      revenue_share_of_sku: entry.gross_revenue ? state.gross_revenue / entry.gross_revenue : 0\n    }));\n\n  return {\n    sku_key: entry.sku_key,\n    sku_name: entry.sku_name,\n    gross_revenue: entry.gross_revenue,\n    units_sold: entry.units_sold,\n    order_count: entry.order_count,\n    state_count: rankedStates.length,\n    revenue_share_of_supplier: overall.gross_revenue ? entry.gross_revenue / overall.gross_revenue : 0,\n    top_state: rankedStates[0] || null,\n    ranked_states: rankedStates\n  };\n}).sort((left, right) => right.gross_revenue - left.gross_revenue || right.units_sold - left.units_sold || left.sku_name.localeCompare(right.sku_name));\n\noverall.state_count = stateTotals.length;\noverall.sku_count = skuSummary.length;\n\nconst stateHighlights = stateTotals.slice(0, metadata.top_states || 10).map((entry, index) => {\n  const leadSku = entry.top_sku ? `${entry.top_sku.sku_name} (${money(entry.top_sku.gross_revenue, currencySymbol)})` : 'No lead SKU';\n  return `${index + 1}. ${entry.state_name}: ${money(entry.gross_revenue, currencySymbol)} from ${number(entry.units_sold)} units across ${number(entry.order_count)} orders. Lead SKU: ${leadSku}.`;\n});\n\nconst stateTableRows = stateTotals.slice(0, metadata.top_states || 10).map((entry, index) => [\n  String(index + 1),\n  entry.state_name,\n  money(entry.gross_revenue, currencySymbol),\n  number(entry.units_sold),\n  number(entry.order_count),\n  String(entry.sku_count),\n  entry.top_sku ? `${entry.top_sku.sku_name} (${percent(entry.top_sku.revenue_share_of_state)})` : 'N/A'\n]);\n\nconst skuTableRows = skuSummary.slice(0, 25).map((entry) => [\n  entry.sku_key,\n  entry.sku_name,\n  money(entry.gross_revenue, currencySymbol),\n  number(entry.units_sold),\n  number(entry.order_count),\n  entry.top_state ? entry.top_state.state_name : 'N/A',\n  entry.top_state ? money(entry.top_state.gross_revenue, currencySymbol) : 'N/A',\n  entry.top_state ? percent(entry.top_state.revenue_share_of_sku) : 'N/A'\n]);\n\nconst resolvedFieldLines = Object.entries(metadata.resolved_fields || {}).map(([key, value]) => `- ${key}: ${value || 'not set'}`);\nconst warningLines = (metadata.warnings || []).map((warning) => `- ${warning}`);\n\nconst markdownSections = [\n  '# Supplier SKU State Sales Report',\n  `Supplier: ${metadata.supplier_name || normalisedRows[0].supplier_name} (${metadata.supplier_id || normalisedRows[0].supplier_id})`,\n  `Window: last ${metadata.lookback_weeks || 52} weeks`,\n  '',\n  '## Overall totals',\n  `- Gross revenue: ${money(overall.gross_revenue, currencySymbol)}`,\n  `- Units sold: ${number(overall.units_sold)}`,\n  `- Orders: ${number(overall.order_count)}`,\n  `- States with sales: ${number(overall.state_count)}`,\n  `- SKUs with sales: ${number(overall.sku_count)}`,\n  '',\n  '## States ranked by revenue',\n  makeMarkdownTable(['Rank', 'State', 'Revenue', 'Units', 'Orders', 'SKU Count', 'Top SKU'], stateTableRows),\n  '',\n  '## Which states sell the most product',\n  ...stateHighlights.map((line) => `- ${line}`),\n  '',\n  '## Best state for each SKU (top 25 by revenue)',\n  makeMarkdownTable(['SKU Key', 'SKU Name', 'Revenue', 'Units', 'Orders', 'Top State', 'Top State Revenue', 'Top State Share'], skuTableRows),\n  '',\n  'The workflow output also includes full arrays for skuSummary (every SKU), stateTotals (every state), topSkusByState, and skuStateDetail.'\n];\n\nif (resolvedFieldLines.length) {\n  markdownSections.push('', '## Resolved field paths', ...resolvedFieldLines);\n}\nif (warningLines.length) {\n  markdownSections.push('', '## Warnings', ...warningLines);\n}\n\nconst htmlSections = [\n  '<h1>Supplier SKU State Sales Report</h1>',\n  `<p><strong>Supplier:</strong> ${escapeHtml(metadata.supplier_name || normalisedRows[0].supplier_name)} (${escapeHtml(metadata.supplier_id || normalisedRows[0].supplier_id)})<br/><strong>Window:</strong> last ${escapeHtml(String(metadata.lookback_weeks || 52))} weeks</p>`,\n  `<h2>Overall totals</h2><ul><li>Gross revenue: ${escapeHtml(money(overall.gross_revenue, currencySymbol))}</li><li>Units sold: ${escapeHtml(number(overall.units_sold))}</li><li>Orders: ${escapeHtml(number(overall.order_count))}</li><li>States with sales: ${escapeHtml(number(overall.state_count))}</li><li>SKUs with sales: ${escapeHtml(number(overall.sku_count))}</li></ul>`,\n  '<h2>States ranked by revenue</h2>',\n  makeHtmlTable(['Rank', 'State', 'Revenue', 'Units', 'Orders', 'SKU Count', 'Top SKU'], stateTableRows),\n  '<h2>Which states sell the most product</h2>',\n  `<ul>${stateHighlights.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`,\n  '<h2>Best state for each SKU (top 25 by revenue)</h2>',\n  makeHtmlTable(['SKU Key', 'SKU Name', 'Revenue', 'Units', 'Orders', 'Top State', 'Top State Revenue', 'Top State Share'], skuTableRows)\n];\n\nif (resolvedFieldLines.length) {\n  htmlSections.push('<h2>Resolved field paths</h2>', `<ul>${resolvedFieldLines.map((line) => `<li>${escapeHtml(line.replace(/^- /, ''))}</li>`).join('')}</ul>`);\n}\nif (warningLines.length) {\n  htmlSections.push('<h2>Warnings</h2>', `<ul>${warningLines.map((line) => `<li>${escapeHtml(line.replace(/^- /, ''))}</li>`).join('')}</ul>`);\n}\n\nreturn [{\n  json: {\n    metadata,\n    warnings: metadata.warnings || [],\n    overallTotals: overall,\n    stateTotals,\n    skuSummary,\n    topSkusByState: stateTotals.map((entry) => ({ state_name: entry.state_name, top_skus: entry.top_skus })),\n    skuStateDetail: normalisedRows,\n    markdownReport: markdownSections.join('\\n'),\n    htmlReport: `<html><head><style>body{font-family:Arial,sans-serif;color:#222;line-height:1.4;}table{border-collapse:collapse;width:100%;margin-bottom:20px;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}th{background:#f3f6fa;}tr:nth-child(even){background:#fafafa;}h1,h2{color:#1f4e79;}</style></head><body>${htmlSections.join('')}</body></html>`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        0
+      ],
+      "id": "f4f37611-3878-4912-aa6c-8b6b70a8b1e2",
+      "name": "Build Supplier Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Report Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Config": {
+      "main": [
+        [
+          {
+            "node": "Discover Report Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discover Report Fields": {
+      "main": [
+        [
+          {
+            "node": "Build Sales Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sales Query": {
+      "main": [
+        [
+          {
+            "node": "Supplier SKU State Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supplier SKU State Sales": {
+      "main": [
+        [
+          {
+            "node": "Build Supplier Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Supplier Report": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
