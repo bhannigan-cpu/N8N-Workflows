@@ -1,0 +1,469 @@
+brand_catalog,supplier_id,supplier_name,srm,sku,class_name,marketing_category,discount_pct,non_promo_daily_avg,member_pop_up_sales,lift_pct,incremental_sales,active_on_event,positive_lift
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,LFMF4992,Curtains & Drapes,Window,0.2,1405.47,2266.97,0.613,861.4999999999998,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10353,Curtains & Drapes,Window,0.05,1256.75,1705.13,0.35700000000000004,448.3800000000001,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1343,Blinds and Shades,Window,0.24,1063.02,932.27,-0.12300000000000001,-130.75,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WNPO9085,Curtains & Drapes,Window,0.17,1038.68,929.18,-0.105,-109.50000000000011,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BCMH2130,Curtains & Drapes,Window,0.2,785.36,836.75,0.065,51.389999999999986,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,SYPL6629,Blinds and Shades,Window,0.24,618.68,386.86,-0.375,-231.81999999999994,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1072,Curtains & Drapes,Window,0.22,602.92,335.94,-0.44299999999999995,-266.97999999999996,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1075,Curtains & Drapes,Window,0.22,561.98,275.25,-0.51,-286.73,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,SYPM1670,Blinds and Shades,Window,0.24,552.24,779.79,0.41200000000000003,227.54999999999995,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,DBHM5628,Curtains & Drapes,Window,0.22,505.84,705.43,0.395,199.58999999999997,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1433,Blinds and Shades,Window,0.24,489.54,407.07,-0.168,-82.47000000000003,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1347,Blinds and Shades,Window,0.24,457.84,352.33,-0.23,-105.50999999999999,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMS1004,Blinds and Shades,Window,0.24,454.09,593.47,0.307,139.38000000000005,True,True
+Wayfair US,208974,Pinecrest Home Goods,Supplier Service Desk,PNEC1001,Blinds and Shades,Window,0.2,418.12,961.6,1.3,543.48,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1205,Curtain Hardware & Accessories,Window,0.1,398.01,386.32,-0.028999999999999998,-11.689999999999998,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1790,Curtains & Drapes,Window,0.22,378.76,553.73,0.462,174.97000000000003,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,RBSD4459,Curtains & Drapes,Window,0.17,372.89,465.33,0.248,92.44,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1193,Curtain Hardware & Accessories,Window,0.1,348.12,486.02,0.396,137.89999999999998,True,True
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,HKL10008,Blinds and Shades,Window,0.22,347.51,218.88,-0.37,-128.63,True,False
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,HKL10004,Blinds and Shades,Window,0.25,318.76,768.42,1.411,449.65999999999997,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1028,Blinds and Shades,Window,0.24,311.12,407.75,0.311,96.63,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1441,Curtains & Drapes,Window,0.1,284.89,425.01,0.49200000000000005,140.12,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10875,Curtains & Drapes,Window,0.13,268.97,309.8,0.152,40.829999999999984,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1217,Curtain Hardware & Accessories,Window,0.1,261.9,170.18,-0.35,-91.71999999999997,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1005,Blinds and Shades,Window,0.24,251.37,231.86,-0.078,-19.50999999999999,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1079,Curtains & Drapes,Window,0.22,243.48,350.81,0.441,107.33000000000001,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,SYPM2350,Blinds and Shades,Window,0.24,243.42,432.18,0.775,188.76000000000002,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1126,Curtains & Drapes,Window,0.22,234.47,0.0,-1.0,-234.47,False,False
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,RBSD3757,Blinds and Shades,Window,0.07,217.58,111.19,-0.489,-106.39000000000001,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1085,Curtains & Drapes,Window,0.22,206.57,0.0,-1.0,-206.57,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1074,Curtains & Drapes,Window,0.22,204.04,113.9,-0.442,-90.13999999999999,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,HRBE3632,Curtains & Drapes,Window,0.22,201.01,141.92,-0.294,-59.09,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1044,Curtains & Drapes,Window,0.22,194.62,122.44,-0.371,-72.18,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,EDIV1050,Curtains & Drapes,Window,0.1,189.46,191.92,0.013000000000000001,2.4599999999999795,True,True
+Wayfair US,268284,BETTER HOME STYLE LLC,Supplier Service Desk,BZTE1774,Sideboards & Buffets,Furniture - Kitchen and Dining,0.16,177.13,0.0,-1.0,-177.13,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,ALMN1007,Curtains & Drapes,Window,0.2,174.6,192.4,0.102,17.80000000000001,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ASTG8756,Curtains & Drapes,Window,0.22,172.15,235.75,0.369,63.599999999999994,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1084,Curtains & Drapes,Window,0.22,164.87,39.1,-0.763,-125.77000000000001,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,TRPT7463,Curtains & Drapes,Window,0.19,163.24,184.85,0.132,21.609999999999985,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,HGHM1012,Curtains & Drapes,Window,0.2,162.43,172.32,0.061,9.889999999999986,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,HOHN8152,Curtains & Drapes,Window,0.19,160.04,34.08,-0.787,-125.96,True,False
+Wayfair US,218949,Cooper Import & Export LLC,Supplier Service Desk,CSAK1003,Blinds and Shades,Window,0.3,152.64,207.34,0.358,54.70000000000002,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,EDIV1316,Curtains & Drapes,Window,0.2,141.41,292.06,1.065,150.65,True,True
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,HKL10002,Blinds and Shades,Window,0.25,139.87,124.77,-0.10800000000000001,-15.100000000000009,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1012,Curtains & Drapes,Window,0.22,138.11,196.74,0.424,58.629999999999995,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,ACOT4343,Curtains & Drapes,Window,0.18,133.29,139.83,0.049,6.5400000000000205,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ALTL6374,Curtains & Drapes,Window,0.22,132.83,84.58,-0.363,-48.250000000000014,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,EVYN2489,Curtain Hardware & Accessories,Window,0.13,129.88,221.55,0.706,91.67000000000002,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1081,Curtains & Drapes,Window,0.22,126.21,48.15,-0.619,-78.06,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1094,Curtains & Drapes,Window,0.22,124.38,153.49,0.23399999999999999,29.110000000000014,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WRLO6309,Curtains & Drapes,Window,0.22,121.14,193.29,0.596,72.14999999999999,True,True
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1298,Blinds and Shades,Window,0.2,118.32,246.32,1.082,128.0,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,SYPM1672,Blinds and Shades,Window,0.24,114.83,336.44,1.93,221.61,True,True
+Wayfair US,268284,BETTER HOME STYLE LLC,Supplier Service Desk,BZTE1236,Sideboards & Buffets,Furniture - Kitchen and Dining,0.16,113.97,0.0,-1.0,-113.97,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,WFBS2366,Curtains & Drapes,Window,0.1,113.6,70.69,-0.37799999999999995,-42.91,True,False
+Wayfair US,288810,Praesto LLC,Supplier Service Desk,HCTI1003,Curtains & Drapes,Window,0.2,106.29,138.21,0.3,31.92,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMS1000,Blinds and Shades,Window,0.24,104.12,260.48,1.5019999999999998,156.36,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1325,Curtains & Drapes,Window,0.1,99.92,241.1,1.413,141.18,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1630,Curtains & Drapes,Window,0.2,99.8,24.03,-0.759,-75.77,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,MCRW7689,Curtains & Drapes,Window,0.2,95.73,14.42,-0.8490000000000001,-81.31,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11307,Curtains & Drapes,Window,0.1,95.17,294.91,2.099,199.74,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1605,Curtain Hardware & Accessories,Window,0.13,93.8,89.52,-0.046,-4.280000000000001,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,SYPL9118,Blinds and Shades,Window,0.24,93.74,234.84,1.505,141.10000000000002,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1137,Curtains & Drapes,Window,0.22,92.59,298.17,2.22,205.58,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,SUNZ1296,Curtains & Drapes,Window,0.2,90.42,201.31,1.226,110.89,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ASTG3587,Curtains & Drapes,Window,0.1,88.99,107.96,0.213,18.97,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,SUNZ1309,Curtains & Drapes,Window,0.2,88.16,56.1,-0.364,-32.059999999999995,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LATD5090,Curtains & Drapes,Window,0.2,87.31,57.24,-0.344,-30.07,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1003,Blinds and Shades,Window,0.29,81.22,13.27,-0.8370000000000001,-67.95,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1022,Blinds and Shades,Window,0.24,80.01,71.76,-0.10300000000000001,-8.25,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1148,Blinds and Shades,Window,0.2,79.85,154.6,0.9359999999999999,74.75,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1009,Blinds and Shades,Window,0.33,78.96,159.7,1.023,80.74,True,True
+Wayfair US,268284,BETTER HOME STYLE LLC,Supplier Service Desk,BZTE1781,Accent Chests / Cabinets,Accent Furniture,0.16,78.16,0.0,-1.0,-78.16,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ACOT1074,Curtains & Drapes,Window,0.07,77.96,35.67,-0.542,-42.28999999999999,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1175,Curtains & Drapes,Window,0.2,75.69,19.92,-0.737,-55.769999999999996,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,ASTG8133,Curtains & Drapes,Window,0.22,75.53,57.25,-0.242,-18.28,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,ACOT4344,Curtains & Drapes,Window,0.2,74.91,185.49,1.476,110.58000000000001,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ASTG1894,Curtains & Drapes,Window,0.3,73.97,0.0,-1.0,-73.97,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1013,Blinds and Shades,Window,0.24,69.85,8.52,-0.878,-61.33,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1367,Curtains & Drapes,Window,0.2,69.71,44.5,-0.36200000000000004,-25.209999999999994,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1819,Curtains & Drapes,Window,0.22,68.22,7.13,-0.895,-61.089999999999996,True,False
+Wayfair US,40605,CAN_Sun Glow,Supplier Service Desk,SGLL1038,Blinds and Shades,Window,0.05,66.96,22.91,-0.6579999999999999,-44.05,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1039,Curtains & Drapes,Window,0.22,65.44,64.43,-0.016,-1.009999999999991,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,CHRL3892,Curtains & Drapes,Window,0.11,63.22,96.52,0.527,33.3,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,CRLM4222,Curtains & Drapes,Window,0.2,62.75,51.96,-0.172,-10.79,True,False
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,SYPL1458,Blinds and Shades,Window,0.25,60.72,62.34,0.027000000000000003,1.6200000000000045,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1096,Curtains & Drapes,Window,0.22,60.37,36.66,-0.39299999999999996,-23.71,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1427,Hammocks,Outdoor,0.16,58.28,43.63,-0.251,-14.649999999999999,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11169,Curtains & Drapes,Window,0.1,56.09,12.4,-0.779,-43.690000000000005,True,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1306,Blinds and Shades,Window,0.2,53.7,70.29,0.309,16.590000000000003,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,EDIV1168,Curtains & Drapes,Window,0.2,48.99,26.3,-0.46299999999999997,-22.69,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1089,Curtains & Drapes,Window,0.22,48.56,0.0,-1.0,-48.56,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AGRV4741,Curtains & Drapes,Window,0.3,47.97,40.23,-0.161,-7.740000000000002,True,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1163,Blinds and Shades,Window,0.2,47.91,248.67,4.191,200.76,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11348,Curtains & Drapes,Window,0.13,47.33,32.55,-0.312,-14.780000000000001,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EOHO1004,Blinds and Shades,Window,0.24,46.41,51.35,0.106,4.940000000000005,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1147,Curtains & Drapes,Window,0.18,46.12,8.2,-0.8220000000000001,-37.92,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,BL24615,Curtains & Drapes,Window,0.2,44.94,0.0,-1.0,-44.94,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,LGLY6543,Curtains & Drapes,Window,0.06,44.2,73.06,0.653,28.86,True,True
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1001,Blinds and Shades,Window,0.1,44.19,0.0,-1.0,-44.19,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,EDIV1051,Curtains & Drapes,Window,0.2,44.01,56.37,0.281,12.36,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1866,Curtains & Drapes,Window,0.26,42.45,107.33,1.528,64.88,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1793,Curtains & Drapes,Window,0.2,42.4,13.33,-0.6859999999999999,-29.07,True,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1308,Blinds and Shades,Window,0.2,42.01,0.0,-1.0,-42.01,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,HOHM7512,Curtains & Drapes,Window,0.05,41.67,63.95,0.535,22.28,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10878,Curtains & Drapes,Window,0.3,41.07,0.0,-1.0,-41.07,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1186,Blinds and Shades,Window,0.2,40.99,32.81,-0.2,-8.18,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TRLT1073,Curtains & Drapes,Window,0.2,40.9,31.57,-0.228,-9.329999999999998,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1265,Curtains & Drapes,Window,0.2,39.87,32.86,-0.17600000000000002,-7.009999999999998,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1542,Dining Linens,Tabletop,0.1,39.59,31.55,-0.203,-8.040000000000003,True,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1426,Slipcovers,Upholstery - Niche,0.15,39.45,32.18,-0.184,-7.270000000000003,True,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1220,Curtains & Drapes,Window,0.4,38.64,0.0,-1.0,-38.64,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1184,Blinds and Shades,Window,0.2,38.14,46.33,0.215,8.189999999999998,True,True
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,SAAA1003,Blinds and Shades,Window,0.15,37.94,137.37,2.6210000000000004,99.43,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,MTNA2544,Curtains & Drapes,Window,0.11,37.74,8.96,-0.763,-28.78,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1010,Blinds and Shades,Window,0.29,36.63,80.72,1.204,44.089999999999996,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,LGYT1556,Curtains & Drapes,Window,0.06,36.44,0.0,-1.0,-36.44,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1929,Curtains & Drapes,Window,0.18,35.43,0.0,-1.0,-35.43,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1130,Bedding Sets,Bedding,0.2,35.19,79.18,1.25,43.99000000000001,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1240,Curtains & Drapes,Window,0.2,33.15,69.07,1.084,35.919999999999995,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1131,Bedding Sets,Bedding,0.2,32.88,40.21,0.223,7.329999999999998,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1068,Dining Linens,Tabletop,0.2,32.88,45.8,0.39299999999999996,12.919999999999995,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,EDIV1317,Valances & Kitchen Curtains,Window,0.2,31.03,23.22,-0.252,-7.810000000000002,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1065,Curtains & Drapes,Window,0.22,30.9,0.0,-1.0,-30.9,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ACOT6639,Curtains & Drapes,Window,0.05,30.58,62.62,1.048,32.04,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WRLO1337,Curtains & Drapes,Window,0.22,30.2,87.65,1.902,57.45,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,WRLO7586,Curtains & Drapes,Window,0.05,29.54,100.45,2.401,70.91,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ1285,Curtains & Drapes,Window,0.05,28.98,60.09,1.073,31.110000000000003,True,True
+Wayfair US,40605,CAN_Sun Glow,Supplier Service Desk,SGLL4247,Blinds and Shades,Window,0.2,28.8,0.0,-1.0,-28.8,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1118,Curtains & Drapes,Window,0.25,28.66,62.32,1.175,33.66,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,WLRO1495,Curtains & Drapes,Window,0.15,28.21,17.82,-0.368,-10.39,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1637,Curtains & Drapes,Window,0.4,28.21,0.0,-1.0,-28.21,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,MCRR6413,Curtains & Drapes,Window,0.14,27.96,39.24,0.40399999999999997,11.280000000000001,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1061,Curtains & Drapes,Window,0.2,26.88,9.95,-0.63,-16.93,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1559,Dining Linens,Tabletop,0.2,26.63,35.13,0.319,8.500000000000004,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WRLO6193,Curtains & Drapes,Window,0.2,26.57,21.37,-0.196,-5.199999999999999,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,IVBX1438,Curtains & Drapes,Window,0.06,26.55,0.0,-1.0,-26.55,False,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1198,Blinds and Shades,Window,0.1,26.33,0.0,-1.0,-26.33,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ARGD1057,Valances & Kitchen Curtains,Window,0.2,26.33,98.35,2.736,72.02,True,True
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1296,Blinds and Shades,Window,0.2,26.27,7.23,-0.725,-19.04,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1000,Blinds and Shades,Window,0.33,26.17,6.29,-0.76,-19.880000000000003,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1391,Curtains & Drapes,Window,0.2,26.15,0.0,-1.0,-26.15,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,LGLY5676,Curtains & Drapes,Window,0.5,25.86,0.0,-1.0,-25.86,False,False
+Wayfair US,12248,India's Heritage,Supplier Service Desk,JLZD1330,Curtains & Drapes,Window,0.25,25.29,0.0,-1.0,-25.29,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,EHFA1284,Curtains & Drapes,Window,0.2,24.91,52.93,1.125,28.02,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1129,Bedding Sets,Bedding,0.2,24.41,0.0,-1.0,-24.41,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ARGD1058,Curtains & Drapes,Window,0.2,23.44,43.76,0.867,20.319999999999997,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCP1000,Curtains & Drapes,Window,0.2,22.83,22.51,-0.013999999999999999,-0.31999999999999673,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,LRKM4811,Curtains & Drapes,Window,0.09,22.52,26.82,0.191,4.300000000000001,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1543,Dining Linens,Tabletop,0.1,22.24,16.03,-0.27899999999999997,-6.209999999999997,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1861,Wall & Accent Mirrors,Decorative Accent - Wall Accents,0.25,22.11,0.0,-1.0,-22.11,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1529,Dining Linens,Tabletop,0.1,21.83,26.34,0.20600000000000002,4.510000000000002,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1329,Curtains & Drapes,Window,0.1,21.48,28.14,0.31,6.66,True,True
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,SORL1000,Dog Beds & Mats,Pet,0.25,21.32,0.0,-1.0,-21.32,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1922,Curtains & Drapes,Window,0.25,21.22,25.84,0.218,4.620000000000001,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1138,Curtains & Drapes,Window,0.22,21.04,67.07,2.187,46.029999999999994,True,True
+Wayfair US,288810,Praesto LLC,Supplier Service Desk,HCTI1004,Curtains & Drapes,Window,0.2,21.04,88.19,3.193,67.15,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1403,Curtains & Drapes,Window,0.2,20.93,58.85,1.8119999999999998,37.92,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1617,Dining Linens,Tabletop,0.1,20.56,4.9,-0.762,-15.659999999999998,True,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1218,Curtains & Drapes,Window,0.4,20.55,48.55,1.3619999999999999,27.999999999999996,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,TRPT1569,Curtains & Drapes,Window,0.15,20.55,115.52,4.623,94.97,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1064,Curtains & Drapes,Window,0.22,20.08,0.0,-1.0,-20.08,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1105,Curtains & Drapes,Window,0.2,20.01,0.0,-1.0,-20.01,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1599,Curtain Hardware & Accessories,Window,0.17,19.87,10.57,-0.46799999999999997,-9.3,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1139,Curtains & Drapes,Window,0.22,19.74,0.0,-1.0,-19.74,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1058,Curtains & Drapes,Window,0.25,19.74,22.05,0.11699999999999999,2.3100000000000023,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1531,Dining Linens,Tabletop,0.1,19.15,7.95,-0.585,-11.2,True,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EOHO1002,Blinds and Shades,Window,0.29,18.99,43.51,1.2919999999999998,24.52,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1003,Blinds and Shades,Window,0.33,18.84,0.0,-1.0,-18.84,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1011,Blinds and Shades,Window,0.29,18.69,34.85,0.865,16.16,True,True
+Wayfair US,12248,India's Heritage,Supplier Service Desk,JLZD1193,Curtains & Drapes,Window,0.4,18.6,14.98,-0.195,-3.620000000000001,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,BCMH1998,Curtains & Drapes,Window,0.35,18.57,0.0,-1.0,-18.57,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB2886,"Placemats, Chargers, & Napkins",Tabletop,0.1,17.85,0.0,-1.0,-17.85,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1430,Slipcovers,Upholstery - Niche,0.2,17.78,0.0,-1.0,-17.78,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1634,"Boxes, Bins, Baskets, & Buckets",Storage & Org - Frequency,0.5,17.47,35.28,1.02,17.810000000000002,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1152,Curtains & Drapes,Window,0.1,17.29,3.63,-0.79,-13.66,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10940,Curtains & Drapes,Window,0.11,17.29,0.0,-1.0,-17.29,False,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1299,Blinds and Shades,Window,0.2,17.28,22.26,0.28800000000000003,4.98,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1330,Curtains & Drapes,Window,0.1,16.99,25.65,0.51,8.66,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1464,Curtains & Drapes,Window,0.25,16.95,8.82,-0.48,-8.129999999999999,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1057,Curtains & Drapes,Window,0.25,16.47,0.0,-1.0,-16.47,False,False
+Wayfair US,12248,India's Heritage,Supplier Service Desk,INHR1254,Curtains & Drapes,Window,0.4,16.37,0.0,-1.0,-16.37,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1008,Blinds and Shades,Window,0.29,16.15,17.97,0.113,1.8200000000000003,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB2888,"Placemats, Chargers, & Napkins",Tabletop,0.1,16.14,0.0,-1.0,-16.14,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,ENDG1244,Curtains & Drapes,Window,0.16,15.88,14.82,-0.067,-1.0600000000000005,True,False
+Wayfair US,218949,Cooper Import & Export LLC,Supplier Service Desk,CSAK1000,Blinds and Shades,Window,0.6,15.08,21.52,0.42700000000000005,6.4399999999999995,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1005,Blinds and Shades,Window,0.29,14.76,65.89,3.465,51.13,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,LFMF3215,Curtains & Drapes,Window,0.25,14.58,0.0,-1.0,-14.58,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ATGD5370,Valances & Kitchen Curtains,Window,0.1,14.55,61.29,3.2119999999999997,46.739999999999995,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1600,Curtain Hardware & Accessories,Window,0.17,14.49,0.0,-1.0,-14.49,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1007,Blinds and Shades,Window,0.29,14.27,28.56,1.001,14.29,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,EDIV1318,Curtains & Drapes,Window,0.1,14.21,0.0,-1.0,-14.21,False,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,SYPM2204,Blinds and Shades,Window,0.2,14.09,0.0,-1.0,-14.09,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,RDBL4371,Curtains & Drapes,Window,0.1,13.79,70.24,4.092,56.449999999999996,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11378,"Placemats, Chargers, & Napkins",Tabletop,0.1,13.77,0.0,-1.0,-13.77,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1059,Curtains & Drapes,Window,0.25,13.51,6.83,-0.494,-6.68,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1582,Curtains & Drapes,Window,0.22,13.34,40.97,2.0709999999999997,27.63,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1689,Curtains & Drapes,Window,0.22,13.31,36.44,1.7369999999999999,23.129999999999995,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1313,Curtains & Drapes,Window,0.15,13.08,5.82,-0.555,-7.26,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11132,Curtains & Drapes,Window,0.12,12.95,0.0,-1.0,-12.95,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1604,Curtain Hardware & Accessories,Window,0.17,12.8,27.66,1.162,14.86,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1268,Curtains & Drapes,Window,0.15,12.78,8.1,-0.366,-4.68,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1794,Curtains & Drapes,Window,0.22,12.54,13.36,0.065,0.8200000000000003,True,True
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1223,Curtains & Drapes,Window,0.4,12.49,0.0,-1.0,-12.49,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1001,Blankets And Throws,Bedding,0.29,12.31,31.56,1.564,19.25,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1316,Curtains & Drapes,Window,0.22,12.22,45.15,2.695,32.93,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1051,Curtains & Drapes,Window,0.22,12.15,0.0,-1.0,-12.15,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1429,Slipcovers,Upholstery - Niche,0.2,11.99,17.67,0.474,5.6800000000000015,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,CLWD1001,Curtains & Drapes,Window,0.2,11.94,0.0,-1.0,-11.94,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11340,Curtains & Drapes,Window,0.15,11.9,0.0,-1.0,-11.9,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,EDIV1173,Curtains & Drapes,Window,0.2,11.9,5.37,-0.5489999999999999,-6.53,True,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1059,Curtains & Drapes,Window,0.22,11.89,0.0,-1.0,-11.89,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10346,Curtains & Drapes,Window,0.11,11.82,0.0,-1.0,-11.82,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1272,Curtains & Drapes,Window,0.27,11.52,0.0,-1.0,-11.52,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1461,Curtains & Drapes,Window,0.25,11.27,0.0,-1.0,-11.27,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1762,Curtains & Drapes,Window,0.18,11.08,44.97,3.0589999999999997,33.89,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1875,Curtains & Drapes,Window,0.25,10.95,0.0,-1.0,-10.95,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,CRLM6044,Curtains & Drapes,Window,0.18,10.83,24.59,1.27,13.76,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1704,Curtains & Drapes,Window,0.22,10.66,16.31,0.53,5.649999999999999,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1000,Blinds and Shades,Window,0.29,10.57,0.0,-1.0,-10.57,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1116,Curtains & Drapes,Window,0.22,10.45,34.84,2.333,24.390000000000004,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1612,Curtains & Drapes,Window,0.35,10.4,0.0,-1.0,-10.4,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,HBEE4142,Curtains & Drapes,Window,0.2,10.05,0.0,-1.0,-10.05,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1009,Blinds and Shades,Window,0.24,10.01,0.0,-1.0,-10.01,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1434,Clothing & Garment Racks,Storage & Org - Systems,0.5,10.0,0.0,-1.0,-10.0,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,SYPL9879,Dining Linens,Tabletop,0.1,9.93,9.22,-0.071,-0.7099999999999991,True,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10958,Curtains & Drapes,Window,0.1,9.9,13.11,0.324,3.209999999999999,True,True
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1229,Curtains & Drapes,Window,0.4,9.86,0.0,-1.0,-9.86,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,NTCO1015,Curtains & Drapes,Window,0.4,9.69,0.0,-1.0,-9.69,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2393,Bath Towels,Bath,0.35,9.67,0.0,-1.0,-9.67,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11364,Shower Curtains,Bath,0.05,9.64,14.06,0.45799999999999996,4.42,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,WRLO7737,Curtains & Drapes,Window,0.05,9.51,23.99,1.521,14.479999999999999,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3017,"Placemats, Chargers, & Napkins",Tabletop,0.1,9.5,0.0,-1.0,-9.5,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1784,Wall & Accent Mirrors,Decorative Accent - Wall Accents,0.25,9.3,63.7,5.849,54.400000000000006,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1002,Blinds and Shades,Window,0.33,9.17,7.79,-0.151,-1.38,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1807,Curtains & Drapes,Window,0.18,9.1,40.18,3.415,31.08,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,DBHM3482,Curtains & Drapes,Window,0.2,8.68,6.0,-0.309,-2.6799999999999997,True,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1202,Curtains & Drapes,Window,0.4,8.59,0.0,-1.0,-8.59,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11435,Dining Linens,Tabletop,0.1,8.5,33.57,2.948,25.07,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1176,Curtains & Drapes,Window,0.2,8.49,55.26,5.51,46.769999999999996,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1012,Blinds and Shades,Window,0.29,8.37,0.0,-1.0,-8.37,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11406,"Placemats, Chargers, & Napkins",Tabletop,0.35,8.19,3.47,-0.5770000000000001,-4.719999999999999,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1761,Curtains & Drapes,Window,0.25,8.13,12.25,0.506,4.119999999999999,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1585,Curtains & Drapes,Window,0.18,8.09,0.0,-1.0,-8.09,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2395,Bath Towels,Bath,0.35,8.03,0.0,-1.0,-8.03,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1561,Curtains & Drapes,Window,0.25,7.97,23.52,1.952,15.55,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1774,Curtains & Drapes,Window,0.4,7.9,12.15,0.539,4.25,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1309,Curtains & Drapes,Window,0.2,7.84,0.0,-1.0,-7.84,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2885,Dining Linens,Tabletop,0.2,7.83,6.7,-0.14400000000000002,-1.13,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,WLAO4493,Curtains & Drapes,Window,0.2,7.71,45.89,4.953,38.18,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1881,Curtains & Drapes,Window,0.22,7.66,7.9,0.032,0.2400000000000002,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1788,Wall & Accent Mirrors,Decorative Accent - Wall Accents,0.25,7.64,0.0,-1.0,-7.64,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1408,Curtains & Drapes,Window,0.2,7.63,35.72,3.6830000000000003,28.09,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1215,Curtains & Drapes,Window,0.2,7.43,40.15,4.402,32.72,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1823,Shower Benches,Storage & Org - Frequency,0.15,7.33,0.0,-1.0,-7.33,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1378,Dining Linens,Tabletop,0.2,7.31,6.96,-0.048,-0.34999999999999964,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1791,Curtains & Drapes,Window,0.2,7.24,15.15,1.092,7.91,True,True
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1166,Blinds and Shades,Window,0.2,7.09,44.51,5.275,37.42,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1265,Valances & Kitchen Curtains,Window,0.35,7.04,1.27,-0.82,-5.77,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11439,Dining Linens,Tabletop,0.1,6.71,0.0,-1.0,-6.71,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1391,Valances & Kitchen Curtains,Window,0.15,6.6,0.0,-1.0,-6.6,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1875,End Tables,Entertainment Furniture,0.5,6.52,0.0,-1.0,-6.52,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1810,Curtains & Drapes,Window,0.18,6.5,11.05,0.701,4.550000000000001,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2396,Bath Towels,Bath,0.35,6.39,0.0,-1.0,-6.39,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1442,Valances & Kitchen Curtains,Window,0.35,6.34,0.0,-1.0,-6.34,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1829,Dining Linens,Tabletop,0.1,6.29,9.91,0.575,3.62,True,True
+Wayfair US,33318,Natco Home,Supplier Service Desk,NTCO1010,Curtains & Drapes,Window,0.4,6.26,0.0,-1.0,-6.26,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1690,Hammocks,Outdoor,0.19,6.25,0.0,-1.0,-6.25,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1306,Curtains & Drapes,Window,0.3,6.24,30.02,3.815,23.78,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1420,Curtains & Drapes,Window,0.2,6.19,22.28,2.5980000000000003,16.09,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1795,Dining Linens,Tabletop,0.2,6.18,0.0,-1.0,-6.18,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11437,"Placemats, Chargers, & Napkins",Tabletop,0.1,5.99,0.0,-1.0,-5.99,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,ROSP4431,Curtains & Drapes,Window,0.22,5.94,27.25,3.5869999999999997,21.31,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3331,"Placemats, Chargers, & Napkins",Tabletop,0.1,5.94,9.9,0.6659999999999999,3.96,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1394,Curtain Hardware & Accessories,Window,0.1,5.93,0.0,-1.0,-5.93,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1098,Accent Pillows,Bedding,0.15,5.92,0.0,-1.0,-5.92,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1635,"Boxes, Bins, Baskets, & Buckets",Storage & Org - Frequency,0.5,5.82,0.0,-1.0,-5.82,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,HDAY7994,Dining Linens,Tabletop,0.2,5.82,0.0,-1.0,-5.82,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1626,Dining Linens,Tabletop,0.1,5.7,0.0,-1.0,-5.7,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,GCEO6537,Curtains & Drapes,Window,0.16,5.62,0.0,-1.0,-5.62,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1631,Curtains & Drapes,Window,0.2,5.59,0.0,-1.0,-5.59,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO2344,Curtains & Drapes,Window,0.25,5.58,0.0,-1.0,-5.58,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1751,Curtains & Drapes,Window,0.2,5.57,0.0,-1.0,-5.57,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,BNGL2737,Curtains & Drapes,Window,0.1,5.54,48.78,7.806,43.24,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,LARK2319,Curtains & Drapes,Window,0.09,5.37,31.85,4.927,26.48,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1080,Accent Pillows,Bedding,0.15,5.26,0.0,-1.0,-5.26,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1134,Accent Pillows,Bedding,0.15,5.26,0.0,-1.0,-5.26,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,CBMR1454,Blinds and Shades,Window,0.24,5.25,9.35,0.7829999999999999,4.1,True,True
+Wayfair US,11168,Keystone Fabrics,Madison Carvalho,SORL1001,Dog Beds & Mats,Pet,0.25,5.23,13.77,1.631,8.54,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ10842,Curtains & Drapes,Window,0.05,5.22,13.42,1.569,8.2,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11342,Curtains & Drapes,Window,0.1,5.21,53.8,9.331,48.589999999999996,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3336,Dining Linens,Tabletop,0.1,5.17,0.0,-1.0,-5.17,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,OPCO1585,Curtains & Drapes,Window,0.15,5.1,0.0,-1.0,-5.1,False,False
+Wayfair US,70236,HT Window Fashions Inc.,Benjamin Hannigan,BCND1092,Blinds and Shades,Window,0.2,5.06,0.0,-1.0,-5.06,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1209,Curtains & Drapes,Window,0.15,5.04,0.0,-1.0,-5.04,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11440,"Placemats, Chargers, & Napkins",Tabletop,0.1,4.96,0.0,-1.0,-4.96,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1396,Curtains & Drapes,Window,0.2,4.91,0.0,-1.0,-4.91,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,ALTL4555,Curtains & Drapes,Window,0.1,4.84,0.0,-1.0,-4.84,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO1641,Curtains & Drapes,Window,0.25,4.84,0.0,-1.0,-4.84,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1062,Dining Linens,Tabletop,0.2,4.83,9.11,0.887,4.279999999999999,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1614,"Placemats, Chargers, & Napkins",Tabletop,0.1,4.82,0.0,-1.0,-4.82,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2394,Bath Towels,Bath,0.35,4.75,0.0,-1.0,-4.75,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,CHRL7976,Curtains & Drapes,Window,0.25,4.74,1.98,-0.583,-2.7600000000000002,True,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO1419,Bedding Sets,Bedding,0.25,4.74,0.0,-1.0,-4.74,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1794,Dining Linens,Tabletop,0.2,4.67,0.0,-1.0,-4.67,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ATGD1799,Curtains & Drapes,Window,0.35,4.57,0.0,-1.0,-4.57,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1526,"Placemats, Chargers, & Napkins",Tabletop,0.1,4.5,0.0,-1.0,-4.5,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1133,Blankets And Throws,Bedding,0.2,4.47,0.0,-1.0,-4.47,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1408,Curtain Hardware & Accessories,Window,0.2,4.45,6.7,0.505,2.25,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,LATG2558,Curtains & Drapes,Window,0.2,4.42,26.22,4.928,21.799999999999997,True,True
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,HBEE3967,Curtains & Drapes,Window,0.25,4.32,5.48,0.268,1.1600000000000001,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1234,Curtains & Drapes,Window,0.2,4.32,0.0,-1.0,-4.32,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,LFMF2116,Curtains & Drapes,Window,0.2,4.31,12.02,1.788,7.71,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1119,Curtains & Drapes,Window,0.2,4.28,1.57,-0.634,-2.71,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3333,"Placemats, Chargers, & Napkins",Tabletop,0.2,4.28,6.33,0.48100000000000004,2.05,True,True
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1058,Curtains & Drapes,Window,0.4,4.2,0.0,-1.0,-4.2,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1729,Curtains & Drapes,Window,0.25,4.17,10.78,1.588,6.609999999999999,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ATGD1800,Valances & Kitchen Curtains,Window,0.35,4.13,0.0,-1.0,-4.13,False,False
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1107,Accent Pillows,Bedding,0.15,4.09,0.0,-1.0,-4.09,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,HIDN5333,Curtains & Drapes,Window,0.1,4.05,22.52,4.567,18.47,True,True
+Wayfair US,78708,Foshan Shiyue (Visionary) Trading Limited Company,Benjamin Hannigan,VSIO1099,Accent Pillows,Bedding,0.15,4.04,0.0,-1.0,-4.04,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11643,Dining Linens,Tabletop,0.2,4.04,0.0,-1.0,-4.04,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1140,"Placemats, Chargers, & Napkins",Tabletop,0.1,4.03,0.0,-1.0,-4.03,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1559,Curtains & Drapes,Window,0.25,3.97,0.0,-1.0,-3.97,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,OPCO1584,Curtains & Drapes,Window,0.2,3.93,0.0,-1.0,-3.93,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1838,Curtain Hardware & Accessories,Window,0.1,3.84,0.0,-1.0,-3.84,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB2890,"Placemats, Chargers, & Napkins",Tabletop,0.35,3.78,0.0,-1.0,-3.78,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,SUNZ1115,Valances & Kitchen Curtains,Window,0.2,3.78,0.0,-1.0,-3.78,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1763,Curtains & Drapes,Window,0.18,3.7,36.97,9.0,33.269999999999996,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1548,"Placemats, Chargers, & Napkins",Tabletop,0.1,3.68,0.0,-1.0,-3.68,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2883,Dining Linens,Tabletop,0.1,3.64,9.32,1.561,5.68,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ATGD5369,Curtains & Drapes,Window,0.1,3.64,68.1,17.718,64.46,True,True
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,WNPR8996,Curtains & Drapes,Window,0.25,3.64,0.0,-1.0,-3.64,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1460,Valances & Kitchen Curtains,Window,0.2,3.6,7.31,1.031,3.7099999999999995,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EVST1002,Blinds and Shades,Window,0.29,3.58,29.2,7.1610000000000005,25.619999999999997,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1803,Curtains & Drapes,Window,0.22,3.54,0.0,-1.0,-3.54,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1317,Dining Linens,Tabletop,0.1,3.52,0.0,-1.0,-3.52,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EOHO1003,Blinds and Shades,Window,0.24,3.51,4.98,0.42,1.4700000000000006,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1627,Dining Linens,Tabletop,0.1,3.5,0.0,-1.0,-3.5,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1408,Bedding Sets,Bedding,0.5,3.48,0.0,-1.0,-3.48,False,False
+Wayfair US,288810,Praesto LLC,Supplier Service Desk,HCTI1013,Standard Bed Pillow,Mattresses - Utility Bedding,0.2,3.46,9.21,1.6669999999999998,5.750000000000001,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11050,Accent Pillows,Bedding,0.1,3.44,2.23,-0.35200000000000004,-1.21,True,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3335,"Placemats, Chargers, & Napkins",Tabletop,0.1,3.44,0.0,-1.0,-3.44,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB2814,"Placemats, Chargers, & Napkins",Tabletop,0.2,3.43,0.0,-1.0,-3.43,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11368,Shower Curtains,Bath,0.05,3.41,2.6,-0.235,-0.81,True,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1876,Curtains & Drapes,Window,0.25,3.38,0.0,-1.0,-3.38,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1242,Curtains & Drapes,Window,0.4,3.37,0.0,-1.0,-3.37,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1246,Curtains & Drapes,Window,0.4,3.35,0.0,-1.0,-3.35,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11387,Curtains & Drapes,Window,0.05,3.35,0.0,-1.0,-3.35,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1005,Blankets And Throws,Bedding,0.29,3.3,0.0,-1.0,-3.3,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO2016,Sheets & Pillowcases,Bedding,0.25,3.26,0.0,-1.0,-3.26,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,BEHF1012,Curtain Hardware & Accessories,Window,0.5,3.21,8.09,1.5190000000000001,4.88,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB2670,Dining Linens,Tabletop,0.2,3.14,0.0,-1.0,-3.14,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TRLT1118,Curtains & Drapes,Window,0.2,3.12,7.98,1.557,4.86,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2397,Bath Towels,Bath,0.35,3.11,0.0,-1.0,-3.11,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ICXK2398,Bath Towels,Bath,0.35,3.11,0.0,-1.0,-3.11,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11379,Dining Linens,Tabletop,0.1,3.02,0.0,-1.0,-3.02,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1760,Curtains & Drapes,Window,0.22,3.0,0.0,-1.0,-3.0,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11436,"Placemats, Chargers, & Napkins",Tabletop,0.1,3.0,19.96,5.664,16.96,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1013,Blinds and Shades,Window,0.24,2.99,5.68,0.899,2.6899999999999995,True,True
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WRLO6228,Curtains & Drapes,Window,0.25,2.95,0.0,-1.0,-2.95,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1802,Curtains & Drapes,Window,0.22,2.93,0.0,-1.0,-2.93,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,BGLS9402,Curtains & Drapes,Window,0.25,2.88,0.0,-1.0,-2.88,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1170,Curtains & Drapes,Window,0.22,2.88,0.0,-1.0,-2.88,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1079,Curtains & Drapes,Window,0.4,2.87,0.0,-1.0,-2.87,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1743,Dining Linens,Tabletop,0.1,2.8,0.0,-1.0,-2.8,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO2202,Curtains & Drapes,Window,0.25,2.75,0.0,-1.0,-2.75,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1410,Curtains & Drapes,Window,0.2,2.74,7.07,1.578,4.33,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1318,Dining Linens,Tabletop,0.1,2.74,11.03,3.03,8.29,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1345,Dining Linens,Tabletop,0.1,2.71,0.0,-1.0,-2.71,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,ALTH2296,Dining Linens,Tabletop,0.35,2.56,0.0,-1.0,-2.56,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1619,Dining Linens,Tabletop,0.1,2.54,4.01,0.579,1.4699999999999998,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1711,Dining Linens,Tabletop,0.1,2.54,0.0,-1.0,-2.54,False,False
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,CHRL5897,Valances & Kitchen Curtains,Window,0.25,2.51,6.28,1.501,3.7700000000000005,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1740,Curtains & Drapes,Window,0.2,2.51,33.43,12.333,30.92,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,CRLM3580,Dining Linens,Tabletop,0.2,2.48,3.78,0.524,1.2999999999999998,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1137,Accent Pillows,Bedding,0.2,2.48,44.5,16.977999999999998,42.02,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1392,Curtains & Drapes,Window,0.35,2.46,0.0,-1.0,-2.46,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1556,Dining Linens,Tabletop,0.1,2.43,7.12,1.9280000000000002,4.6899999999999995,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,WLRO1140,Curtains & Drapes,Window,0.15,2.39,0.0,-1.0,-2.39,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2849,Potholders,Kitchen,0.1,2.38,0.0,-1.0,-2.38,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2892,Dining Linens,Tabletop,0.1,2.37,4.13,0.741,1.7599999999999998,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2894,Dining Linens,Tabletop,0.1,2.3,16.19,6.03,13.89,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1566,Dining Linens,Tabletop,0.35,2.24,0.0,-1.0,-2.24,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1339,Curtains & Drapes,Window,0.2,2.15,3.77,0.753,1.62,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11029,Curtains & Drapes,Window,0.08,2.12,0.0,-1.0,-2.12,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1374,"Placemats, Chargers, & Napkins",Tabletop,0.2,2.09,0.0,-1.0,-2.09,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1294,Valances & Kitchen Curtains,Window,0.2,2.06,0.0,-1.0,-2.06,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1224,Curtains & Drapes,Window,0.4,2.05,0.0,-1.0,-2.05,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1655,"Placemats, Chargers, & Napkins",Tabletop,0.2,2.02,0.0,-1.0,-2.02,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1532,Curtains & Drapes,Window,0.15,2.01,0.0,-1.0,-2.01,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1113,Valances & Kitchen Curtains,Window,0.2,2.01,2.68,0.33299999999999996,0.6700000000000004,True,True
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1312,Curtains & Drapes,Window,0.2,2.0,0.0,-1.0,-2.0,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,CLWD1002,Curtains & Drapes,Window,0.2,1.98,0.0,-1.0,-1.98,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1718,Curtains & Drapes,Window,0.25,1.93,0.0,-1.0,-1.93,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1078,Valances & Kitchen Curtains,Window,0.2,1.89,0.0,-1.0,-1.89,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1247,Bedding Sets,Bedding,0.4,1.86,0.0,-1.0,-1.86,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3039,"Placemats, Chargers, & Napkins",Tabletop,0.2,1.85,0.0,-1.0,-1.85,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1795,Curtains & Drapes,Window,0.22,1.85,14.27,6.722,12.42,True,True
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1032,Curtains & Drapes,Window,0.4,1.84,0.0,-1.0,-1.84,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,MCRW1910,Curtains & Drapes,Window,0.33,1.83,0.0,-1.0,-1.83,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ1276,Curtains & Drapes,Window,0.11,1.83,0.0,-1.0,-1.83,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1118,Blankets And Throws,Bedding,0.35,1.8,0.0,-1.0,-1.8,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,TDCO1228,Curtains & Drapes,Window,0.2,1.8,0.0,-1.0,-1.8,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,WLAO3200,Curtains & Drapes,Window,0.2,1.78,0.0,-1.0,-1.78,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1739,Curtains & Drapes,Window,0.2,1.77,0.0,-1.0,-1.77,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1375,"Placemats, Chargers, & Napkins",Tabletop,0.1,1.73,5.76,2.335,4.029999999999999,True,True
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,DELN1004,Blankets And Throws,Bedding,0.29,1.72,0.0,-1.0,-1.72,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1528,"Placemats, Chargers, & Napkins",Tabletop,0.1,1.71,0.0,-1.0,-1.71,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1818,Dining Linens,Tabletop,0.2,1.7,0.0,-1.0,-1.7,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3371,Dining Linens,Tabletop,0.2,1.66,0.0,-1.0,-1.66,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB8440,Dining Linens,Tabletop,0.2,1.65,0.0,-1.0,-1.65,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1791,"Placemats, Chargers, & Napkins",Tabletop,0.2,1.64,0.0,-1.0,-1.64,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,OPHL3044,Dining Linens,Tabletop,0.1,1.64,0.0,-1.0,-1.64,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1707,"Placemats, Chargers, & Napkins",Tabletop,0.1,1.58,0.0,-1.0,-1.58,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1225,Curtains & Drapes,Window,0.4,1.58,0.0,-1.0,-1.58,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1390,Valances & Kitchen Curtains,Window,0.15,1.56,2.24,0.43799999999999994,0.6800000000000002,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3344,Dining Linens,Tabletop,0.2,1.55,0.0,-1.0,-1.55,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1797,Dining Linens,Tabletop,0.35,1.53,0.0,-1.0,-1.53,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1781,Dining Linens,Tabletop,0.35,1.5,0.0,-1.0,-1.5,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1745,Dining Linens,Tabletop,0.1,1.5,0.0,-1.0,-1.5,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,VWB11638,Dining Linens,Tabletop,0.35,1.49,17.45,10.727,15.959999999999999,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ1278,Curtains & Drapes,Window,0.09,1.43,4.38,2.059,2.95,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1516,Dining Linens,Tabletop,0.1,1.39,0.0,-1.0,-1.39,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1645,"Placemats, Chargers, & Napkins",Tabletop,0.35,1.39,0.0,-1.0,-1.39,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,STSS5306,Curtains & Drapes,Window,0.5,1.38,0.0,-1.0,-1.38,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1775,Dining Linens,Tabletop,0.35,1.38,0.0,-1.0,-1.38,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1017,Curtains & Drapes,Window,0.4,1.31,0.0,-1.0,-1.31,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1264,Valances & Kitchen Curtains,Window,0.35,1.31,0.0,-1.0,-1.31,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1828,Dining Linens,Tabletop,0.1,1.28,0.0,-1.0,-1.28,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1240,Curtains & Drapes,Window,0.4,1.28,0.0,-1.0,-1.28,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1080,Valances & Kitchen Curtains,Window,0.2,1.26,0.0,-1.0,-1.26,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1578,Dining Linens,Tabletop,0.1,1.25,0.0,-1.0,-1.25,False,False
+Wayfair US,18684,"Best Home Fashion, Inc.",Madison Carvalho,AAOF1426,Curtains & Drapes,Window,0.5,1.24,0.0,-1.0,-1.24,False,False
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,DBHM3698,Curtains & Drapes,Window,0.24,1.2,0.0,-1.0,-1.2,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2875,Dining Linens,Tabletop,0.1,1.19,0.0,-1.0,-1.19,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ2889,Dining Linens,Tabletop,0.1,1.19,0.0,-1.0,-1.19,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3378,Kitchen Towels,Tabletop,0.1,1.19,0.0,-1.0,-1.19,False,False
+Wayfair US,60212,OPT FASHION GROUP INC.,Supplier Service Desk,AMHS1045,Curtains & Drapes,Window,0.3,1.19,0.0,-1.0,-1.19,False,False
+Wayfair US,60212,OPT FASHION GROUP INC.,Supplier Service Desk,AMHS1071,Curtains & Drapes,Window,0.3,1.19,1.97,0.665,0.78,True,True
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1407,Valances & Kitchen Curtains,Window,0.35,1.18,0.0,-1.0,-1.18,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1500,Dining Linens,Tabletop,0.1,1.18,0.0,-1.0,-1.18,False,False
+Wayfair US,60212,OPT FASHION GROUP INC.,Supplier Service Desk,AMHS1067,Curtains & Drapes,Window,0.3,1.15,0.0,-1.0,-1.15,False,False
+Wayfair US,60212,OPT FASHION GROUP INC.,Supplier Service Desk,AMHS1015,Curtains & Drapes,Window,0.3,1.15,0.0,-1.0,-1.15,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,KBHZ3341,Dining Linens,Tabletop,0.1,1.15,0.0,-1.0,-1.15,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,GDIG1120,Curtains & Drapes,Window,0.2,1.14,13.65,10.939,12.51,True,True
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO1867,Valances & Kitchen Curtains,Window,0.25,1.12,0.0,-1.0,-1.12,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1665,"Placemats, Chargers, & Napkins",Tabletop,0.2,1.07,0.0,-1.0,-1.07,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1701,Dining Linens,Tabletop,0.2,1.07,0.0,-1.0,-1.07,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,OPHL3419,Valances & Kitchen Curtains,Window,0.35,1.07,0.0,-1.0,-1.07,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1498,Dining Linens,Tabletop,0.1,1.05,2.7,1.574,1.6500000000000001,True,True
+Wayfair US,10539,Half Price Drapes,Madison Carvalho,XKQ11077,Accent Pillows,Bedding,0.1,1.02,0.0,-1.0,-1.02,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1620,"Placemats, Chargers, & Napkins",Tabletop,0.2,1.01,0.0,-1.0,-1.01,False,False
+Wayfair US,15611,"All Strong Industry USA, Inc.",Madison Carvalho,EOHO1007,Blankets And Throws,Bedding,0.29,0.99,0.0,-1.0,-0.99,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1488,"Placemats, Chargers, & Napkins",Tabletop,0.2,0.96,0.0,-1.0,-0.96,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1742,"Placemats, Chargers, & Napkins",Tabletop,0.1,0.96,0.0,-1.0,-0.96,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1230,Valances & Kitchen Curtains,Window,0.15,0.95,0.0,-1.0,-0.95,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1319,Dining Linens,Tabletop,0.1,0.94,0.0,-1.0,-0.94,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,LCTN1371,Blinds and Shades,Window,0.15,0.92,0.0,-1.0,-0.92,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1515,Dining Linens,Tabletop,0.1,0.91,0.0,-1.0,-0.91,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1367,"Placemats, Chargers, & Napkins",Tabletop,0.1,0.88,0.0,-1.0,-0.88,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1788,"Placemats, Chargers, & Napkins",Tabletop,0.1,0.88,0.0,-1.0,-0.88,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1783,Dining Linens,Tabletop,0.1,0.84,0.0,-1.0,-0.84,False,False
+Wayfair US,33318,Natco Home,Supplier Service Desk,MBSY1110,Curtains & Drapes,Window,0.4,0.65,0.0,-1.0,-0.65,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1480,"Placemats, Chargers, & Napkins",Tabletop,0.1,0.54,0.0,-1.0,-0.54,False,False
+Wayfair US,14925,Lichtenberg,Missy Paragamian,CLWD1010,Valances & Kitchen Curtains,Window,0.2,0.49,0.0,-1.0,-0.49,False,False
+Wayfair US,22255,Threadmade Home LLC,Benjamin Hannigan,FRRB1310,Dining Linens,Tabletop,0.1,0.47,9.89,20.05,9.42,True,True
+Wayfair US,23034,Ramallah Trading Company,Benjamin Hannigan,QLKO1528,Curtains & Drapes,Window,0.25,0.01,0.0,-1.0,-0.01,False,False
