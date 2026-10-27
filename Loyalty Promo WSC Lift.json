@@ -152,7 +152,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4120,
+        4560,
         380
       ],
       "id": "fb466a0b-9eec-4bbd-86bb-651e7b6e3a2a",
@@ -269,7 +269,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        4340,
+        4780,
         380
       ],
       "id": "47a39057-6612-4e9f-b71c-39d8e63de5e8",
@@ -347,7 +347,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const dest = $('Create Spreadsheet').first().json || {};\nconst spreadsheetId = dest.spreadsheetId;\nconst sheets = ($input.first().json.sheets || [])\n  .map((sheet) => sheet.properties || sheet)\n  .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));\n\nconst wanted = ['SKU Lift', 'Supplier Lift', 'Mailmeteor Send', 'Templates'];\nif (!sheets.length) {\n  throw new Error('Copied spreadsheet has no sheets');\n}\n\n// Preserve the Member Monday template tabs (color/formatting/charts) by RENAMING\n// the first sheets in place. Only add brand-new tabs when the template has fewer\n// than four sheets. Never delete+recreate the SKU/Supplier tabs.\nconst requests = [];\nconst keepIds = [];\n\nfor (let i = 0; i < wanted.length; i += 1) {\n  if (i < sheets.length) {\n    keepIds.push(sheets[i].sheetId);\n    if (sheets[i].title !== wanted[i]) {\n      requests.push({\n        updateSheetProperties: {\n          properties: { sheetId: sheets[i].sheetId, title: wanted[i] },\n          fields: 'title',\n        },\n      });\n    }\n  } else {\n    requests.push({\n      addSheet: {\n        properties: { title: wanted[i], index: i },\n      },\n    });\n  }\n}\n\nfor (let i = wanted.length; i < sheets.length; i += 1) {\n  requests.push({ deleteSheet: { sheetId: sheets[i].sheetId } });\n}\n\nif (!requests.length) {\n  requests.push({\n    updateSheetProperties: {\n      properties: { sheetId: keepIds[0] || sheets[0].sheetId, title: 'SKU Lift' },\n      fields: 'title',\n    },\n  });\n}\n\nreturn [{\n  json: {\n    spreadsheetId,\n    spreadsheetUrl: dest.spreadsheetUrl,\n    deletedSheetCount: Math.max(0, sheets.length - wanted.length),\n    requests,\n  },\n}];\n"
+        "jsCode": "const dest = $('Create Spreadsheet').first().json || {};\nconst spreadsheetId = dest.spreadsheetId;\nconst sheets = ($input.first().json.sheets || [])\n  .map((sheet) => sheet.properties || sheet)\n  .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));\n\nif (!sheets.length) {\n  throw new Error('Copied spreadsheet has no sheets');\n}\n\n// Preserve Member Monday formatting on the first TWO template tabs only\n// (SKU Lift + Supplier Lift). Create clean tabs for Mailmeteor/Templates so\n// leftover Member Monday charts do not sit on the outreach sheet.\nconst requests = [];\n\nconst skuSheet = sheets[0];\nconst supplierSheet = sheets[1] || null;\n\nif (skuSheet.title !== 'SKU Lift') {\n  requests.push({\n    updateSheetProperties: {\n      properties: { sheetId: skuSheet.sheetId, title: 'SKU Lift' },\n      fields: 'title',\n    },\n  });\n}\n\nif (supplierSheet) {\n  if (supplierSheet.title !== 'Supplier Lift') {\n    requests.push({\n      updateSheetProperties: {\n        properties: { sheetId: supplierSheet.sheetId, title: 'Supplier Lift' },\n        fields: 'title',\n      },\n    });\n  }\n} else {\n  requests.push({\n    addSheet: { properties: { title: 'Supplier Lift', index: 1 } },\n  });\n}\n\n// Delete every template sheet after the first two (charts/junk live here)\nfor (let i = 2; i < sheets.length; i += 1) {\n  requests.push({ deleteSheet: { sheetId: sheets[i].sheetId } });\n}\n\n// Always add clean outreach tabs\nrequests.push({ addSheet: { properties: { title: 'Mailmeteor Send', index: 2 } } });\nrequests.push({ addSheet: { properties: { title: 'Templates', index: 3 } } });\n\nreturn [{\n  json: {\n    spreadsheetId,\n    spreadsheetUrl: dest.spreadsheetUrl,\n    deletedSheetCount: Math.max(0, sheets.length - 2),\n    requests,\n  },\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -450,7 +450,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        3900,
+        4340,
         500
       ],
       "id": "c748518c-b995-498e-b15f-a26cfd19c414",
@@ -463,8 +463,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3020,
-        700
+        3240,
+        920
       ],
       "id": "757eee23-e632-47b0-8c31-2f7dee8a1cd3",
       "name": "Build OAM Contact SQL",
@@ -486,8 +486,8 @@
       "type": "n8n-nodes-base.googleBigQuery",
       "typeVersion": 2.1,
       "position": [
-        3240,
-        700
+        3460,
+        920
       ],
       "id": "11e586a7-98a9-41a3-ae3e-485f0b115d9c",
       "name": "Pull OAM Universe",
@@ -503,12 +503,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\nconst outreach = analysis.outreach_summary || {};\n\nconst oamBySupplier = new Map();\nlet oamError = '';\ntry {\n  const oamItems = $('Pull OAM Universe').all();\n  for (const item of oamItems) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') {\n      oamError = String(row.error || row.message || JSON.stringify(row)).slice(0, 500);\n      continue;\n    }\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  oamError = String(error && error.message ? error.message : error);\n}\n\nif (!rows.length) {\n  const reason = oamError\n    ? `No analysis outreach rows. OAM note: ${oamError}`\n    : 'No analysis outreach rows (Build Analysis returned 0 mailmeteor suppliers)';\n  return [{\n    json: {\n      Email: '',\n      'Supplier ID': '',\n      'Supplier Name': `(${reason})`,\n      SRM: '',\n      Bucket: '',\n      'Template Key': '',\n      Category: analysis.summary?.marketing_category || '',\n      'Supplier Marketing Category': '',\n      'Category Lift %': '',\n      'Supplier Lift %': '',\n      'Best Class': '',\n      'Class Lift %': '',\n      'Incremental WSC $': '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Prior Event Name': analysis.summary?.event_name || '',\n      'Next Event Name': outreach.next_event_name || '',\n      'Next Event Dates': outreach.next_event_dates || '',\n      'Submission Deadline': outreach.submission_deadline || '',\n      Subject: '',\n      Body: '',\n      'Needs Review': 'Y',\n    },\n  }];\n}\n\nreturn rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  const email = oamBySupplier.get(sid) || '';\n  const { ['Opportunity Score']: _score, ...rest } = row;\n  return {\n    json: {\n      ...rest,\n      Email: email,\n      'Needs Review': rest['Needs Review'] || (!email ? 'Y' : ''),\n    },\n  };\n});\n"
+        "jsCode": "const analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\nconst outreach = analysis.outreach_summary || {};\n\n// Optional: if OAM already finished in this execution, merge emails now.\nconst oamBySupplier = new Map();\ntry {\n  const oamItems = $('Pull OAM Universe').all();\n  for (const item of oamItems) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // OAM runs in parallel and may not be ready yet \u2014 that is OK.\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      Email: '',\n      'Supplier ID': '',\n      'Supplier Name': '(No analysis outreach rows \u2014 check Build Analysis / lift pull)',\n      SRM: '',\n      Bucket: '',\n      'Template Key': '',\n      Category: analysis.summary?.marketing_category || '',\n      'Supplier Marketing Category': '',\n      'Category Lift %': '',\n      'Supplier Lift %': '',\n      'Best Class': '',\n      'Class Lift %': '',\n      'Incremental WSC $': '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Prior Event Name': analysis.summary?.event_name || '',\n      'Next Event Name': outreach.next_event_name || '',\n      'Next Event Dates': outreach.next_event_dates || '',\n      'Submission Deadline': outreach.submission_deadline || '',\n      Subject: '',\n      Body: '',\n      'Needs Review': 'Y',\n    },\n  }];\n}\n\nreturn rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  const email = oamBySupplier.get(sid) || '';\n  const { ['Opportunity Score']: _score, ...rest } = row;\n  return {\n    json: {\n      ...rest,\n      Email: email,\n      'Needs Review': rest['Needs Review'] || (!email ? 'Y' : ''),\n    },\n  };\n});\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3460,
+        3240,
         700
       ],
       "id": "d9ced7a4-a7f4-4a6a-b1c5-edcf82522b4e",
@@ -551,7 +551,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        3680,
+        3460,
         700
       ],
       "id": "5fe0d6c4-8aa4-4109-8a59-67a782d39e0f",
@@ -600,6 +600,63 @@
         }
       },
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "numberInputs": 2,
+        "options": {}
+      },
+      "id": "17e45400-8837-4c15-b4cb-15614be3794d",
+      "name": "Wait Mailmeteor Append And OAM",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3680,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const spreadsheetId = $('Create Spreadsheet').first().json.spreadsheetId;\nconst analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\n\nconst oamBySupplier = new Map();\ntry {\n  for (const item of $('Pull OAM Universe').all()) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // pass through with blank emails\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      spreadsheetId,\n      skip: true,\n      data: [],\n    },\n  }];\n}\n\nconst values = rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  return [oamBySupplier.get(sid) || ''];\n});\n\nreturn [{\n  json: {\n    spreadsheetId,\n    skip: false,\n    matchedEmails: values.filter((v) => v[0]).length,\n    totalRows: values.length,\n    body: {\n      valueInputOption: 'RAW',\n      data: [\n        {\n          range: \"'Mailmeteor Send'!A2:A\",\n          values,\n        },\n      ],\n    },\n  },\n}];\n"
+      },
+      "id": "a6d64ef2-4af0-4f0a-9c98-4bdad46710f4",
+      "name": "Build Mailmeteor Email Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.spreadsheetId + '/values:batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.skip ? JSON.stringify({ valueInputOption: \"RAW\", data: [] }) : JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "4dbdcab6-7acb-4f3b-bd5d-b9c5cbfe9399",
+      "name": "Update Mailmeteor Emails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4120,
+        760
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
     }
   ],
   "connections": {
@@ -765,6 +822,11 @@
             "index": 0
           },
           {
+            "node": "Prepare Mailmeteor Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Build OAM Contact SQL",
             "type": "main",
             "index": 0
@@ -776,9 +838,9 @@
       "main": [
         [
           {
-            "node": "Prepare Mailmeteor Rows",
+            "node": "Wait Mailmeteor Append And OAM",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -853,9 +915,9 @@
       "main": [
         [
           {
-            "node": "Wait For Sheet Appends",
+            "node": "Wait Mailmeteor Append And OAM",
             "type": "main",
-            "index": 2
+            "index": 0
           }
         ]
       ]
@@ -878,6 +940,39 @@
             "node": "Pull OAM Universe",
             "type": "main",
             "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Mailmeteor Append And OAM": {
+      "main": [
+        [
+          {
+            "node": "Build Mailmeteor Email Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Mailmeteor Email Update": {
+      "main": [
+        [
+          {
+            "node": "Update Mailmeteor Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Mailmeteor Emails": {
+      "main": [
+        [
+          {
+            "node": "Wait For Sheet Appends",
+            "type": "main",
+            "index": 2
           }
         ]
       ]
