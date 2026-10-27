@@ -1,0 +1,67 @@
+You are generating a Supplier SKU Performance Review report.
+
+Use the reference report below as the formatting and classification few-shot example.
+Apply the same section structure, issue labels, priority tiers, and narrative style to new CSV data.
+
+## Reference report (Supplier 12684 — few-shot example)
+
+Structure:
+1. Title: SKU Performance Review — Supplier 17662
+2. Period metadata: current period, MoM comparison, YoY comparison
+3. Performance alert paragraph with counts for:
+   - YoY revenue declines >20% (with revenue at risk)
+   - zero-revenue SKUs vs prior year
+   - SKUs below 80% availability
+   - SKUs with visits down >20% YoY
+4. Summary stat cards: Critical, High, Below Availability, Declining Visits, Below Conversion
+5. Priority breakdown: CRITICAL / HIGH / MEDIUM / MONITOR counts
+6. Top issues across catalog (issue label + SKU count)
+7. Recommended actions (numbered list, only include relevant actions)
+8. Top revenue decliners table
+9. Action priority list (top 25 by severity)
+10. Complete SKU breakdown sorted by revenue
+11. Performance targets reference
+
+Priority rules (from reference):
+- CRITICAL: zero current revenue, YoY revenue <= -70%, or severe multi-issue decline
+- HIGH: YoY revenue <= -30%, visits YoY <= -40%, or availability miss with meaningful decline
+- MEDIUM: any flagged issue or modest negative trend
+- MONITOR: stable/growing performance without major issue flags
+
+Issue labels (use exactly):
+- Availability
+- Conversion Rate
+- Customer Visits (YoY)
+- Revenue (YoY)
+- Revenue
+- Incidence Rate
+- Customer Issue Exposure
+- Image Coverage
+- Required Tag Coverage
+
+Issue detection from CSV columns:
+- Availability_vs_Target_80 == "Below Target" -> Availability
+- Conversion_vs_Target_0_8 == "Below Target" -> Conversion Rate
+- SKU_Visits_YoY_Pct < -20 -> Customer Visits (YoY)
+- Wholesale_Revenue_YoY_Pct < -20 -> Revenue (YoY)
+- Wholesale_Revenue == 0 and PY_Wholesale_Revenue > 0 -> Revenue
+- Incidence_Rate_vs_Target_5 == "At/Over Target" -> Incidence Rate
+- GIE_vs_Target_5 == "At/Over Target" -> Customer Issue Exposure
+- Image_Coverage_vs_Target_100 == "Below Target" -> Image Coverage
+- Req_Tag_vs_Target_90 == "Below Target" -> Required Tag Coverage
+
+## New data to transform
+
+SuID,PrSKU,Wholesale_Revenue,Pct_of_Sales,PY_Wholesale_Revenue,Wholesale_Revenue_YoY_Pct,Wholesale_Revenue_PoP_Pct,Availability_Pct,Availability_vs_Target_80,PY_Availability_Pct,Availability_YoY_PP_Change,Availability_YoY_Pct,Availability_PoP_PP_Change,Availability_PoP_Pct,SKU_Conversion_Rate_Pct,Conversion_vs_Target_0_8,PY_SKU_Conversion_Rate_Pct,Conversion_YoY_BPS_Change,Conversion_PoP_BPS_Change,SKU_Visit_Count,PY_SKU_Visit_Count,PM_SKU_Visit_Count,SKU_Visits_YoY_Pct,SKU_Visits_PoP_Pct,SKU_Visits_YoY_Trend,SKU_Visits_PoP_Trend,Req_Tag_Coverage_Pct,Req_Tag_vs_Target_90,Image_Coverage_Pct,Image_Coverage_vs_Target_100,Incidence_Rate_Pct,Incidence_Rate_vs_Target_5,Incidence_Rate_PoP_PP_Change,Gross_Incidence_Exposure_Pct_of_WSCNR,GIE_vs_Target_5,Gross_Incidence_Exposure_Pct_of_WSCNR_PoP_PP_Change,Item_Level_WSI,PY_Item_Level_WSI,WSI_YoY_Change,WSI_PoP_Change,WSI_YoY_Trend,WSI_PoP_Trend
+17662,GSTL1191,"$64,138.58",4.38%,"$43,524.24",47.36%,-7.38%,86.61%,Above Target,91.56%,-4.96,-5.41%,-4.98,-5.43%,4.06%,Above Target,4.27%,-21.60 bps,13.09 bps,29444,26199,37994,12.39%,-22.50%,Improved,Declined,59.15%,Below Target,100.00%,At/Above Target,0.93%,At/Under Target,-0.60%,1.18%,At/Under Target,-1.07%,0.01,,,,,
+17662,GSTL1192,"$47,400.37",3.23%,"$49,009.49",-3.28%,-31.91%,89.42%,Above Target,94.38%,-4.96,-5.25%,-0.61,-0.68%,2.93%,Above Target,2.65%,28.13 bps,-32.23 bps,33866,47320,44779,-28.43%,-24.37%,Declined,Declined,59.15%,Below Target,100.00%,At/Above Target,2.46%,At/Under Target,0.44%,3.05%,At/Under Target,0.64%,-0.06,,,,,
+17662,LATU1040,"$47,004.25",3.21%,"$54,985.40",-14.52%,-43.44%,71.41%,Below Target,96.37%,-24.96,-25.90%,-22.55,-24.00%,2.81%,Above Target,4.15%,-133.36 bps,-88.23 bps,70992,64778,90000,9.59%,-21.12%,Improved,Declined,51.72%,Below Target,100.00%,At/Above Target,0.78%,At/Under Target,-0.67%,1.24%,At/Under Target,-0.94%,-0.08,,,,,
+17662,EBND4138,"$25,069.81",1.71%,"$14,843.50",68.89%,-1.30%,82.98%,Above Target,98.02%,-15.04,-15.34%,-14.53,-14.90%,7.00%,Above Target,8.20%,-120.45 bps,-143.89 bps,14543,8081,12241,79.97%,18.81%,Improved,Improved,49.06%,Below Target,100.00%,At/Above Target,0.77%,At/Under Target,-0.57%,1.33%,At/Under Target,-0.95%,0,,,,,
+17662,GSTL1216,"$15,773.62",1.08%,$0.00,,178.59%,77.52%,Below Target,100.00%,-22.48,-22.48%,-22.48,-22.48%,1.67%,Above Target,1.34%,32.83 bps,58.48 bps,12810,149,921,8497.32%,1290.88%,Improved,Improved,57.75%,Below Target,100.00%,At/Above Target,1.89%,At/Under Target,,2.94%,At/Under Target,,,,,,,
+17662,GSTL1063,"$13,568.49",0.93%,"$10,761.08",26.09%,-15.14%,76.01%,Below Target,91.13%,-15.13,-16.60%,1.61,2.17%,5.05%,Above Target,5.75%,-69.54 bps,5.94 bps,17107,11904,18733,43.71%,-8.68%,Improved,Declined,39.22%,Below Target,100.00%,At/Above Target,1.12%,At/Under Target,-0.49%,1.95%,At/Under Target,-1.28%,-0.08,,,,,
+17662,MBWI1113,"$10,323.57",0.70%,"$17,927.90",-42.42%,-42.05%,82.45%,Above Target,93.46%,-11.01,-11.78%,-14.4,-14.87%,3.79%,Above Target,4.05%,-25.22 bps,-164.12 bps,5193,16882,6624,-69.24%,-21.60%,Declined,Declined,20.75%,Below Target,100.00%,At/Above Target,1.56%,At/Under Target,-0.36%,2.67%,At/Under Target,-0.40%,0.65,,,,,
+17662,MBWI1105,"$8,604.31",0.59%,"$10,181.47",-15.49%,-36.41%,86.20%,Above Target,64.89%,21.32,32.85%,-11.59,-11.85%,10.55%,Above Target,6.43%,412.27 bps,92.20 bps,4378,10171,6365,-56.96%,-31.22%,Declined,Declined,47.37%,Below Target,100.00%,At/Above Target,1.74%,At/Under Target,-0.98%,4.71%,At/Under Target,0.34%,0.17,,,,,
+17662,LDER3582,"$6,984.99",0.48%,"$6,967.97",0.24%,-14.29%,63.04%,Below Target,83.81%,-20.77,-24.78%,-4.06,-6.05%,3.46%,Above Target,4.37%,-91.07 bps,-22.82 bps,10488,9973,11845,5.16%,-11.46%,Improved,Declined,46.55%,Below Target,100.00%,At/Above Target,1.36%,At/Under Target,0.23%,2.76%,At/Under Target,0.56%,0.1,,,,,
+17662,HAFT1131,"$6,922.89",0.47%,"$6,828.24",1.39%,-7.88%,93.46%,Above Target,86.87%,6.59,7.59%,-1.27,-1.34%,3.28%,Above Target,2.75%,53.44 bps,46.48 bps,8680,11386,11495,-23.77%,-24.49%,Declined,Declined,50.00%,Below Target,100.00%,At/Above Target,0.79%,At/Under Target,-0.52%,1.29%,At/Under Target,-0.23%,0.22,,,,,
+
+Generate the full report for supplier 17662 in the same format as the reference.

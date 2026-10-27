@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SUPPLIER 17662 | JULY TOP 10 SKU SCORECARD</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #eceff3;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+    }
+    .scorecard {
+      width: 1380px;
+      margin: 0 auto;
+      background: #f4f6f8;
+      border: 1px solid #cfd8e3;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .header-bar {
+      background: #173a63;
+      color: #fff;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 18px 24px;
+      text-transform: uppercase;
+    }
+    .subtitle-bar {
+      background: #5d9fd6;
+      color: #fff;
+      text-align: center;
+      font-size: 18px;
+      font-style: italic;
+      padding: 12px 24px;
+    }
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      background: #eef2f6;
+      border-bottom: 1px solid #d7dee8;
+    }
+    .summary-box {
+      padding: 18px 20px 20px;
+      border-right: 1px solid #d7dee8;
+      min-height: 132px;
+    }
+    .summary-box:last-child { border-right: none; }
+    .summary-box .label {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .summary-box .value {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+    .summary-box .detail {
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.35;
+    }
+    .summary-box.warn .label,
+    .summary-box.warn .value { color: #d35400; }
+    .summary-box.alert .label,
+    .summary-box.alert .value { color: #c0392b; }
+    .summary-box.good .label,
+    .summary-box.good .value { color: #1e7e34; }
+    .matrix-title {
+      padding: 18px 24px 10px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #173a63;
+      letter-spacing: 0.02em;
+    }
+    table {
+      width: calc(100% - 48px);
+      margin: 0 24px 24px;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 15px;
+    }
+    th {
+      background: #173a63;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      padding: 12px 10px;
+      border: 1px solid #173a63;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    td {
+      border: 1px solid #d7dee8;
+      padding: 11px 10px;
+      vertical-align: middle;
+      text-align: center;
+      background: #fff;
+    }
+    td.sku {
+      text-align: left;
+      font-weight: 800;
+      color: #173a63;
+      white-space: nowrap;
+    }
+    td.focus {
+      text-align: left;
+      font-size: 14px;
+      color: #374151;
+    }
+    td.good {
+      background: #d9f2df;
+      color: #166534;
+      font-weight: 700;
+    }
+    td.warn {
+      background: #fff1d6;
+      color: #b45309;
+      font-weight: 700;
+    }
+    td.bad {
+      background: #fde2e1;
+      color: #b42318;
+      font-weight: 700;
+    }
+    td.neutral {
+      background: #f3f4f6;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    td.priority {
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    td.priority.low { background: #1e7e34; }
+    td.priority.medium { background: #c9a000; }
+    td.priority.high { background: #e67e22; }
+    td.priority.critical { background: #c0392b; }
+    .footer-bar {
+      background: #173a63;
+      color: #fff;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.45;
+      padding: 14px 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="scorecard">
+    <div class="header-bar">SUPPLIER 17662 | JULY TOP 10 SKU SCORECARD</div>
+    <div class="subtitle-bar">Where performance is breaking down—and the specific levers to prioritize by SKU</div>
+
+    <div class="summary-row">
+      <div class="summary-box warn">
+        <div class="label">Conversion Opportunity</div>
+        <div class="value">0 OF 10 SKUs</div>
+        <div class="detail">Below the 0.8% conversion target</div>
+      </div>
+      <div class="summary-box alert">
+        <div class="label">Traffic + Sales Pressure</div>
+        <div class="value">3 OF 9</div>
+        <div class="detail">Established SKUs down in both revenue and visits YoY</div>
+      </div>
+      <div class="summary-box good">
+        <div class="label">WSI Is Generally Healthy</div>
+        <div class="value">3 OF 9 SKUs</div>
+        <div class="detail">Have favorable negative WSI</div>
+      </div>
+      <div class="summary-box good">
+        <div class="label">What Is Working</div>
+        <div class="value">AVAILABILITY + IMAGES</div>
+        <div class="detail">6/10 SKUs at target availability; 10/10 at 100% image coverage</div>
+      </div>
+    </div>
+
+    <div class="matrix-title">SKU-BY-SKU PRIORITY MATRIX</div>
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Revenue<br>(July 2026)</th>
+          <th>Revenue<br>YoY</th>
+          <th>Visits<br>YoY</th>
+          <th>Conversion</th>
+          <th>WSI<br>(negative = good)</th>
+          <th>Incidence<br>Risk</th>
+          <th>Priority</th>
+          <th>Recommended<br>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+            <tr>
+              <td class="sku">GSTL1191</td>
+              <td class="num">$64,139</td>
+              <td class="num good">+47.4%</td>
+              <td class="num good">+12.4%</td>
+              <td class="num good">4.06%</td>
+              <td class="num bad">0.01</td>
+              <td class="num good">On target</td>
+              <td class="priority low">LOW</td>
+              <td class="focus">Monitor</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1192</td>
+              <td class="num">$47,400</td>
+              <td class="num warn">-3.3%</td>
+              <td class="num bad">-28.4%</td>
+              <td class="num good">2.93%</td>
+              <td class="num good">-0.06</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">LATU1040</td>
+              <td class="num">$47,004</td>
+              <td class="num warn">-14.5%</td>
+              <td class="num good">+9.6%</td>
+              <td class="num good">2.81%</td>
+              <td class="num good">-0.08</td>
+              <td class="num good">On target</td>
+              <td class="priority high">HIGH</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">EBND4138</td>
+              <td class="num">$25,070</td>
+              <td class="num good">+68.9%</td>
+              <td class="num good">+80.0%</td>
+              <td class="num good">7.00%</td>
+              <td class="num neutral">0.00</td>
+              <td class="num good">On target</td>
+              <td class="priority low">LOW</td>
+              <td class="focus">Monitor</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1216</td>
+              <td class="num">$15,774</td>
+              <td class="num neutral">—</td>
+              <td class="num good">+8497.3%</td>
+              <td class="num good">1.67%</td>
+              <td class="num neutral">—</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">GSTL1063</td>
+              <td class="num">$13,568</td>
+              <td class="num good">+26.1%</td>
+              <td class="num good">+43.7%</td>
+              <td class="num good">5.05%</td>
+              <td class="num good">-0.08</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">MBWI1113</td>
+              <td class="num">$10,324</td>
+              <td class="num bad">-42.4%</td>
+              <td class="num bad">-69.2%</td>
+              <td class="num good">3.79%</td>
+              <td class="num bad">0.65</td>
+              <td class="num good">On target</td>
+              <td class="priority critical">CRITICAL</td>
+              <td class="focus">Restore traffic; Recover revenue</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">MBWI1105</td>
+              <td class="num">$8,604</td>
+              <td class="num warn">-15.5%</td>
+              <td class="num bad">-57.0%</td>
+              <td class="num good">10.55%</td>
+              <td class="num bad">0.17</td>
+              <td class="num good">On target</td>
+              <td class="priority high">HIGH</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">LDER3582</td>
+              <td class="num">$6,985</td>
+              <td class="num good">+0.2%</td>
+              <td class="num good">+5.2%</td>
+              <td class="num good">3.46%</td>
+              <td class="num bad">0.10</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Fix availability</td>
+            </tr>
+            
+            <tr>
+              <td class="sku">HAFT1131</td>
+              <td class="num">$6,923</td>
+              <td class="num good">+1.4%</td>
+              <td class="num bad">-23.8%</td>
+              <td class="num good">3.28%</td>
+              <td class="num bad">0.22</td>
+              <td class="num good">On target</td>
+              <td class="priority medium">MEDIUM</td>
+              <td class="focus">Restore traffic</td>
+            </tr>
+            
+      </tbody>
+    </table>
+
+    <div class="footer-bar">
+      Priority reflects severity across revenue trend, traffic trend, conversion vs. 0.8% target, incidence, and zero-sales risk.
+      WSI is shown separately; negative values are favorable.
+    </div>
+  </div>
+</body>
+</html>
