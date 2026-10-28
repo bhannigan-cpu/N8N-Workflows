@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## GO-FORWARD WORKFLOW\nApproved working version for Loyalty Promo WSC Lift + Mailmeteor SRM outreach.\n\n**Flow**\n1. Configure Inputs \u2192 lift SKU pull \u2192 Build Analysis\n2. Copy Member Monday template \u2192 keep SKU Lift + Supplier Lift formatting\n3. Append SKU / Supplier / Templates / Mailmeteor rows from analysis\n4. Late OAM: SUID list \u2192 Partner Home contact pull \u2192 fill Email column\n\n**Do not** put OAM at the start. OAM is last and only for analysis suppliers (~\u2264100).",
+        "content": "## GO-FORWARD WORKFLOW\nApproved working version (validated with lift color-scale + Mailmeteor polish).\n\n**Flow**\n1. Configure Inputs \u2192 lift SKU pull \u2192 Build Analysis\n2. Copy Member Monday template \u2192 keep SKU Lift + Supplier Lift formatting\n3. Append SKU / Supplier / Templates / Mailmeteor rows from analysis\n4. Late OAM: SUID list \u2192 Partner Home contact pull \u2192 fill Email column\n5. Sheet polish: red\u2192green % lift color scale on SKU/Supplier; Mailmeteor readability formatting\n\n**Do not** put OAM at the start. OAM is last and only for analysis suppliers (~\u2264100).",
         "height": 420,
         "width": 460,
         "color": 4
