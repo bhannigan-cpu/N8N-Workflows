@@ -152,7 +152,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1480,
+        1280,
         380
       ],
       "id": "b5a62ce0-c29c-40a8-acaf-dfbc5f0aa294",
@@ -329,7 +329,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1700,
+        2140,
         380
       ],
       "id": "f3fe8585-3361-4d35-9532-1fc7d2c6df43",
@@ -474,7 +474,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Late OAM pull: final outreach SUIDs from Build Analysis.\n// Exact Partner Home pattern: UNNEST(suids) + STRING_AGG OAM emails.\nlet analysis = {};\ntry {\n  analysis = $('Build Analysis').first().json || {};\n} catch (error) {\n  analysis = {};\n}\nconst outreach = analysis.outreach_summary || {};\nconst rows = analysis.mailmeteor_rows || [];\n\nconst ids = [];\nconst seen = new Set();\nconst fromSummary = Array.isArray(outreach.outreach_supplier_ids) ? outreach.outreach_supplier_ids : [];\nfor (const raw of fromSummary.length ? fromSummary : rows.map((r) => r['Supplier ID'])) {\n  const id = Number(raw);\n  if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;\n  seen.add(id);\n  ids.push(Math.trunc(id));\n}\n\nif (!ids.length) {\n  return [{\n    json: {\n      supplier_ids: [],\n      supplier_count: 0,\n      sqlQuery: `SELECT\n  CAST(NULL AS INT64) AS order_index,\n  CAST(NULL AS INT64) AS supplier_id,\n  CAST(NULL AS STRING) AS supplier_name,\n  CAST(NULL AS STRING) AS oam_emails\nWHERE FALSE`,\n    },\n  }];\n}\n\nconst suidList = ids.map((id) => `  ${id}`).join(',\\n');\nconst sqlQuery = `-- Outreach SUIDs from loyalty analysis (max ~100)\nWITH suids AS (\n  SELECT\n    ROW_NUMBER() OVER () AS order_index,\n    suid\n  FROM UNNEST([\n${suidList}\n  ]) AS suid\n)\nSELECT\n  s.order_index,\n  a.supplierid AS supplier_id,\n  ANY_VALUE(a.suppliername) AS supplier_name,\n  STRING_AGG(\n    DISTINCT a.SupplierContactEmail,\n    ', '\n    ORDER BY a.SupplierContactEmail\n  ) AS oam_emails\nFROM \\`wf-gcp-us-ae-bulk-prod.csn_phba_identity.tbl_supplier_contact_profile\\` AS a\nJOIN suids AS s\n  ON a.supplierid = s.suid\nWHERE a.SupplierContactEmail IS NOT NULL\n  AND a.ContactRoleName = 'Overall Account Management'\n  AND a.IsDeleted = false\n  AND a.IsContactRoleActive = true\nGROUP BY\n  s.order_index,\n  a.supplierid\nORDER BY\n  s.order_index\n`;\n\nreturn [{\n  json: {\n    supplier_ids: ids,\n    supplier_count: ids.length,\n    sqlQuery,\n  },\n}];\n"
+        "jsCode": "// Late OAM pull: final outreach SUIDs from Build Analysis.\n// Exact Partner Home pattern: UNNEST(suids) + STRING_AGG OAM emails.\nfunction getAnalysis() {\n  try {\n    return $('Enrich Analysis With NonParticipants').first().json || {};\n  } catch (error) {\n    return $('Build Analysis').first().json || {};\n  }\n}\nconst analysis = getAnalysis();\nconst outreach = analysis.outreach_summary || {};\nconst rows = analysis.mailmeteor_rows || [];\n\nconst ids = [];\nconst seen = new Set();\nconst fromSummary = Array.isArray(outreach.outreach_supplier_ids) ? outreach.outreach_supplier_ids : [];\nfor (const raw of fromSummary.length ? fromSummary : rows.map((r) => r['Supplier ID'])) {\n  const id = Number(raw);\n  if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;\n  seen.add(id);\n  ids.push(Math.trunc(id));\n}\n\nif (!ids.length) {\n  return [{\n    json: {\n      supplier_ids: [],\n      supplier_count: 0,\n      sqlQuery: `SELECT\n  CAST(NULL AS INT64) AS order_index,\n  CAST(NULL AS INT64) AS supplier_id,\n  CAST(NULL AS STRING) AS supplier_name,\n  CAST(NULL AS STRING) AS oam_emails\nWHERE FALSE`,\n    },\n  }];\n}\n\nconst suidList = ids.map((id) => `  ${id}`).join(',\\n');\nconst sqlQuery = `-- Outreach SUIDs from loyalty analysis (max ~100)\nWITH suids AS (\n  SELECT\n    ROW_NUMBER() OVER () AS order_index,\n    suid\n  FROM UNNEST([\n${suidList}\n  ]) AS suid\n)\nSELECT\n  s.order_index,\n  a.supplierid AS supplier_id,\n  ANY_VALUE(a.suppliername) AS supplier_name,\n  STRING_AGG(\n    DISTINCT a.SupplierContactEmail,\n    ', '\n    ORDER BY a.SupplierContactEmail\n  ) AS oam_emails\nFROM \\`wf-gcp-us-ae-bulk-prod.csn_phba_identity.tbl_supplier_contact_profile\\` AS a\nJOIN suids AS s\n  ON a.supplierid = s.suid\nWHERE a.SupplierContactEmail IS NOT NULL\n  AND a.ContactRoleName = 'Overall Account Management'\n  AND a.IsDeleted = false\n  AND a.IsContactRoleActive = true\nGROUP BY\n  s.order_index,\n  a.supplierid\nORDER BY\n  s.order_index\n`;\n\nreturn [{\n  json: {\n    supplier_ids: ids,\n    supplier_count: ids.length,\n    sqlQuery,\n  },\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -519,7 +519,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\nconst outreach = analysis.outreach_summary || {};\n\n// Optional: if OAM already finished in this execution, merge emails now.\nconst oamBySupplier = new Map();\ntry {\n  const oamItems = $('Pull OAM Universe').all();\n  for (const item of oamItems) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // OAM runs in parallel and may not be ready yet \u2014 that is OK.\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      Email: '',\n      'Supplier ID': '',\n      'Supplier Name': '(No analysis outreach rows \u2014 check Build Analysis / lift pull)',\n      SRM: '',\n      Bucket: '',\n      'Template Key': '',\n      Category: analysis.summary?.marketing_category || '',\n      'Supplier Marketing Category': '',\n      'Category Lift %': '',\n      'Supplier Lift %': '',\n      'Best Class': '',\n      'Class Lift %': '',\n      'Incremental WSC $': '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Prior Event Name': analysis.summary?.event_name || '',\n      'Next Event Name': outreach.next_event_name || '',\n      'Next Event Dates': outreach.next_event_dates || '',\n      'Submission Deadline': outreach.submission_deadline || '',\n      Subject: '',\n      Body: '',\n      'Needs Review': 'Y',\n    },\n  }];\n}\n\nreturn rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  const email = oamBySupplier.get(sid) || '';\n  const { ['Opportunity Score']: _score, ...rest } = row;\n  return {\n    json: {\n      ...rest,\n      Email: email,\n      'Needs Review': rest['Needs Review'] || (!email ? 'Y' : ''),\n    },\n  };\n});\n"
+        "jsCode": "function getAnalysis() {\n  try {\n    return $('Enrich Analysis With NonParticipants').first().json || {};\n  } catch (error) {\n    return $('Build Analysis').first().json || {};\n  }\n}\nconst analysis = getAnalysis();\nconst rows = analysis.mailmeteor_rows || [];\nconst outreach = analysis.outreach_summary || {};\n\n// Optional: if OAM already finished in this execution, merge emails now.\nconst oamBySupplier = new Map();\ntry {\n  const oamItems = $('Pull OAM Universe').all();\n  for (const item of oamItems) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // OAM runs in parallel and may not be ready yet \u2014 that is OK.\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      Email: '',\n      'Supplier ID': '',\n      'Supplier Name': '(No analysis outreach rows \u2014 check Build Analysis / lift pull)',\n      SRM: '',\n      Bucket: '',\n      'Template Key': '',\n      Category: analysis.summary?.marketing_category || '',\n      'Supplier Marketing Category': '',\n      'Category Lift %': '',\n      'Supplier Lift %': '',\n      'Best Class': '',\n      'Class Lift %': '',\n      'Incremental WSC $': '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Prior Event Name': analysis.summary?.event_name || '',\n      'Next Event Name': outreach.next_event_name || '',\n      'Next Event Dates': outreach.next_event_dates || '',\n      'Submission Deadline': outreach.submission_deadline || '',\n      Subject: '',\n      Body: '',\n      'Needs Review': 'Y',\n    },\n  }];\n}\n\nreturn rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  const email = oamBySupplier.get(sid) || '';\n  const { ['Opportunity Score']: _score, ...rest } = row;\n  return {\n    json: {\n      ...rest,\n      Email: email,\n      'Needs Review': rest['Needs Review'] || (!email ? 'Y' : ''),\n    },\n  };\n});\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -636,7 +636,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const spreadsheetId = $('Create Spreadsheet').first().json.spreadsheetId;\nconst analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\n\nconst oamBySupplier = new Map();\ntry {\n  for (const item of $('Pull OAM Universe').all()) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // pass through with blank emails\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      spreadsheetId,\n      skip: true,\n      data: [],\n    },\n  }];\n}\n\nconst values = rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  return [oamBySupplier.get(sid) || ''];\n});\n\nreturn [{\n  json: {\n    spreadsheetId,\n    skip: false,\n    matchedEmails: values.filter((v) => v[0]).length,\n    totalRows: values.length,\n    body: {\n      valueInputOption: 'RAW',\n      data: [\n        {\n          range: \"'Mailmeteor Send'!A2:A\",\n          values,\n        },\n      ],\n    },\n  },\n}];\n"
+        "jsCode": "const spreadsheetId = $('Create Spreadsheet').first().json.spreadsheetId;\nfunction getAnalysis() {\n  try {\n    return $('Enrich Analysis With NonParticipants').first().json || {};\n  } catch (error) {\n    return $('Build Analysis').first().json || {};\n  }\n}\nconst analysis = getAnalysis();\nconst rows = analysis.mailmeteor_rows || [];\n\nconst oamBySupplier = new Map();\ntry {\n  for (const item of $('Pull OAM Universe').all()) {\n    const row = item.json || {};\n    if (row.error || row.message || row.httpCode || row.status === 'error') continue;\n    const sid = row.supplier_id ?? row.SUID ?? row.suid;\n    const email = String(row.oam_emails || row.all_account_manager_emails || '').trim();\n    if (sid == null || sid === '' || !email) continue;\n    oamBySupplier.set(String(sid), email);\n  }\n} catch (error) {\n  // pass through with blank emails\n}\n\nif (!rows.length) {\n  return [{\n    json: {\n      spreadsheetId,\n      skip: true,\n      data: [],\n    },\n  }];\n}\n\nconst values = rows.map((row) => {\n  const sid = String(row['Supplier ID'] ?? '');\n  return [oamBySupplier.get(sid) || ''];\n});\n\nreturn [{\n  json: {\n    spreadsheetId,\n    skip: false,\n    matchedEmails: values.filter((v) => v[0]).length,\n    totalRows: values.length,\n    body: {\n      valueInputOption: 'RAW',\n      data: [\n        {\n          range: \"'Mailmeteor Send'!A2:A\",\n          values,\n        },\n      ],\n    },\n  },\n}];\n"
       },
       "id": "a6d64ef2-4af0-4f0a-9c98-4bdad46710f4",
       "name": "Build Mailmeteor Email Update",
@@ -737,6 +737,62 @@
           "name": "Google Sheets account 610"
         }
       }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Non-participants = same-category suppliers managed by SRMs already on Mailmeteor,\n// excluding suppliers that already participated in the analysis.\nconst analysis = $('Build Analysis').first().json || {};\nconst rows = analysis.mailmeteor_rows || [];\nconst categoryName = String(\n  analysis.summary?.marketing_category\n  || $('Configure Inputs').first().json?.marketing_category\n  || ''\n).trim();\n\nfunction escapeSqlString(value) {\n  return String(value ?? '').replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n}\n\nconst srmSet = new Set();\nconst participantIds = new Set();\nfor (const row of rows) {\n  const sid = Number(row['Supplier ID']);\n  if (Number.isFinite(sid) && sid > 0) participantIds.add(Math.trunc(sid));\n  const srm = String(row.SRM || '').trim();\n  if (!srm) continue;\n  // Skip generic service-desk ownership \u2014 too broad / not actionable\n  if (/^service desk/i.test(srm)) continue;\n  srmSet.add(srm);\n}\n\nconst srms = [...srmSet];\nif (!categoryName || !srms.length) {\n  return [{\n    json: {\n      skip: true,\n      marketing_category: categoryName,\n      srm_count: srms.length,\n      participant_count: participantIds.size,\n      sqlQuery: `SELECT\n  CAST(NULL AS INT64) AS supplier_id,\n  CAST(NULL AS STRING) AS supplier_name,\n  CAST(NULL AS STRING) AS supplier_marketing_category,\n  CAST(NULL AS STRING) AS srm\nWHERE FALSE`,\n    },\n  }];\n}\n\nconst cat = escapeSqlString(categoryName);\nconst srmList = srms.map((s) => `  '${escapeSqlString(s)}'`).join(',\\n');\n\nconst sqlQuery = `-- Non-participants for SRMs already on Mailmeteor, same supplier MkC\nWITH srms AS (\n  SELECT LOWER(TRIM(srm)) AS srm_key\n  FROM UNNEST([\n${srmList}\n  ]) AS srm\n)\nSELECT\n  d.suid AS supplier_id,\n  ANY_VALUE(d.suname) AS supplier_name,\n  ANY_VALUE(d.sumkcname) AS supplier_marketing_category,\n  ANY_VALUE(d.srmcontactname) AS srm\nFROM \\`wf-gcp-us-ae-retail-prod.cm_reporting.retail_dim_supplier\\` AS d\nINNER JOIN srms\n  ON LOWER(TRIM(d.srmcontactname)) = srms.srm_key\nWHERE d.susiid = 1\n  AND d.suid = d.origsuid\n  AND d.sumkcname IS NOT NULL\n  AND d.srmcontactname IS NOT NULL\n  AND (\n    LOWER(TRIM(d.sumkcname)) = LOWER(TRIM('${cat}'))\n    OR LOWER(TRIM(d.sumkcname)) = LOWER(CONCAT('aps ', TRIM('${cat}')))\n    OR LOWER(TRIM(d.sumkcname)) = LOWER(CONCAT('aps softhome - ', TRIM('${cat}')))\n    OR LOWER(TRIM(d.sumkcname)) = LOWER(CONCAT('aps soft home - ', TRIM('${cat}')))\n    OR LOWER(TRIM(d.sumkcname)) = LOWER(CONCAT('aps softhome-', TRIM('${cat}')))\n    OR REGEXP_CONTAINS(\n      LOWER(REGEXP_REPLACE(TRIM(d.sumkcname), r'[^a-z0-9]+', ' ')),\n      CONCAT(r'(^| )', LOWER(REGEXP_REPLACE(TRIM('${cat}'), r'[^a-z0-9]+', ' ')), r'( |$)')\n    )\n  )\nGROUP BY d.suid\nORDER BY srm, supplier_name\n`;\n\nreturn [{\n  json: {\n    skip: false,\n    marketing_category: categoryName,\n    srm_count: srms.length,\n    srms,\n    participant_ids: [...participantIds],\n    participant_count: participantIds.size,\n    sqlQuery,\n  },\n}];\n"
+      },
+      "id": "00c12f00-8da8-43e2-a094-958148224e19",
+      "name": "Build NonParticipant Supplier SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "wf-gcp-us-ae-retail-prod",
+          "mode": "list",
+          "cachedResultName": "wf-gcp-us-ae-retail-prod",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=wf-gcp-us-ae-retail-prod"
+        },
+        "sqlQuery": "={{ $json.sqlQuery }}",
+        "options": {}
+      },
+      "id": "fc6f646b-1f0b-45d8-8a87-1ab202fd10b2",
+      "name": "Pull NonParticipant Suppliers",
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1700,
+        560
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "61aSuNTfPEjWsHyK",
+          "name": "Google BigQuery account 352"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Pass through Build Analysis and append Did not participate rows for\n// same-category suppliers managed by Mailmeteor SRMs.\nconst analysis = $('Build Analysis').first().json || {};\nconst meta = $('Build NonParticipant Supplier SQL').first().json || {};\nconst participantIds = new Set((meta.participant_ids || []).map((id) => String(id)));\n\nconst existingRows = Array.isArray(analysis.mailmeteor_rows) ? [...analysis.mailmeteor_rows] : [];\nconst existingIds = new Set(existingRows.map((r) => String(r['Supplier ID'])));\n\nlet npItems = [];\ntry {\n  npItems = $('Pull NonParticipant Suppliers').all().map((item) => item.json || {});\n} catch (error) {\n  npItems = [];\n}\n\nconst templates = analysis.template_rows || [];\nconst nonTemplate = templates.find((t) => t.bucket === 'Did not participate' || t.template_key === 'non_participating') || {\n  template_key: 'non_participating',\n  bucket: 'Did not participate',\n  subject: 'Curation Open',\n  body_template: 'Hi {{Supplier Name}},\\n\\nPlease consider participating in {{Event Name}}.\\n\\nThanks,\\n{{SRM Name}}',\n};\n\nfunction renderTemplate(template, fields) {\n  let subject = String(template.subject || '');\n  let body = String(template.body_template || '');\n  for (const [key, value] of Object.entries(fields)) {\n    const token = `{{${key}}}`;\n    subject = subject.split(token).join(String(value ?? ''));\n    body = body.split(token).join(String(value ?? ''));\n  }\n  return { subject, body };\n}\n\nconst outreach = analysis.outreach_summary || {};\nconst summary = analysis.summary || {};\nconst categoryName = summary.marketing_category || meta.marketing_category || '';\nconst nextEventName = outreach.next_event_name || 'the next loyalty-exclusive event';\nconst nextEventDates = outreach.next_event_dates || '';\nconst submissionDeadline = outreach.submission_deadline || '';\nconst priorEventName = summary.event_name || '';\nconst categoryLiftPct = existingRows.find((r) => r['Category Lift %'])?.['Category Lift %'] || '';\nconst eventDatesClause = nextEventDates ? ` (${nextEventDates})` : '';\nconst bestClass = existingRows.find((r) => r['Best Class'])?.['Best Class'] || '';\nconst classLift = existingRows.find((r) => r['Class Lift %'])?.['Class Lift %'] || '';\nconst classClause = bestClass && classLift\n  ? `, with especially strong response in ${bestClass} (${classLift})`\n  : '';\n\nconst added = [];\nfor (const row of npItems) {\n  if (!row || row.error || row.message || row.httpCode || row.status === 'error') continue;\n  const sid = row.supplier_id;\n  if (sid == null || sid === '') continue;\n  const key = String(sid);\n  if (participantIds.has(key) || existingIds.has(key)) continue;\n\n  const srmName = String(row.srm || '').trim();\n  const supplierName = String(row.supplier_name || '').trim() || 'Supplier';\n  const rendered = renderTemplate(nonTemplate, {\n    'Supplier Name': supplierName,\n    'Event Name': nextEventName,\n    'Event Dates Clause': eventDatesClause,\n    'Prior Event Name': priorEventName,\n    Category: categoryName,\n    'Category Lift %': categoryLiftPct || 'n/a',\n    'Supplier Lift %': 'n/a',\n    'Class Clause': classClause,\n    'Submission Deadline': submissionDeadline || 'the sourcing deadline',\n    'SRM Name': srmName || 'Wayfair Partnerships',\n  });\n\n  const newRow = {\n    Email: '',\n    'Supplier ID': sid,\n    'Supplier Name': supplierName,\n    SRM: srmName,\n    Bucket: 'Did not participate',\n    'Template Key': nonTemplate.template_key || 'non_participating',\n    Category: categoryName,\n    'Supplier Marketing Category': row.supplier_marketing_category || '',\n    'Category Lift %': categoryLiftPct,\n    'Supplier Lift %': '',\n    'Best Class': bestClass,\n    'Class Lift %': classLift,\n    'Incremental WSC $': '',\n    'Discount Breadth %': '',\n    'Discount Depth %': '',\n    'Prior Event Name': priorEventName,\n    'Next Event Name': nextEventName,\n    'Next Event Dates': nextEventDates,\n    'Submission Deadline': submissionDeadline,\n    Subject: rendered.subject,\n    Body: rendered.body,\n    'Opportunity Score': 0,\n    'Needs Review': '',\n  };\n  existingRows.push(newRow);\n  existingIds.add(key);\n  added.push(key);\n}\n\nexistingRows.sort((a, b) => {\n  const order = ['Outpaced category', 'Participated lagging', 'Insufficient signal', 'Did not participate'];\n  const bucketCmp = order.indexOf(a.Bucket) - order.indexOf(b.Bucket);\n  if (bucketCmp !== 0) return bucketCmp;\n  return String(a['Supplier Name'] || '').localeCompare(String(b['Supplier Name'] || ''));\n});\n\nconst outreachSupplierIds = existingRows\n  .map((row) => Number(row['Supplier ID']))\n  .filter((id) => Number.isFinite(id) && id > 0);\n\nconst nextOutreach = {\n  ...(analysis.outreach_summary || {}),\n  row_count: existingRows.length,\n  outpaced: existingRows.filter((r) => r.Bucket === 'Outpaced category').length,\n  lagging: existingRows.filter((r) => r.Bucket === 'Participated lagging').length,\n  non_participating: existingRows.filter((r) => r.Bucket === 'Did not participate').length,\n  insufficient_signal: existingRows.filter((r) => r.Bucket === 'Insufficient signal').length,\n  outreach_supplier_count: outreachSupplierIds.length,\n  outreach_supplier_ids: outreachSupplierIds,\n  non_participant_added: added.length,\n  non_participant_srm_count: meta.srm_count || 0,\n};\n\nreturn [{\n  json: {\n    ...analysis,\n    mailmeteor_rows: existingRows,\n    outreach_summary: nextOutreach,\n  },\n}];\n"
+      },
+      "id": "2a5aaa3c-ac56-4104-91fc-2f8d20f0f6da",
+      "name": "Enrich Analysis With NonParticipants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        380
+      ]
     }
   ],
   "connections": {
@@ -788,7 +844,7 @@
       "main": [
         [
           {
-            "node": "Copy Template Spreadsheet",
+            "node": "Build NonParticipant Supplier SQL",
             "type": "main",
             "index": 0
           }
@@ -1084,6 +1140,39 @@
         [
           {
             "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build NonParticipant Supplier SQL": {
+      "main": [
+        [
+          {
+            "node": "Pull NonParticipant Suppliers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull NonParticipant Suppliers": {
+      "main": [
+        [
+          {
+            "node": "Enrich Analysis With NonParticipants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Analysis With NonParticipants": {
+      "main": [
+        [
+          {
+            "node": "Copy Template Spreadsheet",
             "type": "main",
             "index": 0
           }
