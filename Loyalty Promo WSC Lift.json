@@ -177,7 +177,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.sku_data || [];\nif (!rows.length) {\n  return [{\n    json: {\n      'Supplier ID': '',\n      'Supplier Name': '(No SKU rows from Build Analysis \u2014 check lift pull / Configure Inputs)',\n      SRM: '',\n      SKU: '',\n      'Class Name': '',\n      'Marketing Category': analysis.summary?.marketing_category || '',\n      'Discount Coverage %': '',\n      'Discount Depth %': '',\n      'L10 Non Promo Daily Avg': '',\n      'Loyalty Daily Avg WSC': '',\n      'Incremental WSC $': '',\n      'SKU Lift %': '',\n    },\n  }];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return 0;\n  const num = Number(value);\n  return Number.isFinite(num) ? num : 0;\n}\n\nfunction fmtPctValue(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return `${(num * 100).toFixed(1)}%`;\n}\n\nconst totalNonPromo = rows.reduce((sum, row) => sum + toNumber(row.non_promo_avg), 0);\nconst totalLoyalty = rows.reduce((sum, row) => sum + toNumber(row.loyalty_avg), 0);\nconst totalIncremental = totalLoyalty - totalNonPromo;\nconst totalLift = totalNonPromo ? totalIncremental / totalNonPromo : null;\n\nconst sorted = [...rows].sort(\n  (a, b) => toNumber(b.loyalty_avg) - toNumber(a.loyalty_avg),\n);\n\nconst totalRow = {\n  'Supplier ID': 'Total',\n  'Supplier Name': '',\n  SRM: '',\n  SKU: '',\n  'Class Name': '',\n  'Marketing Category': '',\n  'Discount Coverage %': '',\n  'Discount Depth %': '',\n  'L10 Non Promo Daily Avg': Number(totalNonPromo.toFixed(2)),\n  'Loyalty Daily Avg WSC': Number(totalLoyalty.toFixed(2)),\n  'Incremental WSC $': Number(totalIncremental.toFixed(2)),\n  'SKU Lift %': totalLift === null ? '' : fmtPctValue(totalLift),\n};\n\nconst skuRows = sorted.map((row) => ({\n  'Supplier ID': row.supplier_id,\n  'Supplier Name': row.supplier_name,\n  SRM: row.srm || '',\n  SKU: row.sku,\n  'Class Name': row.class_name,\n  'Marketing Category': row.marketing_category,\n  'Discount Coverage %': fmtPctValue(row.discount_coverage_pct),\n  'Discount Depth %': fmtPctValue(row.discount_pct),\n  'L10 Non Promo Daily Avg': row.non_promo_avg,\n  'Loyalty Daily Avg WSC': row.loyalty_avg,\n  'Incremental WSC $': row.incremental_wsc,\n  'SKU Lift %': fmtPctValue(row.lift_pct),\n}));\n\nreturn [totalRow, ...skuRows].map((row) => ({ json: row }));\n"
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.sku_data || [];\nif (!rows.length) {\n  return [{\n    json: {\n      'Supplier ID': '',\n      'Supplier Name': '(No SKU rows from Build Analysis \u2014 check lift pull / Configure Inputs)',\n      SRM: '',\n      SKU: '',\n      'Class Name': '',\n      'Marketing Category': analysis.summary?.marketing_category || '',\n      'Discount Coverage %': '',\n      'Discount Depth %': '',\n      'L10 Non Promo Daily Avg': '',\n      'Loyalty Daily Avg WSC': '',\n      'Incremental WSC $': '',\n      'SKU Lift %': '',\n    },\n  }];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return 0;\n  const num = Number(value);\n  return Number.isFinite(num) ? num : 0;\n}\n\nfunction fmtPctValue(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return `${(num * 100).toFixed(1)}%`;\n}\n\n/** Numeric proportion for Sheets percent format + color scale (e.g. 0.125). */\nfunction fmtPctNumber(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return Number(num.toFixed(6));\n}\n\nconst totalNonPromo = rows.reduce((sum, row) => sum + toNumber(row.non_promo_avg), 0);\nconst totalLoyalty = rows.reduce((sum, row) => sum + toNumber(row.loyalty_avg), 0);\nconst totalIncremental = totalLoyalty - totalNonPromo;\nconst totalLift = totalNonPromo ? totalIncremental / totalNonPromo : null;\n\nconst sorted = [...rows].sort(\n  (a, b) => toNumber(b.loyalty_avg) - toNumber(a.loyalty_avg),\n);\n\nconst totalRow = {\n  'Supplier ID': 'Total',\n  'Supplier Name': '',\n  SRM: '',\n  SKU: '',\n  'Class Name': '',\n  'Marketing Category': '',\n  'Discount Coverage %': '',\n  'Discount Depth %': '',\n  'L10 Non Promo Daily Avg': Number(totalNonPromo.toFixed(2)),\n  'Loyalty Daily Avg WSC': Number(totalLoyalty.toFixed(2)),\n  'Incremental WSC $': Number(totalIncremental.toFixed(2)),\n  'SKU Lift %': totalLift === null ? '' : fmtPctNumber(totalLift),\n};\n\nconst skuRows = sorted.map((row) => ({\n  'Supplier ID': row.supplier_id,\n  'Supplier Name': row.supplier_name,\n  SRM: row.srm || '',\n  SKU: row.sku,\n  'Class Name': row.class_name,\n  'Marketing Category': row.marketing_category,\n  'Discount Coverage %': fmtPctValue(row.discount_coverage_pct),\n  'Discount Depth %': fmtPctValue(row.discount_pct),\n  'L10 Non Promo Daily Avg': row.non_promo_avg,\n  'Loyalty Daily Avg WSC': row.loyalty_avg,\n  'Incremental WSC $': row.incremental_wsc,\n  'SKU Lift %': fmtPctNumber(row.lift_pct),\n}));\n\nreturn [totalRow, ...skuRows].map((row) => ({ json: row }));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -191,7 +191,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.supplier_summary || [];\nif (!rows.length) {\n  return [{\n    json: {\n      'Supplier Name': '(No supplier rows from Build Analysis \u2014 check lift pull / Configure Inputs)',\n      SRM: '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Lift %': '',\n      'Incremental WSC $': '',\n    },\n  }];\n}\n\nfunction fmtPctValue(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return `${(num * 100).toFixed(1)}%`;\n}\n\nfunction fmtMoney(value) {\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return Number(num.toFixed(2));\n}\n\n// Tight supplier table: identity + SRM + breadth + depth + lift % + lift $.\nreturn rows\n  .slice()\n  .sort((a, b) => (Number(b.incremental_wsc) || 0) - (Number(a.incremental_wsc) || 0))\n  .map((row) => ({\n    json: {\n      'Supplier Name': row.supplier_name,\n      SRM: row.srm || '',\n      'Discount Breadth %': fmtPctValue(row.discount_coverage_pct ?? row.discount_breadth_pct),\n      'Discount Depth %': fmtPctValue(row.weighted_discount_pct ?? row.discount_depth_pct),\n      'Lift %': fmtPctValue(row.weighted_lift_pct),\n      'Incremental WSC $': fmtMoney(row.incremental_wsc),\n    },\n  }));\n"
+        "jsCode": "const analysis = $('Build Analysis').first().json;\nconst rows = analysis.supplier_summary || [];\nif (!rows.length) {\n  return [{\n    json: {\n      'Supplier Name': '(No supplier rows from Build Analysis \u2014 check lift pull / Configure Inputs)',\n      SRM: '',\n      'Discount Breadth %': '',\n      'Discount Depth %': '',\n      'Lift %': '',\n      'Incremental WSC $': '',\n    },\n  }];\n}\n\nfunction fmtPctValue(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return `${(num * 100).toFixed(1)}%`;\n}\n\nfunction fmtPctNumber(value) {\n  if (value === null || value === undefined || value === '') return '';\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return Number(num.toFixed(6));\n}\n\nfunction fmtMoney(value) {\n  const num = Number(value);\n  if (!Number.isFinite(num)) return '';\n  return Number(num.toFixed(2));\n}\n\n// Tight supplier table: identity + SRM + breadth + depth + lift % + lift $.\nreturn rows\n  .slice()\n  .sort((a, b) => (Number(b.incremental_wsc) || 0) - (Number(a.incremental_wsc) || 0))\n  .map((row) => ({\n    json: {\n      'Supplier Name': row.supplier_name,\n      SRM: row.srm || '',\n      'Discount Breadth %': fmtPctValue(row.discount_coverage_pct ?? row.discount_breadth_pct),\n      'Discount Depth %': fmtPctValue(row.weighted_discount_pct ?? row.discount_depth_pct),\n      'Lift %': fmtPctNumber(row.weighted_lift_pct),\n      'Incremental WSC $': fmtMoney(row.incremental_wsc),\n    },\n  }));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -673,6 +673,70 @@
           "name": "Google Sheets account 610"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Create Spreadsheet').item.json.spreadsheetId }}?fields=spreadsheetId,sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "c3bf9058-c904-4731-8f2f-d22d42250dec",
+      "name": "List Sheets For Formatting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        500
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const spreadsheetId = $('Create Spreadsheet').first().json.spreadsheetId;\nconst sheets = ($input.first().json.sheets || []).map((s) => s.properties || s);\n\nfunction sheetIdByTitle(title) {\n  const hit = sheets.find((s) => s.title === title);\n  return hit ? hit.sheetId : null;\n}\n\nconst skuId = sheetIdByTitle('SKU Lift');\nconst supplierId = sheetIdByTitle('Supplier Lift');\nconst mailId = sheetIdByTitle('Mailmeteor Send');\nconst templateId = sheetIdByTitle('Templates');\n\nconst navy = { red: 0.06, green: 0.15, blue: 0.27 };\nconst white = { red: 1, green: 1, blue: 1 };\nconst red = { red: 0.84, green: 0.24, blue: 0.24 };\nconst mid = { red: 1, green: 0.97, blue: 0.86 };\nconst green = { red: 0.20, green: 0.66, blue: 0.33 };\n\nconst requests = [];\n\nfunction freezeHeader(sheetId) {\n  if (sheetId == null) return;\n  requests.push({\n    updateSheetProperties: {\n      properties: { sheetId, gridProperties: { frozenRowCount: 1 } },\n      fields: 'gridProperties.frozenRowCount',\n    },\n  });\n}\n\nfunction styleHeader(sheetId, endCol) {\n  if (sheetId == null) return;\n  requests.push({\n    repeatCell: {\n      range: {\n        sheetId,\n        startRowIndex: 0,\n        endRowIndex: 1,\n        startColumnIndex: 0,\n        endColumnIndex: endCol,\n      },\n      cell: {\n        userEnteredFormat: {\n          backgroundColor: navy,\n          horizontalAlignment: 'LEFT',\n          verticalAlignment: 'MIDDLE',\n          textFormat: {\n            foregroundColor: white,\n            fontFamily: 'Arial',\n            fontSize: 10,\n            bold: true,\n          },\n        },\n      },\n      fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)',\n    },\n  });\n}\n\nfunction setWidths(sheetId, widths) {\n  if (sheetId == null) return;\n  widths.forEach((pixelSize, i) => {\n    requests.push({\n      updateDimensionProperties: {\n        range: { sheetId, dimension: 'COLUMNS', startIndex: i, endIndex: i + 1 },\n        properties: { pixelSize },\n        fields: 'pixelSize',\n      },\n    });\n  });\n}\n\nfunction percentFormat(sheetId, colIndex) {\n  if (sheetId == null) return;\n  requests.push({\n    repeatCell: {\n      range: {\n        sheetId,\n        startRowIndex: 1,\n        startColumnIndex: colIndex,\n        endColumnIndex: colIndex + 1,\n      },\n      cell: {\n        userEnteredFormat: {\n          numberFormat: { type: 'PERCENT', pattern: '0.0%' },\n        },\n      },\n      fields: 'userEnteredFormat.numberFormat',\n    },\n  });\n}\n\nfunction liftColorScale(sheetId, colIndex) {\n  if (sheetId == null) return;\n  // Red = lowest lift in the tab, green = highest lift in the tab\n  requests.push({\n    addConditionalFormatRule: {\n      rule: {\n        ranges: [{\n          sheetId,\n          startRowIndex: 1,\n          startColumnIndex: colIndex,\n          endColumnIndex: colIndex + 1,\n        }],\n        gradientRule: {\n          minpoint: { type: 'MIN', color: red },\n          midpoint: { type: 'PERCENTILE', value: '50', color: mid },\n          maxpoint: { type: 'MAX', color: green },\n        },\n      },\n      index: 0,\n    },\n  });\n}\n\n// SKU Lift: SKU Lift % is column L (index 11)\nfreezeHeader(skuId);\nstyleHeader(skuId, 12);\nsetWidths(skuId, [90, 170, 130, 110, 140, 130, 110, 110, 120, 120, 120, 100]);\npercentFormat(skuId, 11);\nliftColorScale(skuId, 11);\n\n// Supplier Lift: Lift % is column E (index 4)\nfreezeHeader(supplierId);\nstyleHeader(supplierId, 6);\nsetWidths(supplierId, [200, 140, 120, 120, 100, 130]);\npercentFormat(supplierId, 4);\nliftColorScale(supplierId, 4);\n\n// Mailmeteor Send \u2014 readability only\nfreezeHeader(mailId);\nstyleHeader(mailId, 22);\nsetWidths(mailId, [\n  220, 90, 180, 140, 150, 110, 110,\n  170, 110, 110, 140, 100,\n  120, 120, 110, 160,\n  180, 140, 130, 240, 340, 100,\n]);\nif (mailId != null) {\n  requests.push({\n    repeatCell: {\n      range: {\n        sheetId: mailId,\n        startRowIndex: 1,\n        startColumnIndex: 0,\n        endColumnIndex: 22,\n      },\n      cell: {\n        userEnteredFormat: {\n          verticalAlignment: 'TOP',\n          textFormat: { fontFamily: 'Arial', fontSize: 10 },\n        },\n      },\n      fields: 'userEnteredFormat(verticalAlignment,textFormat)',\n    },\n  });\n  requests.push({\n    repeatCell: {\n      range: {\n        sheetId: mailId,\n        startRowIndex: 1,\n        startColumnIndex: 19,\n        endColumnIndex: 21,\n      },\n      cell: {\n        userEnteredFormat: {\n          wrapStrategy: 'WRAP',\n          verticalAlignment: 'TOP',\n          textFormat: { fontFamily: 'Arial', fontSize: 9 },\n        },\n      },\n      fields: 'userEnteredFormat(wrapStrategy,verticalAlignment,textFormat)',\n    },\n  });\n  // Emphasize Bucket column for quick scanning\n  requests.push({\n    repeatCell: {\n      range: {\n        sheetId: mailId,\n        startRowIndex: 1,\n        startColumnIndex: 4,\n        endColumnIndex: 5,\n      },\n      cell: {\n        userEnteredFormat: {\n          textFormat: { fontFamily: 'Arial', fontSize: 10, bold: true },\n        },\n      },\n      fields: 'userEnteredFormat.textFormat',\n    },\n  });\n  requests.push({\n    setBasicFilter: {\n      filter: {\n        range: {\n          sheetId: mailId,\n          startRowIndex: 0,\n          startColumnIndex: 0,\n          endColumnIndex: 22,\n        },\n      },\n    },\n  });\n  // Comfortable row height for wrapped subject/body\n  requests.push({\n    updateDimensionProperties: {\n      range: {\n        sheetId: mailId,\n        dimension: 'ROWS',\n        startIndex: 1,\n        endIndex: 500,\n      },\n      properties: { pixelSize: 54 },\n      fields: 'pixelSize',\n    },\n  });\n}\n\n// Light cleanup on Templates\nfreezeHeader(templateId);\nstyleHeader(templateId, 4);\nsetWidths(templateId, [120, 160, 260, 420]);\n\nreturn [{\n  json: {\n    spreadsheetId,\n    requestCount: requests.length,\n    requests,\n  },\n}];\n"
+      },
+      "id": "9f37a7ba-53b5-4193-9c6e-96894c4f12c3",
+      "name": "Build Sheet Formatting",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4120,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "id": "e2cabb19-5f5a-4ed8-8b61-806c8d357cfa",
+      "name": "Apply Sheet Formatting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4340,
+        500
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eI9KdqVYqhKdz25D",
+          "name": "Google Sheets account 610"
+        }
+      }
     }
   ],
   "connections": {
@@ -898,7 +962,7 @@
       "main": [
         [
           {
-            "node": "Prepare Email With Sheet Link",
+            "node": "List Sheets For Formatting",
             "type": "main",
             "index": 0
           }
@@ -989,6 +1053,39 @@
             "node": "Wait For Sheet Appends",
             "type": "main",
             "index": 2
+          }
+        ]
+      ]
+    },
+    "List Sheets For Formatting": {
+      "main": [
+        [
+          {
+            "node": "Build Sheet Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sheet Formatting": {
+      "main": [
+        [
+          {
+            "node": "Apply Sheet Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Sheet Formatting": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email With Sheet Link",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
